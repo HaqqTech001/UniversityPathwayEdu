@@ -1,0 +1,733 @@
+import React, { useState } from 'react';
+import {
+  Key,
+  LogIn,
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  RefreshCw,
+  Hash,
+  BookOpen,
+  FileText,
+  TrendingUp,
+  ArrowLeft,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
+
+export type AuthMode =
+  | 'signin'
+  | 'register'
+  | 'forgot-password'
+  | 'reset-password'
+  | 'otp-verify'
+  | 'email-verify';
+
+interface AuthPageProps {
+  initialMode?: AuthMode;
+  onNavigate: (path: string) => void;
+}
+
+export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPageProps) {
+  const { login, registerAccount } = useAuth();
+
+  const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Sign In inputs
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // Register inputs
+  const [regFullName, setRegFullName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+
+  // Password Recovery & Reset inputs
+  const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  // OTP inputs
+  const [otpCode, setOtpCode] = useState('');
+
+  // Email verification inputs
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [emailToken, setEmailToken] = useState('');
+
+  // Handle Sign In
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    setAuthLoading(true);
+
+    const res = await login(loginIdentifier, loginPassword);
+    setAuthLoading(false);
+
+    if (res.success) {
+      onNavigate('/student');
+    } else {
+      setAuthError(res.error || 'Invalid credentials. Please verify your details.');
+    }
+  };
+
+  // Handle Register
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (regPassword !== regConfirmPassword) {
+      setAuthError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    if (regPassword.length < 6) {
+      setAuthError('Password must contain at least 6 characters.');
+      return;
+    }
+
+    setAuthLoading(true);
+    const res = await registerAccount(regFullName, regEmail, regPhone, regPassword);
+    setAuthLoading(false);
+
+    if (res.success) {
+      setAuthMode('otp-verify');
+      setAuthSuccess('Account created! A 6-digit verification code has been dispatched.');
+    } else {
+      setAuthError(res.error || 'Failed to create student account. Please review fields.');
+    }
+  };
+
+  // Handle Forgot Password
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (!recoveryIdentifier.trim()) {
+      setAuthError('Please enter your email or registration number.');
+      return;
+    }
+    setAuthSuccess(
+      `Password recovery code dispatched to contact associated with "${recoveryIdentifier}".`
+    );
+    setTimeout(() => {
+      setAuthMode('reset-password');
+    }, 1500);
+  };
+
+  // Handle Reset Password
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (newPassword !== confirmNewPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setAuthError('New password must contain at least 6 characters.');
+      return;
+    }
+    setAuthSuccess('Your password has been successfully reset. Please sign in.');
+    setTimeout(() => {
+      setAuthMode('signin');
+      setAuthSuccess(null);
+    }, 1800);
+  };
+
+  // Handle OTP Verification
+  const handleOtpVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (otpCode.trim().length < 4) {
+      setAuthError('Please enter the complete verification code.');
+      return;
+    }
+    setAuthSuccess('Two-factor verification successful. Opening candidate portal...');
+    setTimeout(() => {
+      onNavigate('/student');
+    }, 1200);
+  };
+
+  // Handle Email Verification
+  const handleEmailVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (!verificationEmail || !emailToken) {
+      setAuthError('Please provide both email address and verification token.');
+      return;
+    }
+    setAuthSuccess('Email address verified successfully. You may now sign in.');
+    setTimeout(() => {
+      setAuthMode('signin');
+      setAuthSuccess(null);
+    }, 1500);
+  };
+
+  const isRegisterMode = authMode === 'register' || authMode === 'signin';
+
+  return (
+    <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 font-sans">
+      {/* Optional Return link */}
+      <div className="w-full max-w-6xl mb-3 flex items-center justify-between px-2">
+        <button
+          type="button"
+          onClick={() => onNavigate('/')}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors cursor-pointer bg-white/5 px-3 py-1.5 rounded-lg border border-white/10"
+        >
+          <ArrowLeft size={14} />
+          <span>Return to Website</span>
+        </button>
+        <span className="text-xs text-slate-400 hidden sm:inline">University Pathway Educational Consult</span>
+      </div>
+
+      {/* Main Authentication Composition Matching Approved Mockup */}
+      <main className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col lg:flex-row min-h-[620px]">
+        
+        {/* =========================================================================
+            LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
+            ========================================================================= */}
+        <div className="lg:w-[58%] bg-gradient-to-br from-[#0c2661] via-[#091b46] to-[#040c24] text-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+          
+          {/* Top Header section inside left panel */}
+          <div className="relative z-10 max-w-lg">
+            <div className="mb-4">
+              <UniversityPathwayLogo />
+            </div>
+
+            <h1 className="font-serif text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mt-2">
+              Welcome to <br />University Pathway
+            </h1>
+
+            <p className="text-slate-200 text-xs sm:text-sm mt-2 font-normal">
+              Create an account to start your academic journey.
+            </p>
+
+            {/* Four Small Vertically Stacked Benefit Rows with Colourful Icons */}
+            <div className="mt-6 space-y-2.5">
+              {[
+                { label: 'Access your programme', icon: BookOpen },
+                { label: 'Complete your application', icon: FileText },
+                { label: 'Track your progress', icon: TrendingUp },
+                { label: 'Get important updates', icon: ShieldCheck },
+              ].map(({ label, icon: Icon }) => (
+                <div key={label} className="flex items-center gap-3 bg-white/10 px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit sm:w-80">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#f0bb5b] to-[#c62839] flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <Icon size={14} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-white">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Large Student Photograph on the Right Half of Left Panel with Diagonal Cut */}
+          <div className="absolute right-0 bottom-0 top-0 w-1/2 pointer-events-none hidden lg:block overflow-hidden">
+            {/* Diagonal overlay boundary matching reference */}
+            <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#091b46] to-transparent z-10" />
+            <img
+              src="/images/auth_student.jpg"
+              alt="Smiling Student with Books"
+              className="absolute right-0 bottom-0 h-full w-full object-cover object-top scale-105"
+              style={{
+                clipPath: 'polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%)',
+              }}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
+              }}
+            />
+          </div>
+
+          {/* Mobile / Tablet fallback student photo */}
+          <div className="mt-6 lg:hidden rounded-2xl overflow-hidden h-44 relative shadow-md">
+            <img
+              src="/images/auth_student.jpg"
+              alt="Smiling Student with Books"
+              className="w-full h-full object-cover object-top"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c2661] via-transparent to-transparent" />
+          </div>
+
+          {/* Help Desk Footer inside Left Panel */}
+          <div className="relative z-10 mt-6 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between">
+            <span>Admissions Help Desk: 09133903600</span>
+            <span>23 Olaiya Street, Ilorin</span>
+          </div>
+        </div>
+
+        {/* =========================================================================
+            RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
+            ========================================================================= */}
+        <div className="lg:w-[42%] bg-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
+          <div>
+            {/* Form Title & Subtitle */}
+            <div className="mb-5">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#0b1a42]">
+                {authMode === 'register' && 'Create Your Account'}
+                {authMode === 'signin' && 'Welcome Back'}
+                {authMode === 'forgot-password' && 'Password Recovery'}
+                {authMode === 'reset-password' && 'Reset Password'}
+                {authMode === 'otp-verify' && 'Security Verification'}
+                {authMode === 'email-verify' && 'Email Verification'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {authMode === 'register' && 'Join thousands of students on the path to success.'}
+                {authMode === 'signin' && 'Sign in to access your candidate portal.'}
+                {authMode === 'forgot-password' && 'Enter your email or registration number for recovery instructions.'}
+                {authMode === 'reset-password' && 'Enter your reset token and new secure password.'}
+                {authMode === 'otp-verify' && 'Enter the 6-digit code dispatched to your registered phone or email.'}
+                {authMode === 'email-verify' && 'Confirm your email address using the token sent to your inbox.'}
+              </p>
+            </div>
+
+            {/* Register / Sign In Tabs with Crimson Active State */}
+            {isRegisterMode && (
+              <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('register');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    authMode === 'register'
+                      ? 'bg-white text-[#0b1a42] shadow-sm border-b-2 border-[#c62839]'
+                      : 'text-slate-500 hover:text-[#0b1a42]'
+                  }`}
+                >
+                  Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    authMode === 'signin'
+                      ? 'bg-white text-[#0b1a42] shadow-sm border-b-2 border-[#c62839]'
+                      : 'text-slate-500 hover:text-[#0b1a42]'
+                  }`}
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
+
+            {/* Back link when in sub-modes */}
+            {!isRegisterMode && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className="text-xs font-bold text-[#c62839] hover:underline cursor-pointer"
+                >
+                  ← Back to Sign In
+                </button>
+              </div>
+            )}
+
+            {/* Error & Success Feedback Alerts */}
+            {authError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0 text-red-600" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {authSuccess && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
+                <CheckCircle2 size={15} className="shrink-0 text-emerald-600 mt-0.5" />
+                <span>{authSuccess}</span>
+              </div>
+            )}
+
+            {/* =====================================================================
+                FORM: REGISTER
+                ===================================================================== */}
+            {authMode === 'register' && (
+              <form onSubmit={handleRegister} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Full Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <User size={15} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={regFullName}
+                      onChange={(e) => setRegFullName(e.target.value)}
+                      placeholder="Surname First, e.g. Bello Amina Zainab"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Email Address</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Mail size={15} />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="candidate@email.com"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Phone Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Phone size={15} />
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      placeholder="e.g. 08012345678"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock size={15} />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Create Password (min. 6 chars)"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Confirm Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock size={15} />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      placeholder="Re-type password"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full mt-2 py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[46px]"
+                >
+                  <UserPlus size={16} />
+                  <span>{authLoading ? 'Creating Account...' : 'Create Account'}</span>
+                </button>
+              </form>
+            )}
+
+            {/* =====================================================================
+                FORM: SIGN IN
+                ===================================================================== */}
+            {authMode === 'signin' && (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
+                    Registration Number or Email
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <User size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder="e.g. UPEC/2025/0842 or email@address.com"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-[#0b1a42]">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('forgot-password');
+                        setAuthError(null);
+                      }}
+                      className="text-[11px] font-semibold text-[#c62839] hover:underline cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock size={16} />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Enter password"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full mt-2 py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[46px]"
+                >
+                  <LogIn size={16} />
+                  <span>{authLoading ? 'Signing In...' : 'Sign In to Portal'}</span>
+                </button>
+              </form>
+            )}
+
+            {/* =====================================================================
+                FORM: FORGOT PASSWORD
+                ===================================================================== */}
+            {authMode === 'forgot-password' && (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
+                    Email or Student Reg Number
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <User size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={recoveryIdentifier}
+                      onChange={(e) => setRecoveryIdentifier(e.target.value)}
+                      placeholder="e.g. UPEC/2025/0842"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+                >
+                  <Key size={16} />
+                  <span>Send Recovery Code</span>
+                </button>
+              </form>
+            )}
+
+            {/* =====================================================================
+                FORM: RESET PASSWORD
+                ===================================================================== */}
+            {authMode === 'reset-password' && (
+              <form onSubmit={handleResetPassword} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Reset Code</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Hash size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value)}
+                      placeholder="6-digit reset code"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">New Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min. 6 chars"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Re-type new password"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+                >
+                  <RefreshCw size={16} />
+                  <span>Save Password &amp; Sign In</span>
+                </button>
+              </form>
+            )}
+
+            {/* =====================================================================
+                FORM: OTP VERIFICATION
+                ===================================================================== */}
+            {authMode === 'otp-verify' && (
+              <form onSubmit={handleOtpVerify} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit OTP Code</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <ShieldCheck size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="e.g. 482910"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs font-mono font-bold tracking-widest text-center focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+                >
+                  <ShieldCheck size={16} />
+                  <span>Verify Code</span>
+                </button>
+              </form>
+            )}
+
+            {/* =====================================================================
+                FORM: EMAIL VERIFICATION
+                ===================================================================== */}
+            {authMode === 'email-verify' && (
+              <form onSubmit={handleEmailVerify} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={verificationEmail}
+                    onChange={(e) => setVerificationEmail(e.target.value)}
+                    placeholder="candidate@email.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Activation Token</label>
+                  <input
+                    type="text"
+                    required
+                    value={emailToken}
+                    onChange={(e) => setEmailToken(e.target.value)}
+                    placeholder="Enter token"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Confirm Email</span>
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Bottom Already have an account? Sign In link */}
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+            {authMode === 'register' ? (
+              <span>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className="text-[#c62839] font-bold hover:underline cursor-pointer"
+                >
+                  Sign In
+                </button>
+              </span>
+            ) : (
+              <span>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('register');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className="text-[#c62839] font-bold hover:underline cursor-pointer"
+                >
+                  Register
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Copyright Footer */}
+      <footer className="mt-4 text-center text-xs text-slate-400">
+        © {new Date().getFullYear()} University Pathway Educational Consult. All Rights Reserved.
+      </footer>
+    </div>
+  );
+}
