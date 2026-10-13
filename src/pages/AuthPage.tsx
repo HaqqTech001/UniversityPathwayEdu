@@ -322,6 +322,34 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
               </div>
             )}
 
+            {/* Google account option: intentionally disabled until verified OAuth backend is configured. */}
+            {isRegisterMode && (
+              <div className="mb-5">
+                <button
+                  type="button"
+                  disabled
+                  aria-describedby="google-auth-status"
+                  className="flex w-full min-h-[48px] items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-not-allowed"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+                    <path fill="#4285F4" d="M21.35 12.25c0-.76-.07-1.49-.2-2.19H12v4.14h5.23a4.48 4.48 0 0 1-1.94 2.94v2.44h3.13c1.83-1.69 2.93-4.17 2.93-7.33Z"/>
+                    <path fill="#34A853" d="M12 21.75c2.62 0 4.81-.87 6.42-2.37l-3.13-2.44c-.87.58-1.98.92-3.29.92a5.78 5.78 0 0 1-5.44-4.01H3.34v2.51A9.75 9.75 0 0 0 12 21.75Z"/>
+                    <path fill="#FBBC05" d="M6.56 13.85a5.9 5.9 0 0 1 0-3.7V7.64H3.34a9.75 9.75 0 0 0 0 8.72l3.22-2.51Z"/>
+                    <path fill="#EA4335" d="M12 6.14c1.43 0 2.7.49 3.71 1.45l2.78-2.78A9.29 9.29 0 0 0 12 2.25a9.75 9.75 0 0 0-8.66 5.39l3.22 2.51A5.78 5.78 0 0 1 12 6.14Z"/>
+                  </svg>
+                  {authMode === 'register' ? 'Sign up with Google' : 'Continue with Google'}
+                </button>
+                <p id="google-auth-status" className="mt-2 text-center text-[11px] text-slate-500">
+                  Google sign-in will be available once secure account integration is configured.
+                </p>
+                <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                  <span className="h-px flex-1 bg-slate-200" />
+                  or use your email
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
+              </div>
+            )}
+
             {/* Back link when in sub-modes */}
             {!isRegisterMode && (
               <div className="mb-4">
