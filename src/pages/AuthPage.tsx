@@ -209,12 +209,12 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         <div className="hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden md:min-h-[640px] lg:min-h-[680px]">
           
           {/* Top Header section inside left panel */}
-          <div className="relative z-20 max-w-full lg:max-w-[56%]">
+          <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
             <div className="mb-4">
               <UniversityPathwayLogo />
             </div>
 
-            <h1 className="font-serif text-2xl lg:text-4xl font-black text-white leading-tight tracking-tight mt-2">
+            <h1 className="font-serif text-[clamp(1.45rem,2.35vw,2.35rem)] font-black text-white leading-tight tracking-tight mt-2 break-words">
               {promo.heading}
             </h1>
 
@@ -223,7 +223,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             </p>
 
             {/* Four Small Vertically Stacked Benefit Rows with Colourful Icons */}
-            <div className="mt-6 space-y-2.5">
+            <div className="mt-5 space-y-2.5">
               {promo.benefits.map((label, index) => { const Icon = [BookOpen, FileText, TrendingUp, ShieldCheck][index]; return (
                 <div key={label} className="flex items-center gap-2 lg:gap-3 bg-white/10 px-2.5 lg:px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit max-w-full lg:w-80">
                   <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#f0bb5b] to-[#c62839] flex items-center justify-center text-white shrink-0 shadow-sm">
@@ -236,7 +236,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
           </div>
 
           {/* Large Student Photograph on the Right Half of Left Panel with Diagonal Cut */}
-          <div className="absolute right-0 bottom-0 top-0 w-[54%] pointer-events-none hidden lg:block overflow-hidden">
+          <div className="absolute right-0 bottom-0 top-0 w-[54%] pointer-events-none hidden xl:block overflow-hidden">
             {/* Diagonal overlay boundary matching reference */}
             <div className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[#091b46] via-[#091b46]/60 to-transparent z-10" />
             <img
@@ -252,21 +252,10 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             />
           </div>
 
-          {/* Mobile / Tablet fallback student photo */}
-          <div className="mt-5 hidden md:block lg:hidden rounded-2xl overflow-hidden h-36 relative shadow-md">
-            <img
-              src="/images/auth_student.jpg"
-              alt="Smiling Student with Books"
-              className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c2661] via-transparent to-transparent" />
-          </div>
+          {/* At tablet widths the promotional copy takes priority; the portrait is reserved for wide desktop layouts to avoid overlap or awkward cropping. */}
 
           {/* Help Desk Footer inside Left Panel */}
-          <div className="relative z-10 mt-6 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between">
+          <div className="relative z-20 mt-8 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2">
             <span>Admissions Help Desk: 09133903600</span>
             <span>23 Olaiya Street, Ilorin</span>
           </div>
