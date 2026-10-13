@@ -28,11 +28,11 @@ export interface PortalNavItem {
 
 export const STUDENT_PORTAL_NAV_ITEMS: PortalNavItem[] = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'profile', label: 'My Profile / Biodata', icon: User },
+  { id: 'profile', label: 'My Profile', icon: User },
   { id: 'applications', label: 'My Applications', icon: FileCheck },
-  { id: 'documents', label: 'Documents & Slips', icon: FileText },
-  { id: 'cbt', label: 'CBT Practice', icon: BookOpenCheck, badge: 'Simulator' },
-  { id: 'notices', label: 'Notifications', icon: Bell, badge: '2' },
+  { id: 'documents', label: 'Documents', icon: FileText },
+  { id: 'cbt', label: 'CBT Practice', icon: BookOpenCheck },
+  { id: 'notices', label: 'Notifications', icon: Bell },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -124,24 +124,10 @@ export default function StudentPortalLayout({
               </div>
             </div>
 
-            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 ml-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Verified Session
-            </span>
           </div>
 
           {/* Right: Notifications, Identity Card & Logout */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Public Website Visit Button */}
-            <button
-              type="button"
-              onClick={() => onNavigate('/')}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <span>Public Website</span>
-              <ExternalLink size={12} />
-            </button>
-
             {/* Notification Bell */}
             <button
               type="button"
@@ -150,7 +136,7 @@ export default function StudentPortalLayout({
               title="Notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c62839]" />
+
             </button>
 
             {/* Student Identity Pill */}
@@ -161,10 +147,10 @@ export default function StudentPortalLayout({
               </div>
               <div className="hidden sm:block text-left text-xs leading-tight">
                 <p className="font-bold text-white truncate max-w-[130px]">
-                  {currentUser?.fullName || 'Amina Bello'}
+                  {currentUser?.fullName || 'Student'}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  {currentUser?.regNumber || 'UPEC/2025/0842'}
+                  {currentUser?.regNumber || 'Registration pending'}
                 </p>
               </div>
             </div>
@@ -252,8 +238,8 @@ export default function StudentPortalLayout({
           {/* Sidebar Footer info */}
           {!isDesktopCollapsed && (
             <div className="p-4 border-t border-white/10 bg-[#071333] text-[11px] text-slate-400">
-              <p className="font-semibold text-white">Academic Cohort 2024/2025</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Sawmill Main Centre, Ilorin</p>
+              <p className="font-semibold text-white">Student workspace</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">University Pathway</p>
             </div>
           )}
         </aside>
@@ -293,10 +279,10 @@ export default function StudentPortalLayout({
                 </div>
                 <div className="text-xs leading-tight">
                   <p className="font-bold text-white truncate max-w-[170px]">
-                    {currentUser?.fullName || 'Amina Bello'}
+                    {currentUser?.fullName || 'Student'}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    {currentUser?.regNumber || 'UPEC/2025/0842'}
+                    {currentUser?.regNumber || 'Registration pending'}
                   </p>
                 </div>
               </div>
