@@ -119,7 +119,7 @@ export default function StudentPortalLayout({
                   STUDENT PORTAL
                 </span>
                 <span className="text-[10px] text-slate-300 font-medium">
-                  Verified Candidate Desk
+                  Student Workspace
                 </span>
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function StudentPortalLayout({
         )}
 
         {/* DEDICATED MAIN CONTENT AREA */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 min-w-0 p-3 sm:p-5 lg:p-7 xl:p-9 overflow-y-auto">
           {children}
         </main>
       </div>
