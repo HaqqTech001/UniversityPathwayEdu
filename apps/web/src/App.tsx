@@ -14,7 +14,6 @@ import BlogPage from './pages/BlogPage';
 import ContactPage from './pages/ContactPage';
 import ApplyPage from './pages/ApplyPage';
 import StudentPortalPage from './pages/StudentPortalPage';
-import StaffPortalPage from './pages/StaffPortalPage';
 import AuthPage from './pages/AuthPage';
 
 export default function App() {
@@ -86,9 +85,20 @@ export default function App() {
     return <StudentPortalPage onNavigate={navigate} />;
   }
 
-  // System D: StaffPortalPage for protected staff administration desk
-  if (currentPath === '/staff' || currentPath === '/staff/login' || currentPath === '/staff/portal') {
-    return <StaffPortalPage onNavigate={navigate} />;
+  // Staff and administration routes belong to the independent apps/admin build.
+  // Never render an admin interface inside the public/student application.
+  if (currentPath === '/staff' || currentPath.startsWith('/staff/') ||
+      currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc] px-5 py-12">
+        <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#c62839]">Separate Administration Application</p>
+          <h1 className="mt-3 font-serif text-2xl font-bold text-[#08163b]">Administration has moved</h1>
+          <p className="mt-4 text-sm leading-7 text-slate-600">Staff administration is not available inside the student website. Authorised staff will use the separately deployed University Pathway administration application once secure access is configured.</p>
+          <button type="button" onClick={() => navigate('/')} className="mt-6 rounded-xl bg-[#08163b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#142c65]">Return to website</button>
+        </section>
+      </main>
+    );
   }
 
   // System A: PublicWebsiteLayout for public-facing website pages
