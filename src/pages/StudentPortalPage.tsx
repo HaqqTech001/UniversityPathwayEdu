@@ -29,6 +29,7 @@ import {
   HelpCircle,
   Check,
   Award,
+  ArrowRight,
 } from 'lucide-react';
 import CbtExamWizard from '../portal/CbtExamWizard';
 import StudentBiodataForm from '../components/StudentBiodataForm';
