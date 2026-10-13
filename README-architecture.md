@@ -1,10 +1,22 @@
-# UPEC application separation
+# UPEC application architecture
 
-- `apps/web/`: target home for the public website and student portal. The existing Vite web application still runs from the repository root until migrated; this is **not yet a completed three-app monorepo**.
-- `apps/admin/`: standalone Vite/React administration frontend. No mock staff login or access to student records.
-- `apps/api/`: minimal Express service foundation with a health endpoint only. **No authentication, database, business endpoints, or authorisation implemented**.
-- `packages/`: planned shared packages after boundaries are defined.
+## Application boundaries
 
-Run the existing web app from root with `npm run dev`. For the admin, install dependencies within `apps/admin` and run `npm run dev`. For the API, install dependencies within `apps/api` and run `npm run dev`.
+- `apps/web/` — independently configured Vite/React public website and student portal. A full copy of the original source and public assets now exists here, with its own `package.json`.
+- `apps/admin/` — independent Vite/React administration application with a separate entry point, dependencies and UI. Its modules are placeholders; staff authentication is not enabled.
+- `apps/api/` — separate Express service foundation. Only `GET /health` exists. No database, authentication, permissions or business APIs have been implemented.
+- `packages/` — future location for shared types and safe shared components; not created yet.
 
-Do not deploy the administrative workspace as a real staff system until server-side authentication, RBAC, data access controls, and security review are complete.
+## Migration status
+
+The original root-level website is intentionally retained for compatibility with the current deployment. **Production has not been switched to `apps/web/`.** Do not delete root files until the standalone web build and deployment have been tested. The old root `src/pages/StaffPortalPage.tsx` is a disabled legacy staff placeholder, not the administrative app.
+
+## Local commands
+
+From `apps/web/`: `npm install`, `npm run dev`, `npm run build`.
+
+From `apps/admin/`: `npm install`, `npm run dev`, `npm run build`.
+
+From `apps/api/`: `npm install`, `npm run dev`.
+
+Run each app in its own terminal. There is not yet a root workspace orchestrator or a unified lockfile. Deploy each app separately after testing. Do not expose real student records or administrative actions without backend-enforced authentication and role-based authorization.
