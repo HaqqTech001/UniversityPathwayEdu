@@ -184,6 +184,16 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     'email-verify': { heading: 'Confirm Your Email Address', description: 'Keep your contact details accurate for important account updates.', benefits: ['Confirm your email', 'Protect your account', 'Stay informed', 'Continue to sign in'] },
   };
   const promo = promoCopy[authMode];
+  // Each authentication step has its own photographic treatment.
+  const promoImages: Record<AuthMode, { src: string; alt: string; position: string }> = {
+    signin: { src: '/images/auth_student.jpg', alt: 'Student ready to continue studying', position: 'center top' },
+    register: { src: '/images/african_students_hero.jpg', alt: 'Students beginning their academic journey', position: 'center center' },
+    'forgot-password': { src: '/images/student_support.jpg', alt: 'Student receiving academic support', position: 'center center' },
+    'reset-password': { src: '/images/student_writing_banner.jpg', alt: 'Student working at a desk', position: 'center center' },
+    'otp-verify': { src: '/images/classroom.jpg', alt: 'Students learning in a classroom', position: 'center center' },
+    'email-verify': { src: '/images/campus_atmosphere.jpg', alt: 'Academic learning environment', position: 'center center' },
+  };
+  const promoImage = promoImages[authMode];
 
   return (
     <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center px-3 py-5 sm:px-6 sm:py-8 lg:py-10 font-sans">
@@ -240,19 +250,26 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             {/* Diagonal overlay boundary matching reference */}
             <div className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[#091b46] via-[#091b46]/60 to-transparent z-10" />
             <img
-              src="/images/auth_student.jpg"
-              alt="Smiling Student with Books"
-              className="absolute right-0 bottom-0 h-full w-full object-cover object-top scale-105"
+              src={promoImage.src}
+              alt={promoImage.alt}
+              className="absolute right-0 bottom-0 h-full w-full object-cover scale-105"
               style={{
                 clipPath: 'polygon(32% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                objectPosition: promoImage.position,
               }}
               onError={(e) => {
+                (e.currentTarget as HTMLImageElement).onerror = null;
                 (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
               }}
             />
           </div>
 
-          {/* At tablet widths the promotional copy takes priority; the portrait is reserved for wide desktop layouts to avoid overlap or awkward cropping. */}
+          {/* Tablet portrait: independent bottom image region, never overlapping the benefits or form. */}
+          <div className="relative z-10 mt-5 hidden md:block xl:hidden h-36 lg:h-44 overflow-hidden rounded-2xl border border-white/15 shadow-lg">
+            <img src={promoImage.src} alt={promoImage.alt} className="h-full w-full object-cover" style={{ objectPosition: promoImage.position }}
+              onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/images/african_students_hero.jpg'; }} />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#091b46]/40 to-transparent" />
+          </div>
 
           {/* Help Desk Footer inside Left Panel */}
           <div className="relative z-20 mt-8 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2">
