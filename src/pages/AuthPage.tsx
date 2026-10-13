@@ -175,6 +175,15 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   };
 
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
+  const promoCopy: Record<AuthMode, { heading: string; description: string; benefits: string[] }> = {
+    signin: { heading: 'Welcome Back to University Pathway', description: 'Continue your academic journey from your student dashboard.', benefits: ['Access your student dashboard', 'Review your application', 'Follow your progress', 'See important updates'] },
+    register: { heading: 'Your Journey Starts Here', description: 'Create a student account and take the first step towards your goals.', benefits: ['Create your student account', 'Explore available programmes', 'Start your application', 'Track your next steps'] },
+    'forgot-password': { heading: 'We Will Help You Get Back', description: 'Recover access to your student account safely.', benefits: ['Request recovery instructions', 'Protect your account', 'Choose a new password', 'Return to your dashboard'] },
+    'reset-password': { heading: 'A Fresh Start, Securely', description: 'Set a new password to protect your student account.', benefits: ['Choose a strong password', 'Confirm your new password', 'Keep your account protected', 'Return to sign in'] },
+    'otp-verify': { heading: 'One More Step to Get Started', description: 'Verification helps protect your account and your academic information.', benefits: ['Confirm your identity', 'Protect your student details', 'Complete account setup', 'Continue your journey'] },
+    'email-verify': { heading: 'Confirm Your Email Address', description: 'Keep your contact details accurate for important account updates.', benefits: ['Confirm your email', 'Protect your account', 'Stay informed', 'Continue to sign in'] },
+  };
+  const promo = promoCopy[authMode];
 
   return (
     <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center px-3 py-5 sm:px-6 sm:py-8 lg:py-10 font-sans">
@@ -192,42 +201,37 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       </div>
 
       {/* Main Authentication Composition Matching Approved Mockup */}
-      <main className="w-full max-w-6xl bg-white rounded-[24px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col lg:flex-row lg:min-h-[680px]">
+      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px]">
         
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className="lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative isolate overflow-hidden min-h-[260px] sm:min-h-[340px] lg:min-h-[680px]">
+        <div className="hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden md:min-h-[640px] lg:min-h-[680px]">
           
           {/* Top Header section inside left panel */}
-          <div className="relative z-20 max-w-lg lg:max-w-[56%]">
+          <div className="relative z-20 max-w-full lg:max-w-[56%]">
             <div className="mb-4">
               <UniversityPathwayLogo />
             </div>
 
-            <h1 className="font-serif text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mt-2">
-              Welcome to <br />University Pathway
+            <h1 className="font-serif text-2xl lg:text-4xl font-black text-white leading-tight tracking-tight mt-2">
+              {promo.heading}
             </h1>
 
             <p className="text-slate-200 text-xs sm:text-sm mt-2 font-normal">
-              Create an account to start your academic journey.
+              {promo.description}
             </p>
 
             {/* Four Small Vertically Stacked Benefit Rows with Colourful Icons */}
             <div className="mt-6 space-y-2.5">
-              {[
-                { label: 'Access your programme', icon: BookOpen },
-                { label: 'Complete your application', icon: FileText },
-                { label: 'Track your progress', icon: TrendingUp },
-                { label: 'Get important updates', icon: ShieldCheck },
-              ].map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3 bg-white/10 px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit sm:w-80">
+              {promo.benefits.map((label, index) => { const Icon = [BookOpen, FileText, TrendingUp, ShieldCheck][index]; return (
+                <div key={label} className="flex items-center gap-2 lg:gap-3 bg-white/10 px-2.5 lg:px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit max-w-full lg:w-80">
                   <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#f0bb5b] to-[#c62839] flex items-center justify-center text-white shrink-0 shadow-sm">
                     <Icon size={14} />
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-white">{label}</span>
+                  <span className="text-xs lg:text-sm font-semibold text-white">{label}</span>
                 </div>
-              ))}
+              ); })}
             </div>
           </div>
 
@@ -249,7 +253,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
           </div>
 
           {/* Mobile / Tablet fallback student photo */}
-          <div className="mt-5 lg:hidden rounded-2xl overflow-hidden h-36 sm:h-48 relative shadow-md">
+          <div className="mt-5 hidden md:block lg:hidden rounded-2xl overflow-hidden h-36 relative shadow-md">
             <img
               src="/images/auth_student.jpg"
               alt="Smiling Student with Books"
@@ -271,7 +275,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className="lg:w-[42%] bg-white p-5 sm:p-8 lg:p-10 flex flex-col justify-between min-w-0">
+        <div className="w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0">
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
