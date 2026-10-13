@@ -264,15 +264,25 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             />
           </div>
 
-          {/* Tablet portrait: independent bottom image region, never overlapping the benefits or form. */}
-          <div className="relative z-10 mt-5 hidden md:block xl:hidden h-36 lg:h-44 overflow-hidden rounded-2xl border border-white/15 shadow-lg">
-            <img src={promoImage.src} alt={promoImage.alt} className="h-full w-full object-cover" style={{ objectPosition: promoImage.position }}
-              onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/images/african_students_hero.jpg'; }} />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#091b46]/40 to-transparent" />
+          {/* Tablet: full-bleed editorial photo integrated into the promo panel.
+              The dark-to-transparent fade preserves legibility of the benefits above. */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 top-[38%] z-0 overflow-hidden xl:hidden">
+            <img
+              src={promoImage.src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: promoImage.position }}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = '/images/african_students_hero.jpg';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#091b46] via-[#091b46]/70 via-[30%] to-[#091b46]/40" />
+            <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#040c24] via-[#040c24]/75 to-transparent" />
           </div>
 
           {/* Help Desk Footer inside Left Panel */}
-          <div className="relative z-20 mt-8 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2">
+          <div className="relative z-20 mt-8 pt-4 border-t border-white/25 text-[11px] text-white/90 flex flex-wrap items-center justify-between gap-2">
             <span>Admissions Help Desk: 09133903600</span>
             <span>23 Olaiya Street, Ilorin</span>
           </div>
