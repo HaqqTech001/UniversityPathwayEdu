@@ -60,13 +60,22 @@ export default function App() {
   // ROUTING WITH THREE COMPLETELY DISTINCT LAYOUT SYSTEMS (Directive 1)
   // System B: AuthLayout / AuthPage for student authentication flows
   if (currentPath === '/student/login') {
-    return <AuthPage initialMode="signin" onNavigate={navigate} />;
+    return <AuthPage key={currentPath} initialMode="signin" onNavigate={navigate} />;
   }
   if (currentPath === '/student/register') {
-    return <AuthPage initialMode="register" onNavigate={navigate} />;
+    return <AuthPage key={currentPath} initialMode="register" onNavigate={navigate} />;
   }
   if (currentPath === '/student/forgot-password') {
-    return <AuthPage initialMode="forgot-password" onNavigate={navigate} />;
+    return <AuthPage key={currentPath} initialMode="forgot-password" onNavigate={navigate} />;
+  }
+  if (currentPath === '/student/reset-password') {
+    return <AuthPage key={currentPath} initialMode="reset-password" onNavigate={navigate} />;
+  }
+  if (currentPath === '/student/verify-email') {
+    return <AuthPage key={currentPath} initialMode="email-verify" onNavigate={navigate} />;
+  }
+  if (currentPath === '/student/verify-otp') {
+    return <AuthPage key={currentPath} initialMode="otp-verify" onNavigate={navigate} />;
   }
   if (currentPath === '/auth') {
     return <AuthPage initialMode="signin" onNavigate={navigate} />;
