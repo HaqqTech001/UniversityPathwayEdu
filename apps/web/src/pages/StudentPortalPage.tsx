@@ -221,66 +221,70 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             DRAWER TAB 1: DASHBOARD (OVERVIEW)
             ========================================================================= */}
         {dashboardTab === 'overview' && (
-          <div className="space-y-5 sm:space-y-7">
-            <section className="relative isolate overflow-hidden rounded-3xl bg-[#08163b] p-6 text-white shadow-[0_20px_50px_rgba(8,22,59,0.14)] sm:p-9 lg:p-10">
-              <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-[#d5a75b]/10 blur-2xl"/>
-              <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 right-16 h-64 w-64 rounded-full bg-[#c62839]/20 blur-3xl"/>
-              <div className="relative z-10 max-w-2xl">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0bb5b]">Your student workspace</p>
-                <h2 className="mt-4 font-serif text-[clamp(1.65rem,3.2vw,2.75rem)] font-black leading-tight">Welcome, {currentUser.biodata.firstName || 'Student'}.</h2>
-                <p className="mt-3 max-w-xl text-sm leading-7 text-slate-200 sm:text-base">Your pathway starts here. Keep your profile up to date, manage your application and prepare for the next step.</p>
-                <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <button type="button" onClick={() => setDashboardTab(currentUser.profileCompleted ? 'applications' : 'profile')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#c62839] px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-[#af1f30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-                    {currentUser.profileCompleted ? 'View my application' : 'Complete my profile'} <ArrowRight size={17}/>
-                  </button>
-                  <button type="button" onClick={() => setDashboardTab('cbt')} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/35 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10">Explore CBT practice</button>
-                </div>
+          <div className="space-y-5 sm:space-y-6">
+            <section className="relative isolate overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:p-8 lg:p-10">
+              <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20" />
+              <div className="relative max-w-xl">
+                <p className="text-sm font-medium text-[#233b68]">Welcome back,</p>
+                <h2 className="mt-1 text-2xl font-black tracking-tight text-[#08163b] sm:text-3xl">{currentUser.biodata.firstName || 'Student'}</h2>
+                <p className="mt-3 max-w-md text-sm leading-7 text-[#334b72]">Keep your profile updated and track your journey towards your academic goals.</p>
+                <p className="mt-3 text-xs font-semibold text-[#526988]">Your next opportunity could be one step closer today.</p>
               </div>
             </section>
-            <section aria-label="Your account at a glance" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Student profile</p><User size={19} className="text-[#c62839]"/></div>
-                <p className="mt-4 text-xl font-black text-[#08163b]">{currentUser.profileCompleted ? 'Completed' : 'Action needed'}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{currentUser.profileCompleted ? 'Your profile details are recorded in this workspace.' : 'Complete your biodata and guardian details.'}</p>
-                <button type="button" onClick={() => setDashboardTab('profile')} className="mt-5 inline-flex min-h-10 items-center gap-1 text-sm font-bold text-[#c62839] hover:underline">Open profile <ArrowRight size={15}/></button>
+
+            <section aria-label="Your account status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <article className="min-w-0 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-3"><span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><User size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Profile completion</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.profileCompleted ? 'Complete' : 'Incomplete'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.profileCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.profileCompleted ? 'Completed' : 'Action needed'}</span></div></div>
+                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.profileCompleted ? 'w-full bg-emerald-600' : 'w-[15%] bg-red-500'}`}/></div>
+                <button type="button" onClick={() => setDashboardTab('profile')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View profile <ArrowRight size={17}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Application</p><FileText size={19} className="text-[#c62839]"/></div>
-                <p className="mt-4 text-xl font-black capitalize text-[#08163b]">{currentUser.application?.status.replace(/_/g, ' ') || 'Not started'}</p>
-                <p className="mt-2 break-words text-sm leading-6 text-slate-500">{currentUser.application?.referenceNumber || 'Your reference will appear after you start an application.'}</p>
-                <button type="button" onClick={() => setDashboardTab('applications')} className="mt-5 inline-flex min-h-10 items-center gap-1 text-sm font-bold text-[#c62839] hover:underline">View application <ArrowRight size={15}/></button>
+              <article className="min-w-0 rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-3"><span className="rounded-2xl bg-amber-100 p-3 text-amber-700"><FileText size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Application status</p><p className="mt-1 text-lg font-extrabold capitalize text-[#08163b]">{currentUser.application?.status.replace(/_/g,' ') || 'Not started'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'bg-emerald-100 text-emerald-800' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'bg-red-100 text-red-800' : currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'Approved' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'Needs attention' : currentUser.application ? 'In progress' : 'Not started'}</span></div></div>
+                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.application ? 'w-1/2 bg-amber-500' : 'w-0'}`}/></div>
+                <button type="button" onClick={() => setDashboardTab('applications')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View application <ArrowRight size={17}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2 sm:p-6 xl:col-span-1">
-                <div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Email status</p><Mail size={19} className="text-[#c62839]"/></div>
-                <p className="mt-4 text-xl font-black text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Pending'}</p>
-                <p className="mt-2 break-all text-sm leading-6 text-slate-500">{currentUser.email}</p>
-                <p className="mt-4 text-xs text-slate-400">Account verification is currently a frontend preview.</p>
+              <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+                <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified in preview' : 'Incomplete'}</span></div></div>
+                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.isEmailVerified ? 'w-full bg-emerald-600' : 'w-[10%] bg-red-500'}`}/></div>
+                <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Verification is not yet backend-confirmed.</p>
               </article>
             </section>
-            <section className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(270px,1fr)]">
-              <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#c62839]">Your journey</p>
-                <h3 className="mt-2 font-serif text-xl font-bold text-[#08163b]">What comes next?</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">Follow these steps at your own pace.</p>
-                <div className="mt-6 space-y-3">
-                  <div className="flex items-center gap-4 rounded-2xl bg-emerald-50/70 p-4"><CheckCircle2 size={21} className="shrink-0 text-emerald-700"/><div><p className="text-sm font-bold">Account created</p><p className="mt-1 text-xs text-slate-500">Your student workspace is accessible.</p></div></div>
-                  <button type="button" onClick={() => setDashboardTab('profile')} className="flex min-h-16 w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 text-left hover:border-[#d5a75b] hover:bg-amber-50/30"><span className="text-sm font-semibold">Complete your student profile</span><span className="shrink-0 text-xs font-bold text-[#c62839]">{currentUser.profileCompleted ? 'Done' : 'Continue →'}</span></button>
-                  <button type="button" onClick={() => setDashboardTab('applications')} className="flex min-h-16 w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 text-left hover:border-[#d5a75b] hover:bg-amber-50/30"><span className="text-sm font-semibold">Start or review your application</span><span className="shrink-0 text-xs font-bold text-[#c62839]">{currentUser.application ? 'View →' : 'Start →'}</span></button>
-                  <button type="button" onClick={() => setDashboardTab('applications')} className="flex min-h-16 w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 text-left hover:border-[#d5a75b] hover:bg-amber-50/30"><span className="text-sm font-semibold">Track your application</span><span className="shrink-0 text-xs font-bold text-[#c62839]">{currentUser.application?.status.replace(/_/g, ' ') || 'Not submitted'}</span></button>
-                </div>
+
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
+              <div className="space-y-5">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-extrabold text-[#08163b]">Application journey</h3><p className="mt-1 text-xs text-slate-500">Follow each step to complete your application.</p></div><button type="button" onClick={() => setDashboardTab('applications')} className="min-h-10 rounded-full bg-[#142f70] px-5 text-xs font-bold text-white">Continue →</button></div>
+                  <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      { label:'Account', done:true },
+                      { label:'Profile', done:currentUser.profileCompleted },
+                      { label:'Application', done:!!currentUser.application },
+                      { label:'Review & status', done:['approved','accepted','completed'].includes(currentUser.application?.status || '') },
+                    ].map((step,index) => <div key={step.label} className="flex min-w-0 flex-col items-center text-center"><span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ${step.done ? 'bg-emerald-600' : index===2 && currentUser.application ? 'bg-amber-500' : 'bg-slate-400'}`}>{step.done ? <Check size={18}/> : index+1}</span><p className="mt-3 text-xs font-semibold text-[#08163b]">{step.label}</p><span className={`mt-2 rounded-full px-2 py-1 text-[10px] font-semibold ${step.done ? 'bg-emerald-100 text-emerald-800' : index===2 && currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{step.done ? 'Completed' : index===2 && currentUser.application ? 'In progress' : 'Not started'}</span></div>)}
+                  </div>
+                </section>
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                  <h3 className="text-lg font-extrabold text-[#08163b]">Quick actions</h3>
+                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      {label:'Edit profile',tab:'profile',Icon:User,tone:'bg-blue-50 text-blue-700'},
+                      {label:'Application',tab:'applications',Icon:FileText,tone:'bg-amber-50 text-amber-700'},
+                      {label:'Practice CBT',tab:'cbt',Icon:BookOpen,tone:'bg-violet-50 text-violet-700'},
+                      {label:'Documents',tab:'documents',Icon:Download,tone:'bg-emerald-50 text-emerald-700'},
+                    ].map(item => <button type="button" key={item.tab} onClick={() => setDashboardTab(item.tab)} className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={25}/>{item.label}</button>)}
+                  </div>
+                </section>
               </div>
-              <aside className="min-w-0 rounded-3xl border border-slate-200 bg-[#f9fafc] p-5 sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#c62839]">Quick access</p>
-                <h3 className="mt-2 font-serif text-xl font-bold">Everything in one place</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">Use these shortcuts whenever you need them.</p>
-                <div className="mt-6 space-y-3">
-                  <button type="button" onClick={() => setDashboardTab('cbt')} className="flex min-h-14 w-full items-center justify-between rounded-xl bg-white px-4 text-left text-sm font-bold shadow-sm ring-1 ring-slate-200 hover:ring-[#d5a75b]"><span className="flex items-center gap-3"><BookOpen size={18} className="text-[#c62839]"/> CBT practice</span><ArrowRight size={16}/></button>
-                  <button type="button" onClick={() => setDashboardTab('documents')} className="flex min-h-14 w-full items-center justify-between rounded-xl bg-white px-4 text-left text-sm font-bold shadow-sm ring-1 ring-slate-200 hover:ring-[#d5a75b]"><span className="flex items-center gap-3"><FileText size={18} className="text-[#c62839]"/> My documents</span><ArrowRight size={16}/></button>
-                  <button type="button" onClick={() => setDashboardTab('notices')} className="flex min-h-14 w-full items-center justify-between rounded-xl bg-white px-4 text-left text-sm font-bold shadow-sm ring-1 ring-slate-200 hover:ring-[#d5a75b]"><span className="flex items-center gap-3"><Bell size={18} className="text-[#c62839]"/> Notifications</span><ArrowRight size={16}/></button>
-                </div>
+              <aside className="space-y-5">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                  <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#08163b]">Notifications</h3><button type="button" onClick={() => setDashboardTab('notices')} className="text-xs font-bold text-blue-700">View all</button></div>
+                  <div className="mt-6 flex flex-col items-center rounded-xl bg-slate-50 px-4 py-9 text-center"><Bell size={27} className="text-slate-400"/><p className="mt-3 text-sm font-bold">No notifications yet</p><p className="mt-2 text-xs leading-5 text-slate-500">Official updates will appear when connected.</p></div>
+                </section>
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
               </aside>
-            </section>
-            <p className="rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-6 text-slate-500">Frontend preview: application details and account status are not yet verified by a backend. Official exam results, attendance and notices will appear only when connected to real records.</p>
+            </div>
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">Frontend preview only: account and application statuses are not yet verified by a backend. Sample results, notices and deadlines are intentionally not shown.</p>
           </div>
         )}
 
