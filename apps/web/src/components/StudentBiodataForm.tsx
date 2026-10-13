@@ -41,10 +41,10 @@ export default function StudentBiodataForm({
     firstName: currentUser?.biodata.firstName || '',
     middleName: currentUser?.biodata.otherNames || '',
     dateOfBirth: currentUser?.biodata.dateOfBirth || '',
-    placeOfBirth: 'Ilorin',
+    placeOfBirth: '',
     gender: currentUser?.biodata.gender || 'Female',
-    stateOfOrigin: currentUser?.biodata.stateOfOrigin || 'Kwara State',
-    lga: currentUser?.biodata.lga || 'Ilorin South',
+    stateOfOrigin: currentUser?.biodata.stateOfOrigin || '',
+    lga: currentUser?.biodata.lga || '',
     nationality: 'Nigerian',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
@@ -55,35 +55,37 @@ export default function StudentBiodataForm({
     // Step 2: Guardian & Emergency Contact
     guardianRelationship: currentUser?.biodata.guardianRelationship || 'Father',
     guardianName: currentUser?.biodata.guardianName || '',
-    guardianOccupation: 'Civil Servant',
-    guardianWorkplace: 'Ilorin State Secretariat',
-    guardianEmail: 'guardian@example.com',
+    guardianOccupation: '',
+    guardianWorkplace: '',
+    guardianEmail: '',
     guardianPhone: currentUser?.biodata.guardianPhone || '',
     guardianAlternatePhone: '',
     guardianAddress: currentUser?.biodata.guardianAddress || currentUser?.biodata.address || '',
-    emergencyName: currentUser?.biodata.guardianName || 'Alhaji M. K. Bello',
+    emergencyName: currentUser?.biodata.guardianName || '',
     emergencyRelationship: 'Father',
-    emergencyPhone: currentUser?.biodata.guardianPhone || '08033001122',
-    emergencyAddress: currentUser?.biodata.address || '14, Taiwo Isale Road, Ilorin',
+    emergencyPhone: currentUser?.biodata.guardianPhone || '',
+    emergencyAddress: currentUser?.biodata.address || '',
 
     // Step 3: Education & Programme
-    currentSchool: currentUser?.biodata.previousSchool || 'Government Secondary School, Ilorin',
-    currentClass: 'SS 3 Graduated',
-    schoolAddress: 'Fate Road, Ilorin, Kwara State',
-    programmeCategory: 'UTME (JAMB)',
+    currentSchool: currentUser?.biodata.previousSchool || '',
+    currentClass: '',
+    schoolAddress: '',
+    programmeCategory: currentUser?.biodata.targetExam || '',
     preferredSession: 'Morning',
     department: 'Science',
     duration: '6 months',
     utmeSubject1: 'Use of English (Compulsory)',
-    utmeSubject2: 'Biology',
-    utmeSubject3: 'Chemistry',
-    utmeSubject4: 'Physics',
-    targetInstitution: currentUser?.biodata.targetInstitution || 'University of Ilorin (UNILORIN)',
-    targetCourse: currentUser?.biodata.targetCourse || 'Medicine and Surgery (MBBS)',
+    utmeSubject2: '',
+    utmeSubject3: '',
+    utmeSubject4: '',
+    targetInstitution: currentUser?.biodata.targetInstitution || '',
+    targetCourse: currentUser?.biodata.targetCourse || '',
 
     // Step 4: Declaration
-    declarationConfirmed: true,
+    declarationConfirmed: false,
   });
+
+  const isUtme = formData.programmeCategory === 'UTME (JAMB)';
 
   const handleChange = (
     field: string,
@@ -127,8 +129,13 @@ export default function StudentBiodataForm({
     const err: Record<string, string> = {};
     if (!formData.programmeCategory) err.programmeCategory = 'Please select a programme category';
     if (!formData.preferredSession) err.preferredSession = 'Please select preferred session';
-    if (!formData.targetInstitution.trim()) err.targetInstitution = 'Target institution is required';
-    if (!formData.targetCourse.trim()) err.targetCourse = 'Target course is required';
+    if (isUtme) {
+      if (!formData.targetInstitution.trim()) err.targetInstitution = 'Target institution is required for UTME';
+      if (!formData.targetCourse.trim()) err.targetCourse = 'Preferred course is required for UTME';
+      const subjects = [formData.utmeSubject2, formData.utmeSubject3, formData.utmeSubject4].map(value => value.trim().toLowerCase());
+      if (subjects.some(value => !value)) err.utmeSubject4 = 'Enter all three elective UTME subjects';
+      else if (new Set(subjects).size !== 3) err.utmeSubject4 = 'UTME subjects must be different';
+    }
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -175,8 +182,8 @@ export default function StudentBiodataForm({
       guardianRelationship: formData.guardianRelationship,
       guardianAddress: formData.guardianAddress,
       previousSchool: formData.currentSchool,
-      targetInstitution: formData.targetInstitution,
-      targetCourse: formData.targetCourse,
+      targetInstitution: isUtme ? formData.targetInstitution : '',
+      targetCourse: isUtme ? formData.targetCourse : '',
       targetExam: formData.programmeCategory,
     });
 
@@ -688,10 +695,11 @@ export default function StudentBiodataForm({
                   onChange={(e) => handleChange('programmeCategory', e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none bg-white"
                 >
+                  <option value="">Select a programme</option>
                   <option value="UTME (JAMB)">UTME (JAMB) Intensive Coaching</option>
                   <option value="SSCE">SSCE (WAEC / NECO / NABTEB)</option>
-                  <option value="JSSCE">A'Level (JUPEB / IJMB)</option>
-                  <option value="Private tutor">International Examination Prep</option>
+                  <option value="A-Level">A'Level (JUPEB / IJMB)</option>
+                  <option value="International">International Examination Prep</option>
                 </select>
               </div>
 
@@ -725,7 +733,7 @@ export default function StudentBiodataForm({
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            {isUtme && <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
               <h4 className="text-xs font-bold text-[#0b1a42] uppercase tracking-wider">
                 Target UTME 4-Subject Combination (English Compulsory)
               </h4>
@@ -767,9 +775,9 @@ export default function StudentBiodataForm({
                   />
                 </div>
               </div>
-            </div>
+            </div>}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isUtme && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#0b1a42] mb-1">
                   Target Tertiary Institution <span className="text-[#c62839]">*</span>
@@ -797,7 +805,7 @@ export default function StudentBiodataForm({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
                 />
               </div>
-            </div>
+            </div>}
           </div>
         )}
 
@@ -871,8 +879,7 @@ export default function StudentBiodataForm({
                 </div>
                 <p><strong>Programme:</strong> {formData.programmeCategory}</p>
                 <p><strong>Session:</strong> {formData.preferredSession} Cohort</p>
-                <p><strong>Subjects:</strong> {formData.utmeSubject1}, {formData.utmeSubject2}, {formData.utmeSubject3}, {formData.utmeSubject4}</p>
-                <p><strong>Target:</strong> {formData.targetCourse} @ {formData.targetInstitution}</p>
+                {isUtme && <><p><strong>Subjects:</strong> {formData.utmeSubject1}, {formData.utmeSubject2}, {formData.utmeSubject3}, {formData.utmeSubject4}</p><p><strong>Preferred course:</strong> {formData.targetCourse} @ {formData.targetInstitution}</p></>}
               </div>
             </div>
 
