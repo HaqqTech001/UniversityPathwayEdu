@@ -140,19 +140,11 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     setTimeout(() => setEditSuccessMsg(null), 4000);
   };
 
+  // Password changes require a verified backend session. Do not simulate success.
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordState.newPass !== passwordState.confirmPass) {
-      setPasswordNotice('New passwords do not match. Please re-enter.');
-      return;
-    }
-    if (passwordState.newPass.length < 6) {
-      setPasswordNotice('Password must be at least 6 characters.');
-      return;
-    }
-    setPasswordNotice('Password updated successfully.');
+    setPasswordNotice('Password changes are unavailable while secure account services are being configured. Your password has not been changed.');
     setPasswordState({ current: '', newPass: '', confirmPass: '' });
-    setTimeout(() => setPasswordNotice(null), 3500);
   };
 
   return (
