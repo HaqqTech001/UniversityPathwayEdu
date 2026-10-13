@@ -177,7 +177,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
 
   return (
-    <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 font-sans">
+    <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center px-3 py-5 sm:px-6 sm:py-8 lg:py-10 font-sans">
       {/* Optional Return link */}
       <div className="w-full max-w-6xl mb-3 flex items-center justify-between px-2">
         <button
@@ -192,15 +192,15 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       </div>
 
       {/* Main Authentication Composition Matching Approved Mockup */}
-      <main className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col lg:flex-row min-h-[620px]">
+      <main className="w-full max-w-6xl bg-white rounded-[24px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col lg:flex-row lg:min-h-[680px]">
         
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className="lg:w-[58%] bg-gradient-to-br from-[#0c2661] via-[#091b46] to-[#040c24] text-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative isolate overflow-hidden min-h-[260px] sm:min-h-[340px] lg:min-h-[680px]">
           
           {/* Top Header section inside left panel */}
-          <div className="relative z-10 max-w-lg">
+          <div className="relative z-20 max-w-lg lg:max-w-[56%]">
             <div className="mb-4">
               <UniversityPathwayLogo />
             </div>
@@ -232,15 +232,15 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
           </div>
 
           {/* Large Student Photograph on the Right Half of Left Panel with Diagonal Cut */}
-          <div className="absolute right-0 bottom-0 top-0 w-1/2 pointer-events-none hidden lg:block overflow-hidden">
+          <div className="absolute right-0 bottom-0 top-0 w-[54%] pointer-events-none hidden lg:block overflow-hidden">
             {/* Diagonal overlay boundary matching reference */}
-            <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#091b46] to-transparent z-10" />
+            <div className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[#091b46] via-[#091b46]/60 to-transparent z-10" />
             <img
               src="/images/auth_student.jpg"
               alt="Smiling Student with Books"
               className="absolute right-0 bottom-0 h-full w-full object-cover object-top scale-105"
               style={{
-                clipPath: 'polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                clipPath: 'polygon(32% 0%, 100% 0%, 100% 100%, 0% 100%)',
               }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
@@ -249,7 +249,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
           </div>
 
           {/* Mobile / Tablet fallback student photo */}
-          <div className="mt-6 lg:hidden rounded-2xl overflow-hidden h-44 relative shadow-md">
+          <div className="mt-5 lg:hidden rounded-2xl overflow-hidden h-36 sm:h-48 relative shadow-md">
             <img
               src="/images/auth_student.jpg"
               alt="Smiling Student with Books"
@@ -271,7 +271,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className="lg:w-[42%] bg-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
+        <div className="lg:w-[42%] bg-white p-5 sm:p-8 lg:p-10 flex flex-col justify-between min-w-0">
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
@@ -284,7 +284,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 {authMode === 'email-verify' && 'Email Verification'}
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                {authMode === 'register' && 'Join thousands of students on the path to success.'}
+                {authMode === 'register' && 'Create your student account to begin your application.'}
                 {authMode === 'signin' && 'Sign in to access your candidate portal.'}
                 {authMode === 'forgot-password' && 'Enter your email or registration number for recovery instructions.'}
                 {authMode === 'reset-password' && 'Enter your reset token and new secure password.'}
