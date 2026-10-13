@@ -93,6 +93,9 @@ export default function App() {
 
   // System A: PublicWebsiteLayout for public-facing website pages
   const renderPublicContent = () => {
+    if (currentPath.startsWith('/blog/')) {
+      return <BlogPage onNavigate={navigate} />;
+    }
     switch (currentPath) {
       case '/about':
         return <AboutPage onNavigate={navigate} />;
