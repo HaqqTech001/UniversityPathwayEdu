@@ -176,8 +176,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
-              {currentUser.biodata.firstName[0] || 'U'}
-              {currentUser.biodata.surname[0] || 'P'}
+              {currentUser.biodata.firstName?.[0] || 'U'}
+              {currentUser.biodata.surname?.[0] || 'P'}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -186,7 +186,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
                   <CheckCircle2 size={11} />
-                  Verified Candidate
+                  {currentUser.isEmailVerified ? 'Email verified' : 'Verification pending'}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
@@ -199,7 +199,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 </span>
                 <span>•</span>
                 <span>
-                  Target: <strong>{currentUser.biodata.targetExam || 'JAMB (UTME) 2025'}</strong>
+                  Target: <strong>{currentUser.biodata.targetExam || 'Not selected'}</strong>
                 </span>
               </div>
             </div>
@@ -230,130 +230,33 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'overview' && (
           <div className="space-y-6">
-            {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  CBT Simulator Average
-                </span>
-                <p className="font-serif text-2xl sm:text-3xl font-black text-[#0b1a42] mt-1">
-                  294 / 400
-                </p>
-                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
-                  <TrendingUp size={12} />
-                  Top 5% in Science Cohort
-                </span>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Lecture Attendance
-                </span>
-                <p className="font-serif text-2xl sm:text-3xl font-black text-[#0b1a42] mt-1">
-                  96%
-                </p>
-                <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                  24 of 25 Lectures Attended
-                </span>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Upcoming Mock Test
-                </span>
-                <p className="font-serif text-lg sm:text-xl font-black text-[#c62839] mt-1">
-                  Saturday 8:00 AM
-                </p>
-                <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                  Computerized Mock #13
-                </span>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Cohort Clearance
-                </span>
-                <p className="font-serif text-lg sm:text-xl font-black text-emerald-700 mt-1">
-                  Cleared &amp; Active
-                </p>
-                <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                  Batch A (Morning Session)
-                </span>
-              </div>
-            </div>
-
-            {/* Split: Schedule & CBT Practice launcher */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left 2 Cols: Schedule */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={18} className="text-[#c62839]" />
-                    <h2 className="font-serif text-base font-bold text-[#0b1a42]">
-                      Today's Coaching Schedule
-                    </h2>
-                  </div>
-                  <span className="text-xs text-slate-400">Sawmill Campus Hall A</span>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-[#0b1a42]">09:00 AM – 11:30 AM: Chemistry</p>
-                      <p className="text-[11px] text-slate-500">
-                        Instructor: Mr. Balogun • Topics: Periodic Table &amp; Gas Laws
-                      </p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                      Completed
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-red-50/60 border border-red-200 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-[#0b1a42]">11:45 AM – 01:45 PM: Mathematics</p>
-                      <p className="text-[11px] text-slate-500">
-                        Instructor: Engr. Salami • Topics: Differential Calculus
-                      </p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-[#c62839]">
-                      In Session
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-[#0b1a42]">02:15 PM – 04:00 PM: Consultation Clinic</p>
-                      <p className="text-[11px] text-slate-500">One-on-one difficult topic reviews</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
-                      Upcoming
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Col: Quick Notice & Practice button */}
-              <div className="bg-[#08163b] text-white rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles size={18} className="text-[#f0bb5b]" />
-                    <h3 className="font-serif text-base font-bold">UTME CBT Practice</h3>
-                  </div>
-                  <p className="text-xs text-slate-200 leading-relaxed">
-                    Test your speed and accuracy in English, Mathematics, Biology, Chemistry, and Physics. Review instant solution rationales after each attempt.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDashboardTab('cbt')}
-                  className="mt-6 w-full py-2.5 px-4 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-xs font-bold text-white transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <BookOpen size={15} />
-                  <span>Open CBT Practice Simulator</span>
+            <section className="rounded-3xl bg-[#08163b] p-6 text-white sm:p-9">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#f0bb5b]">Student dashboard</p>
+              <h2 className="mt-3 text-2xl font-black sm:text-3xl">Welcome, {currentUser.biodata.firstName || 'Student'}</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-200">Manage your profile and follow your application from this workspace.</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button type="button" onClick={() => currentUser.profileCompleted ? setDashboardTab('applications') : setDashboardTab('profile')} className="inline-flex items-center gap-2 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white hover:bg-[#b01f30]">
+                  {currentUser.profileCompleted ? 'View applications' : 'Complete your profile'} <ArrowRight size={16}/>
                 </button>
+                <button type="button" onClick={() => setDashboardTab('cbt')} className="rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">CBT practice</button>
               </div>
+            </section>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Profile</p><p className="mt-3 text-xl font-black text-[#0b1a42]">{currentUser.profileCompleted ? 'Completed' : 'Incomplete'}</p><p className="mt-2 text-sm text-slate-600">{currentUser.profileCompleted ? 'Your biodata is on record.' : 'Add your personal and guardian details.'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Application</p><p className="mt-3 text-xl font-black capitalize text-[#0b1a42]">{currentUser.application?.status.replace(/_/g, ' ') || 'Not started'}</p><p className="mt-2 break-all text-sm text-slate-600">{currentUser.application?.referenceNumber || 'No application reference yet.'}</p></div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Email</p><p className="mt-3 text-xl font-black text-[#0b1a42]">{currentUser.isEmailVerified ? 'Verified' : 'Pending'}</p><p className="mt-2 break-all text-sm text-slate-600">{currentUser.email}</p></div>
             </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+              <h2 className="text-xl font-black text-[#0b1a42]">Your next steps</h2>
+              <p className="mt-2 text-sm leading-7 text-slate-600">Start from your dashboard, complete your profile, then submit and track your application.</p>
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-4"><CheckCircle2 className="shrink-0 text-emerald-600" size={20}/><span className="text-sm font-semibold">Account created and dashboard accessible</span></div>
+                <button type="button" onClick={() => setDashboardTab('profile')} className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-left hover:bg-slate-50"><span className="text-sm font-semibold">1. Complete student profile</span><span className="text-xs font-bold text-[#c62839]">{currentUser.profileCompleted ? 'Completed' : 'Continue →'}</span></button>
+                <button type="button" onClick={() => setDashboardTab('applications')} className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-left hover:bg-slate-50"><span className="text-sm font-semibold">2. Start and review application</span><span className="text-xs font-bold text-[#c62839]">{currentUser.application ? 'View →' : 'Start →'}</span></button>
+                <button type="button" onClick={() => setDashboardTab('applications')} className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-left hover:bg-slate-50"><span className="text-sm font-semibold">3. Track application status</span><span className="text-xs font-bold text-[#c62839]">{currentUser.application?.status || 'Not submitted'}</span></button>
+              </div>
+            </section>
+            <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-6 text-slate-600">Exam scores, attendance, class schedules and announcements will appear when actual records are available. No example results are displayed.</p>
           </div>
         )}
 
