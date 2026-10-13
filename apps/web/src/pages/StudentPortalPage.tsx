@@ -626,49 +626,21 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
         {dashboardTab === 'notices' && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="font-serif text-xl font-bold text-[#0b1a42]">
-                Official Institutional Notices &amp; Announcements
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Updates directly from the University Pathway Academic Board and Center Administration.
-              </p>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
+            <div className="flex flex-col gap-2 border-b border-slate-100 pb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#c62839]">Student communications</p>
+              <h2 className="font-serif text-xl font-bold text-[#0b1a42] sm:text-2xl">Notifications & announcements</h2>
+              <p className="text-sm leading-6 text-slate-500">Important updates from University Pathway will appear here when the notification service is available.</p>
             </div>
-
-            <div className="space-y-4 pt-2">
-              <article className="p-5 rounded-2xl bg-red-50/50 border border-red-200/60">
-                <div className="flex items-center justify-between text-[11px] font-bold text-[#c62839] mb-1.5">
-                  <span className="uppercase tracking-wider">MOCK EXAM REMINDER</span>
-                  <span>Posted Oct 9, 2024</span>
-                </div>
-                <h4 className="font-bold text-sm text-[#0b1a42]">
-                  Saturday Computerized Mock #13 Attendance Mandatory
-                </h4>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  All Batch A candidates are required to arrive by 7:45 AM for biometric attendance and desk allocation. Bring your scientific calculators. Computer terminals will be assigned by registration sequence.
-                </p>
-              </article>
-
-              <article className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5">
-                  <span className="uppercase tracking-wider">ACADEMIC WORKSHOP</span>
-                  <span>Posted Oct 5, 2024</span>
-                </div>
-                <h4 className="font-bold text-sm text-[#0b1a42]">
-                  Compulsory JAMB English Literature Prescribed Text Review
-                </h4>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  Special Friday interactive seminar on the compulsory English text will hold in Main Hall A from 9:00 AM to 11:30 AM. Handouts will be distributed.
-                </p>
-              </article>
+            <div className="mx-auto flex max-w-md flex-col items-center py-14 text-center">
+              <span className="mb-5 rounded-2xl bg-slate-100 p-5 text-[#08163b]"><Bell size={28}/></span>
+              <h3 className="text-lg font-bold text-[#08163b]">No notifications yet</h3>
+              <p className="mt-2 text-sm leading-7 text-slate-500">You have no announcements to review. We won't display sample examination dates or mandatory notices as real updates.</p>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* =========================================================================
-            DRAWER TAB 7: SETTINGS
-            ========================================================================= */}
+        {/* Account settings */}
         {dashboardTab === 'settings' && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
