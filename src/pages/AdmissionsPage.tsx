@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import {
   Compass,
   UserPlus,
-  FileText,
-  CreditCard,
-  ShieldCheck,
   CheckCircle2,
   ChevronDown,
   ArrowRight,
   ChevronRight,
   Info,
-  Calendar,
+  FileText,
+  ShieldCheck,
+  LogIn,
+  LayoutDashboard,
+  UserCheck,
+  Send,
+  Clock,
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 
@@ -24,66 +27,78 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
   const steps = [
     {
       step: '1',
-      title: 'Explore Programmes',
-      desc: 'Find the right academic pathway for your educational goals, whether JAMB, O’Level, A’Level, or International exams.',
-      icon: Compass,
-    },
-    {
-      step: '2',
-      title: 'Create an Account',
-      desc: 'Register or sign in to the student portal to begin your official application workflow securely.',
+      title: 'Create Account',
+      desc: 'Register on the student portal with your email address and secure password to begin your onboarding journey.',
       icon: UserPlus,
     },
     {
+      step: '2',
+      title: 'Verify Account',
+      desc: 'Confirm your credentials and activate your student portal credentials securely.',
+      icon: UserCheck,
+    },
+    {
       step: '3',
-      title: 'Complete Application',
-      desc: 'Provide your biodata, guardian and emergency details, subject choices, and educational background.',
-      icon: FileText,
+      title: 'Sign In',
+      desc: 'Log in to your newly created student account using your verified credentials.',
+      icon: LogIn,
     },
     {
       step: '4',
-      title: 'Make Payment',
-      desc: 'Transfer the confirmed ₦15,000 application fee to the institution’s verified First Bank account.',
-      icon: CreditCard,
+      title: 'Access Student Dashboard',
+      desc: 'Arrive at your personal dashboard overview prior to initiating profile data entry.',
+      icon: LayoutDashboard,
     },
     {
       step: '5',
-      title: 'Verification',
-      desc: 'Our accounts and admissions team reviews your application documents and confirms bank credit.',
-      icon: ShieldCheck,
+      title: 'Complete Student Profile',
+      desc: 'Provide your personal details, guardian contacts, and educational background information in your profile section.',
+      icon: FileText,
     },
     {
       step: '6',
-      title: 'Confirmation',
-      desc: 'Receive your admission clearance, official registration slip, and full portal study access.',
-      icon: CheckCircle2,
+      title: 'Start Application',
+      desc: 'Select your preferred preparatory programme and begin your official institutional application workflow.',
+      icon: Compass,
+    },
+    {
+      step: '7',
+      title: 'Review and Submit',
+      desc: 'Carefully verify your application entries, review supporting details, and submit your application for institutional review.',
+      icon: Send,
+    },
+    {
+      step: '8',
+      title: 'Track Application Status',
+      desc: 'Monitor the status of your application directly from your student portal dashboard in real time.',
+      icon: Clock,
     },
   ];
 
   const faqs = [
     {
-      q: 'When do applications open?',
-      a: 'Applications for our preparatory cohorts are open year-round with rolling admissions. Specific crash courses and full-session cohorts commence in line with the national examination calendar (JAMB UTME, WAEC May/June, and GCE).',
+      q: 'When do application periods open?',
+      a: 'Information regarding application cycles and preparatory cohort intake periods is available upon enquiry through our admissions office.',
     },
     {
-      q: 'What programmes can I apply for?',
-      a: 'You can apply for JAMB (UTME) coaching, O’Level preparations (WAEC, NECO, NABTEB), A’Level Direct Entry programmes (JUPEB, IJMB), and International examinations (IELTS, TOEFL, SAT, GRE, GMAT).',
+      q: 'What programmes are available for application?',
+      a: 'Prospective students may apply for JAMB UTME coaching, O’Level preparatory classes, and academic advisory services offered at our Ilorin study centre.',
     },
     {
-      q: 'What are the tuition fees?',
-      a: 'The application and registration processing fee is ₦15,000 (owner-confirmed). Tuition fees depend on the selected programme and study duration (1 month, 3 months, or full academic session). Contact our admissions office for fee schedules.',
+      q: 'What are the tuition and administrative fees?',
+      a: 'Fee structures, billing schedules, and administrative requirements are confirmed directly with applicants upon official enquiry and consultation.',
     },
     {
-      q: 'How do I make payment?',
-      a: 'Payments are made via direct bank transfer to University Pathway Educational Consult’s designated bank account. The accounts office verifies actual bank credits before issuing official digital and paper receipts.',
+      q: 'How are payments processed?',
+      a: 'Official payment guidelines and verified institutional channels are provided directly by our administrative and accounts personnel upon application review.',
     },
     {
-      q: 'When will I receive my registration number?',
-      a: 'Permanent institutional student registration numbers are issued transactionally upon successful document review and accounts verification by our administrative staff.',
+      q: 'How long does application review take?',
+      a: 'Applications submitted through the student portal are reviewed by our administrative admissions team in due course.',
     },
     {
-      q: 'Can I apply for more than one programme?',
-      a: 'Yes. Candidates frequently combine JAMB (UTME) coaching with O’Level or A’Level direct entry preparatory classes to maximize university admission opportunities.',
+      q: 'Can I apply for multiple programmes simultaneously?',
+      a: 'Candidates seeking guidance on combining preparatory programmes can consult with our academic advisors during the enrollment process.',
     },
   ];
 
@@ -119,48 +134,46 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
             Admissions
           </h1>
           <p className="mt-3 text-base sm:text-xl text-[#f0bb5b] font-medium tracking-wide">
-            Start Your Journey to a Brighter Future
+            Start Your Journey to Academic Excellence
           </p>
         </div>
       </section>
 
       {/* =========================================================================
-          SECTION 1: YOUR ADMISSION JOURNEY (6 STEPS)
+          SECTION 1: ADMISSIONS ROADMAP (8 STAGES)
           ========================================================================= */}
       <section className="py-20 max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-14">
+        <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest inline-flex items-center gap-2">
             <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
-            STEP-BY-STEP PROCESS
+            STUDENT JOURNEY ROADMAP
             <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#0b1a42] mt-2">
-            Your Admission Journey
+            Admissions Process
           </h2>
           <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed">
-            Follow these six clear steps to complete your registration and secure your place.
+            Follow our structured eight-stage student journey from initial registration to application tracking on your dashboard.
           </p>
         </div>
 
-        {/* 6 Step Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 8 Step Grid / Timeline */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <ScrollReveal key={item.step} from="up" delay={(idx % 3) * 100}>
-                <div
-                  className="bg-white rounded-2xl p-7 border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between h-full"
-                >
+              <ScrollReveal key={item.step} from="up" delay={(idx % 4) * 80}>
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between h-full relative group">
                   <div>
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center font-black">
-                        <Icon size={22} />
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center font-black">
+                        <Icon size={20} />
                       </div>
-                      <span className="font-serif text-3xl font-black text-slate-200">
+                      <span className="font-serif text-2xl font-black text-slate-300 group-hover:text-[#c62839] transition-colors">
                         0{item.step}
                       </span>
                     </div>
-                    <h3 className="font-serif text-lg font-bold text-[#0b1a42] mb-2">
+                    <h3 className="font-serif text-base font-bold text-[#0b1a42] mb-2">
                       {item.step}. {item.title}
                     </h3>
                     <p className="text-slate-600 text-xs sm:text-[13px] leading-relaxed">
@@ -175,7 +188,7 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
       </section>
 
       {/* =========================================================================
-          SECTION 2: ADMISSION REQUIREMENTS & IMPORTANT INFORMATION
+          SECTION 2: ADMISSION REQUIREMENTS & GUIDELINES
           ========================================================================= */}
       <section className="py-16 bg-[#f8fafd] border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-5 sm:px-8">
@@ -193,12 +206,12 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
 
               <div className="space-y-3.5 text-xs sm:text-sm text-slate-700">
                 {[
-                  'Relevant academic qualification results (WAEC, NECO, or Primary/Junior school certificate)',
-                  'Awaiting results are accepted for preparatory UTME and interim A-Level cohorts',
-                  'Valid identification document (NIN slip, birth certificate, or student ID)',
-                  'Completed official student application form (online or paper-based)',
-                  'Payment of the non-refundable ₦15,000 application registration fee',
-                  'Two recent passport-sized photographs for student dossier',
+                  'Relevant academic credentials or educational history records',
+                  'Completed student profile information on the portal dashboard',
+                  'Valid identification document (birth certificate, NIN slip, or student ID)',
+                  'Completed official student application form',
+                  'Adherence to centre rules and student code of conduct',
+                  'Two recent passport-sized photographs for student records',
                 ].map((req, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <CheckCircle2 size={17} className="text-[#c62839] shrink-0 mt-0.5" />
@@ -215,22 +228,22 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
                   <Info size={20} />
                 </div>
                 <h3 className="font-serif text-2xl font-bold text-[#0b1a42]">
-                  Important Information
+                  Administrative Guidelines
                 </h3>
               </div>
 
               <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
                 <p>
-                  <strong>Session Availability:</strong> Morning cohorts run from 9:00 AM to 1:00 PM; Afternoon cohorts run from 2:00 PM to 6:00 PM. Weekend sessions are available upon enquiry.
+                  <strong>Dashboard Access:</strong> Upon signing in, students arrive at their personal dashboard overview before proceeding to profile completion and application submission.
                 </p>
                 <p>
-                  <strong>Fee Policy:</strong> The ₦15,000 application fee covers enrollment processing, initial learning diagnostics, and placement review. Tuition fee plans are settled per programme.
+                  <strong>Policy Confirmation:</strong> Specific session dates, eligibility criteria, and administrative arrangements are subject to official verification by the consult.
                 </p>
                 <p>
-                  <strong>Payment Verification:</strong> Bank transfers are reconciled manually against official bank credits before permanent admission numbers are generated.
+                  <strong>Enquiries:</strong> Prospective applicants and parents are encouraged to contact our admissions desk at 23 Olaiya Street, Sawmill Garage, Ilorin, for detailed guidance.
                 </p>
                 <p>
-                  <strong>Orientation:</strong> Admitted students must attend the mandatory orientation on centre rules and the code of conduct before lectures begin.
+                  <strong>Orientation:</strong> Admitted candidates participate in an introductory orientation session prior to lecture commencement.
                 </p>
               </div>
             </div>
@@ -292,18 +305,18 @@ export default function AdmissionsPage({ onNavigate }: PageProps) {
       <section className="bg-[#08163b] text-white py-16">
         <div className="max-w-4xl mx-auto px-5 text-center space-y-5">
           <h2 className="font-serif text-3xl sm:text-4xl font-extrabold">
-            Ready to Apply?
+            Begin Your Application Today
           </h2>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-            Start your student application online now or visit our educational consult centre in Ilorin, Kwara State.
+            Register on our student portal to start your educational journey with University Pathway Educational Consult in Ilorin, Kwara State.
           </p>
           <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
             <button
               type="button"
-              onClick={() => onNavigate('/apply')}
+              onClick={() => onNavigate('/student/register')}
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#c62839] hover:bg-[#b01f30] text-white text-sm font-bold shadow-lg transition-all"
             >
-              Apply / Register Now <ArrowRight size={16} />
+              Register / Create Account <ArrowRight size={16} />
             </button>
             <button
               type="button"

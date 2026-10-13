@@ -44,7 +44,18 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   const { currentUser, isAuthenticated, updateBiodata } = useAuth();
 
   // Navigation tab state controlled by the Left Navigation Drawer
-  const [dashboardTab, setDashboardTab] = useState<string>('overview');
+  const [dashboardTab, setDashboardTab] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
+      return 'cbt';
+    }
+    return 'overview';
+  });
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
+      setDashboardTab('cbt');
+    }
+  }, []);
 
   // Edit biodata modal state
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);

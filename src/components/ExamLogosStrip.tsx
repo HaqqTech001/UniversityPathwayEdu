@@ -108,10 +108,10 @@ export default function ExamLogosStrip({ onNavigate }: ExamLogosStripProps) {
           <div className="text-left mb-8">
             <p className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
               <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
-              OUR PARTNERS &amp; EXAMS
+              EXAMINATIONS &amp; BOARDS
             </p>
             <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#0b1a42] mt-2">
-              We Prepare You For
+              Examination Preparation Pathways
             </h2>
           </div>
         </ScrollReveal>
