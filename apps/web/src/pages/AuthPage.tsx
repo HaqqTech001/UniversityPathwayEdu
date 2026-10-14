@@ -137,7 +137,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     }
   };
 
-  // Supabase sends a password recovery link to the registered email.
+  // Request a six-digit recovery code from the Express backend.
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null); setAuthLoading(true);
     const result = await resetPassword(recoveryIdentifier.trim());
@@ -166,7 +166,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     const verified=await verifyEmail(otpCode.trim(),verificationEmail||regEmail);
     setAuthLoading(false);
     if(!verified)setAuthError('Verification failed. Check the code and email address.');
-    else {setAuthSuccess('Email verified successfully.');onNavigate('/student');}
+    else {setAuthSuccess('Email verified. Please sign in.');setAuthMode('signin');}
   };
   const handleEmailVerify = async (e: React.FormEvent) => {
     e.preventDefault();setAuthError(null);setAuthLoading(true);
