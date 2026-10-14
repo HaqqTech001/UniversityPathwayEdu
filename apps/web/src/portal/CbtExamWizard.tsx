@@ -64,6 +64,10 @@ export default function CbtExamWizard() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [showPaletteDrawer, setShowPaletteDrawer] = useState(false);
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [calcA, setCalcA] = useState('');
+  const [calcB, setCalcB] = useState('');
+  const [calcOperation, setCalcOperation] = useState('+');
 
   // Results & History
   const [latestAttempt, setLatestAttempt] = useState<ExamAttemptRecord | null>(null);
@@ -168,6 +172,13 @@ export default function CbtExamWizard() {
         return;
       }
 
+      if (isSubmitModalOpen) {
+        const key = e.key.toUpperCase();
+        if (key === 'R' || e.key === 'Escape') { e.preventDefault(); setIsSubmitModalOpen(false); }
+        if (key === 'Y') { e.preventDefault(); handleForceSubmit(); }
+        return;
+      }
+      if (calculatorOpen || keyboardHelpOpen || showPaletteDrawer) return;
       const key = e.key.toUpperCase();
 
       if (['A', 'B', 'C', 'D'].includes(key) && activeQuestion) {
@@ -189,15 +200,12 @@ export default function CbtExamWizard() {
       } else if (key === 'F' && activeQuestion) {
         // Flag
         toggleFlag(activeQuestion.id);
-      } else if (key === 'R' && activeQuestion) {
-        // Clear response
-        clearResponse(activeQuestion.id);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [stage, activeQuestion, currentQuestionIndex, currentSubjectQuestions.length]);
+  }, [stage, activeQuestion, currentQuestionIndex, currentSubjectQuestions.length, isSubmitModalOpen, calculatorOpen, keyboardHelpOpen, showPaletteDrawer]);
 
   const toggleFlag = (id: string) => {
     setFlagged((prev) =>
@@ -288,7 +296,7 @@ export default function CbtExamWizard() {
         {/* Banner */}
         <div className="bg-[#08163b] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-[#0f2150]">
           <div className="relative z-10 max-w-2xl">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/90 block mb-1">
               COMPUTER-BASED TEST (CBT) SIMULATOR
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white leading-tight">
@@ -303,7 +311,7 @@ export default function CbtExamWizard() {
 
         {/* Setup Configuration Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="lg:col-span-8 bg-white rounded-md border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
             {/* 1. Exam Type */}
             <div>
               <label className="block text-xs font-bold text-[#0b1a42] uppercase tracking-wider mb-2">
@@ -576,7 +584,7 @@ export default function CbtExamWizard() {
     return (
       <div className="space-y-4 font-sans select-none">
         {/* Top Examination Control Strip */}
-        <header className="bg-[#08163b] text-white rounded-2xl p-4 sm:p-5 border border-[#0f2150] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-16 z-30">
+        <header className="bg-[#147b37] text-white rounded-md p-3 sm:p-4 border border-[#0c6028] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-16 z-30">
           {/* Candidate identity & Subject selector */}
           <div className="flex items-center gap-4">
             <div>
@@ -625,6 +633,7 @@ export default function CbtExamWizard() {
               </div>
             )}
 
+            <button type="button" onClick={() => setCalculatorOpen(true)} className="rounded bg-white/15 px-3 py-2 text-xs font-bold hover:bg-white/25" title="Open calculator">Calculator</button>
             {/* Mobile Question Palette Toggle */}
             <button
               type="button"
@@ -647,7 +656,7 @@ export default function CbtExamWizard() {
             <button
               type="button"
               onClick={() => setIsSubmitModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-xs font-bold text-white shadow-md transition-all cursor-pointer"
+              className="px-4 py-2 rounded bg-red-700 hover:bg-red-800 text-xs font-bold text-white shadow-md transition-all cursor-pointer"
             >
               Submit Exam
             </button>
@@ -708,7 +717,7 @@ export default function CbtExamWizard() {
 
                 {/* Question Prompt */}
                 <div className="py-2">
-                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#0b1a42] leading-relaxed">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#08163b] leading-relaxed">
                     {activeQuestion.prompt}
                   </h3>
                 </div>
@@ -782,7 +791,7 @@ export default function CbtExamWizard() {
           </div>
 
           {/* Desktop Right Question Palette (4 cols) */}
-          <aside className="hidden lg:block lg:col-span-4 bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-5 sticky top-36">
+          <aside className="hidden lg:block lg:col-span-4 bg-white rounded-md border border-slate-200/90 p-6 shadow-xs space-y-5 sticky top-36">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h4 className="font-serif text-sm font-bold text-[#0b1a42]">
                 {activeSubject} Palette
@@ -794,13 +803,13 @@ export default function CbtExamWizard() {
             </div>
 
             {/* Legend */}
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500">
+            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-md bg-emerald-500" />
                 <span>Answered</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md border border-slate-300 bg-white" />
+                <span className="w-3 h-3 rounded-md bg-red-500" />
                 <span>Unanswered</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -808,7 +817,7 @@ export default function CbtExamWizard() {
                 <span>Flagged</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md bg-[#0b1a42]" />
+                <span className="w-3 h-3 rounded-md bg-[#1765ba]" />
                 <span>Current</span>
               </div>
             </div>
@@ -827,12 +836,12 @@ export default function CbtExamWizard() {
                     onClick={() => setCurrentQuestionIndex(idx)}
                     className={`h-10 rounded-xl text-xs font-bold relative flex items-center justify-center transition-all cursor-pointer ${
                       isCurrent
-                        ? 'bg-[#0b1a42] text-white ring-2 ring-[#0b1a42] ring-offset-2'
+                        ? 'bg-[#1765ba] text-white ring-2 ring-[#1765ba] ring-offset-2'
                         : isFlagged
                         ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : isAnswered
                         ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
                   >
                     {idx + 1}
@@ -863,6 +872,21 @@ export default function CbtExamWizard() {
             </div>
           </aside>
         </div>
+
+        {calculatorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Practice calculator">
+            <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between"><h3 className="font-bold text-[#08163b]">Practice calculator</h3><button type="button" onClick={() => setCalculatorOpen(false)} aria-label="Close calculator"><X size={20}/></button></div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <input type="number" aria-label="First number" value={calcA} onChange={e => setCalcA(e.target.value)} className="min-w-0 rounded border p-2"/>
+                <select aria-label="Operation" value={calcOperation} onChange={e => setCalcOperation(e.target.value)} className="rounded border p-2"><option>+</option><option>-</option><option>×</option><option>÷</option></select>
+                <input type="number" aria-label="Second number" value={calcB} onChange={e => setCalcB(e.target.value)} className="min-w-0 rounded border p-2"/>
+              </div>
+              <p className="mt-4 rounded bg-slate-100 p-4 text-lg font-bold text-[#08163b]">Result: {calcA === '' || calcB === '' ? '—' : calcOperation === '÷' && Number(calcB) === 0 ? 'Undefined' : calcOperation === '+' ? Number(calcA) + Number(calcB) : calcOperation === '-' ? Number(calcA) - Number(calcB) : calcOperation === '×' ? Number(calcA) * Number(calcB) : Number(calcA) / Number(calcB)}</p>
+              <p className="mt-2 text-xs text-slate-500">Basic practice calculator; not a reproduction of JAMB's calculator.</p>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Palette Drawer Overlay */}
         {showPaletteDrawer && (
@@ -1020,7 +1044,7 @@ export default function CbtExamWizard() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
-              OFFICIAL CBT EVALUATION REPORT
+              UPEC PRACTICE CBT EVALUATION REPORT
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white">
               Examination Performance Sheet
