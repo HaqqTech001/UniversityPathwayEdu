@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
+import localAuth from './local-auth.js';
 import {supabaseAdmin} from './db.js';
 import {signToken} from './security.js';
 import localAuth from './localAuth.js';
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'32kb'}));
+app.use('/api/auth',localAuth);
 app.use('/api/auth',localAuth);
 app.get('/health',(_req,res)=>res.json({status:'ok',service:'upec-api'}));
 if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'){
