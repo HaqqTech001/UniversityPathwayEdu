@@ -31,7 +31,7 @@ async function issueCode(account,purpose) {
   const code=crypto.randomInt(0,1000000).toString().padStart(6,'0');
   const {error}=await db.from('local_auth_challenges').insert({account_id:account.id,purpose,token_hash:hashCode(account.id,purpose,code),expires_at:new Date(Date.now()+10*60000).toISOString()});
   if(error)throw error;
-  await sendEmail({to:account.email,subject:purpose==='signup'?'Your UPEC verification code':'Your UPEC password recovery code',text:'Your UPEC code is '+code+'. It expires in 10 minutes. Never share it.'});
+  await sendEmail({to:account.email,subject:purpose==='signup'?'Your UPEC verification code':'Your UPEC password recovery code',text:'Your UPEC code is '+code+'. It expires in 10 minutes. Never share it.',html:'<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background:#fff;color:#15203b"><div style="font-size:13px;font-weight:bold;letter-spacing:2px;color:#9d1c36">UNIVERSITY PATHWAY</div><h1 style="font-size:25px;margin-top:20px">'+(purpose==='signup'?'Verify your email':'Reset your password')+'</h1><p>Enter this verification code in the UPEC portal:</p><div style="font-size:36px;font-weight:bold;letter-spacing:9px;padding:18px;background:#f4f6fa;text-align:center">'+code+'</div><p>This code expires in 10 minutes. Never share it with anyone.</p><p style="font-size:12px;color:#697586">University Pathway Educational Consult · Automated security email</p></div>'});
 }
 async function verifyCode(account,purpose,code) {
   const {data:challenge,error}=await db.from('local_auth_challenges').select('*').eq('account_id',account.id).eq('purpose',purpose).is('consumed_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle();
