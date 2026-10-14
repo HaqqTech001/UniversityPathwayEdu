@@ -66,6 +66,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   const [emailToken, setEmailToken] = useState('');
   const [resendSeconds, setResendSeconds] = useState(0);
   const [recoveryRequested, setRecoveryRequested] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
   useEffect(() => {
     if (resendSeconds <= 0) return;
     const timer = window.setTimeout(() => setResendSeconds(n => Math.max(0, n - 1)), 1000);
@@ -128,7 +129,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       setVerificationEmail(regEmail);
       setAuthMode('email-verify');
       setResendSeconds(60);
-      setAuthSuccess('Account registered. Check your email for the confirmation link or code.');
+      setAuthSuccess('Account registered. Check your email for your six-digit verification code.');
     } else {
       setAuthError(res.error || 'Failed to create student account. Please review fields.');
     }
@@ -140,7 +141,16 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     const result = await resetPassword(recoveryIdentifier.trim());
     setAuthLoading(false);
     if (!result.success) setAuthError(result.error || 'Could not send recovery email.');
-    else { setRecoveryRequested(true); setResendSeconds(60); setAuthSuccess('If this email is registered, recovery instructions will arrive shortly.'); }
+    else { setRecoveryRequested(true); setResendSeconds(60); setAuthSuccess('If this email is registered, a recovery code will arrive shortly.'); }
+  };
+  const handleRecoveryVerify = async (e: React.FormEvent) => {
+    e.preventDefault(); setAuthError(null); setAuthLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: recoveryIdentifier.trim(), token: recoveryCode.trim(), type: 'recovery'
+    });
+    setAuthLoading(false);
+    if (error) setAuthError(error.message);
+    else { setAuthSuccess('Code verified. Choose your new password.'); setAuthMode('reset-password'); }
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
@@ -592,11 +602,20 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+                  disabled={authLoading || resendSeconds > 0 && recoveryRequested}
+                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px] disabled:opacity-50"
                 >
                   <Key size={16} />
                   <span>Send Recovery Code</span>
                 </button>
+                {recoveryRequested && (
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold text-[#0b1a42]">6-Digit Recovery Code
+                      <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={recoveryCode} onChange={e=>setRecoveryCode(e.target.value.replace(/\\D/g,''))} placeholder="Enter code from email" className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200 tracking-widest" />
+                    </label>
+                    <button type="button" onClick={e=>void handleRecoveryVerify(e as unknown as React.FormEvent)} disabled={authLoading || recoveryCode.length!==6} className="w-full py-3 rounded-xl bg-[#123578] text-white font-bold disabled:opacity-50">Verify Recovery Code</button>
+                  </div>
+                )}
                 {recoveryRequested && (
                   <button type="button" onClick={()=>void resendCode('recovery')} disabled={authLoading || resendSeconds>0} className="w-full text-xs font-bold text-[#c62839] disabled:text-slate-400">
                     {resendSeconds>0 ? `Resend recovery email in ${resendSeconds}s` : 'Resend recovery email'}
