@@ -4,6 +4,12 @@ import localAuth from './local-auth.js';
 import studentPortal from './student-portal.js';
 import {supabaseAdmin} from './db.js';
 import {signToken} from './security.js';
+import {getMailer} from './mail.js';
+const requiredSecrets=['JWT_SECRET','OTP_SECRET','AUTH_PASSWORD_PEPPER'];
+const invalidSecrets=requiredSecrets.filter(key=>!process.env[key]||process.env[key].trim().length<32||process.env[key].startsWith('replace_with_'));
+if(invalidSecrets.length){console.error('UPEC startup blocked: configure '+invalidSecrets.join(', ')+' in apps/api/.env (each requires a distinct random value of at least 32 characters).');process.exit(1);}
+try{getMailer();if(!process.env.MAIL_FROM||process.env.MAIL_FROM.includes('youraddress'))throw Error('MAIL_FROM is not configured');}catch(error){console.error('UPEC startup blocked: '+error.message);process.exit(1);}
+
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'32kb'}));
