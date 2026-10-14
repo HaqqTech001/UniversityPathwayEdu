@@ -7,12 +7,23 @@ import { signToken, requireRole } from './security.js';
 const router = Router();
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalize = v => String(v || '').trim().toLowerCase();
-const hashPassword = password => new Promise((resolve,reject) => crypto.scrypt(password, process.env.AUTH_PASSWORD_PEPPER || 'upec-v1',64,(err,key)=>err?reject(err):resolve(key.toString('hex'))));
+const hashPassword = password => new Promise((resolve,reject) => crypto.scrypt(password, required('AUTH_PASSWORD_PEPPER'),64,(err,key)=>err?reject(err):resolve(key.toString('hex'))));
 const equalHash = (a,b) => {const x=Buffer.from(a,'hex'),y=Buffer.from(b,'hex');return x.length===y.length&&crypto.timingSafeEqual(x,y);};
 const hashCode = (id,purpose,code) => crypto.createHmac('sha256', required('OTP_SECRET')).update(id+':'+purpose+':'+code).digest('hex');
 const required = key => {if(!process.env[key]||process.env[key].length<32)throw Error(key+' must be at least 32 characters');return process.env[key];};
 const respond = (res,status,message) => res.status(status).json({error:message});
 const delay = () => new Promise(r=>setTimeout(r,300));
+const buckets = new Map();
+function throttle(req,res,next) {
+  const key = req.ip || 'unknown';
+  const now = Date.now();
+  if (buckets.size > 10000) for (const [ip,b] of buckets) if (b.until <= now) buckets.delete(ip);
+  const bucket = buckets.get(key);
+  if (!bucket || bucket.until <= now) { buckets.set(key,{count:1,until:now+60000}); return next(); }
+  if (++bucket.count > 20) {res.set('Retry-After',String(Math.ceil((bucket.until-now)/1000)));return respond(res,429,'Too many requests. Try again shortly.');}
+  next();
+}
+router.use(throttle);
 async function issueCode(account,purpose) {
   const {data:last,error:readError}=await db.from('local_auth_challenges').select('created_at').eq('account_id',account.id).eq('purpose',purpose).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(readError)throw readError;
