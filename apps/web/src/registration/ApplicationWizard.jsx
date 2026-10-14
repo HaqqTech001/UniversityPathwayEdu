@@ -1,7 +1,8 @@
 import React,{useState} from 'react';
 import {ArrowLeft,ArrowRight,CheckCircle2,Info} from 'lucide-react';
 import {applicationSteps,validateStep} from './applicationSchema.js';
-import {supabase} from '../lib/supabase';
+import {upecAuthApi} from '../lib/upecAuthApi';
+import {getStudentToken} from '../context/AuthContext';
 const inputClass='w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-navy focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20';
 function Field({field,value,onChange,error}){
  const id='apply-'+field.name;
@@ -16,15 +17,11 @@ export default function ApplicationWizard(){
   if(!consent||busy)return;
   setSubmitError('');setBusy(true);
   try{
-   const {data:{user},error:authError}=await supabase.auth.getUser();
-   if(authError||!user)throw new Error('Please sign in and confirm your email before submitting an application.');
+   const token=getStudentToken();
+   if(!token)throw new Error('Please sign in and verify your email before submitting an application.');
    for(let i=0;i<3;i++){const found=validateStep(i,values);if(Object.keys(found).length){setStep(i);setErrors(found);throw new Error('Complete all required fields before submitting.');}}
-   const payload={student_id:user.id,programme:values.programmeCategory,academic_session:values.preferredSession,subjects:[values.utmeSubject2,values.utmeSubject3,values.utmeSubject4].filter(Boolean),form_data:values,status:'draft'};
-   const {data:created,error:createError}=await supabase.from('applications').insert(payload).select('id').single();
-   if(createError)throw createError;
-   const {data:submitted,error:submitError}=await supabase.rpc('submit_upec_application',{p_application_id:created.id});
-   if(submitError)throw submitError;
-   setReference(submitted.reference_number);
+   const result=await upecAuthApi.submitApplication(token,values);
+   setReference(result.application.reference_number);
    setPreviewed(true);
   }catch(error){setSubmitError(error instanceof Error?error.message:'Could not submit your application.');}
   finally{setBusy(false);}
