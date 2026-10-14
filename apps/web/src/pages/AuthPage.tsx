@@ -18,7 +18,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { upecAuthApi } from '../lib/upecAuthApi';
 import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
 
 export type AuthMode =
@@ -77,10 +77,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     if (!email || resendSeconds > 0 || authLoading) return;
     setAuthLoading(true); setAuthError(null); setAuthSuccess(null);
     try {
-      const { error } = kind === 'signup'
-        ? await supabase.auth.resend({ type: 'signup', email })
-        : await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password' });
-      if (error) throw error;
+      await upecAuthApi.resend(email,kind);
       setResendSeconds(60);
       setAuthSuccess(kind === 'signup' ? 'A new verification code has been requested. Check your inbox and spam folder.' : 'If this address is registered, new recovery instructions will arrive shortly.');
     } catch (error) {
@@ -116,8 +113,8 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       return;
     }
 
-    if (regPassword.length < 8) {
-      setAuthError('Password must contain at least 8 characters.');
+    if (regPassword.length < 10) {
+      setAuthError('Password must contain at least 10 characters.');
       return;
     }
 
@@ -145,20 +142,18 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   };
   const handleRecoveryVerify = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null); setAuthLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: recoveryIdentifier.trim(), token: recoveryCode.trim(), type: 'recovery'
-    });
+    // The code is validated atomically when the password is changed.
     setAuthLoading(false);
-    if (error) setAuthError(error.message);
-    else { setAuthSuccess('Code verified. Choose your new password.'); setAuthMode('reset-password'); }
+    if(!/^\\d{6}$/.test(recoveryCode.trim()))setAuthError('Enter the six-digit recovery code.');
+    else {setAuthSuccess('Code entered. Choose your new password.');setAuthMode('reset-password');}
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
-    if(newPassword!==confirmNewPassword || newPassword.length<8) {setAuthError('Passwords must match and contain at least 8 characters.');return;}
+    if(newPassword!==confirmNewPassword || newPassword.length<10) {setAuthError('Passwords must match and contain at least 8 characters.');return;}
     setAuthLoading(true);
-    const result = await changePassword(newPassword);
+    const result = await changePassword(newPassword,recoveryIdentifier.trim(),recoveryCode.trim());
     setAuthLoading(false);
-    if(!result.success) setAuthError(result.error || 'Open the recovery link from your email first.');
+    if(!result.success) setAuthError(result.error || 'Check your recovery email and code.');
     else {setAuthSuccess('Password updated. Please sign in.');setAuthMode('signin');}
   };
   const handleOtpVerify = async (e: React.FormEvent) => {
@@ -309,7 +304,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 {authMode === 'register' && 'Create your student account to begin your application.'}
                 {authMode === 'signin' && 'Sign in to access your candidate portal.'}
                 {authMode === 'forgot-password' && 'Enter your registered email for password recovery instructions.'}
-                {authMode === 'reset-password' && 'Open the password recovery link from your email, then choose a new password.'}
+                {authMode === 'reset-password' && 'Enter the code sent to your email, then choose a new password.'}
                 {authMode === 'otp-verify' && 'Enter the 6-digit code dispatched to your registered phone or email.'}
                 {authMode === 'email-verify' && 'Confirm your email address using the token sent to your inbox.'}
               </p>
