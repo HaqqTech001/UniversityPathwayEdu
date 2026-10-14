@@ -643,13 +643,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             {authMode === 'otp-verify' && (
               <form onSubmit={handleOtpVerify} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit OTP Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <ShieldCheck size={16} />
-                    </div>
-                    <OtpInput id="security-otp" label="6-Digit OTP Code" value={otpCode} onChange={setOtpCode} disabled={authLoading}/>
-                  </div>
+                  <OtpInput id="security-otp" label="6-Digit OTP Code" value={otpCode} onChange={setOtpCode} disabled={authLoading}/>
                 </div>
 
                 <button
@@ -679,7 +673,6 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit Verification Code</label>
                   <OtpInput id="email-otp" label="6-Digit Verification Code" value={emailToken} onChange={setEmailToken} disabled={authLoading}/>
                 </div>
                 <button
