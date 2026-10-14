@@ -4,10 +4,12 @@ import {requireRole} from './security.js';
 const router=Router();
 router.use(requireRole('student'));
 router.use(async(req,res,next)=>{
- const {data,error}=await db.from('local_accounts').select('verified_at').eq('id',req.actor.sub).maybeSingle();
- if(error)throw error;
- if(!data?.verified_at)return res.status(403).json({error:'Please verify your email before accessing your student account.'});
- next();
+ try {
+  const {data,error}=await db.from('local_accounts').select('verified_at').eq('id',req.actor.sub).maybeSingle();
+  if(error)throw error;
+  if(!data?.verified_at)return res.status(403).json({error:'Please verify your email before accessing your student account.'});
+  next();
+ } catch(error){next(error);}
 });
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.get('/dashboard',wrap(async(req,res)=>{
