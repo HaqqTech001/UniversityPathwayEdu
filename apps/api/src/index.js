@@ -13,7 +13,7 @@ if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'
     res.json({token:signToken({sub,role})});
   });
 }
-app.get('/api/backend/status',async(_req,res)=>{ const {error}=await supabaseAdmin.from('upec_users').select('id',{head:true,count:'exact'});res.status(error?503:200).json({database:error?'not_ready':'connected',service:'supabase',detail:error?.message}); });
+app.get('/api/backend/status',async(_req,res)=>{ const {error}=await supabaseAdmin.from('profiles').select('id',{head:true,count:'exact'});res.status(error?503:200).json({database:error?'not_ready':'connected',service:'supabase',detail:error?.message}); });
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Internal server error'});});
 const port=Number(process.env.PORT||4000);
 app.listen(port,()=>console.log('UPEC API listening on '+port));
