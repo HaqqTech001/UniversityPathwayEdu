@@ -97,8 +97,10 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     setAuthSuccess(null);
     setAuthLoading(true);
 
-    const res = await login(loginIdentifier, loginPassword);
-    setAuthLoading(false);
+    let res: {success:boolean;error?:string};
+    try { res = await login(loginIdentifier, loginPassword); }
+    catch { res = {success:false,error:'Unable to sign in. Please check your connection and try again.'}; }
+    finally { setAuthLoading(false); }
 
     if (res.success) {
       onNavigate('/student');
@@ -118,14 +120,16 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       return;
     }
 
-    if (regPassword.length < 10) {
-      setAuthError('Password must contain at least 10 characters.');
+    if (regPassword.length < 10 || regPassword.length > 128) {
+      setAuthError('Choose a password between 10 and 128 characters.');
       return;
     }
 
     setAuthLoading(true);
-    const res = await registerAccount(regFullName, regEmail, regPhone, regPassword);
-    setAuthLoading(false);
+    let res: {success:boolean;error?:string};
+    try { res = await registerAccount(regFullName, regEmail, regPhone, regPassword); }
+    catch { res = {success:false,error:'Unable to create your account. Please try again.'}; }
+    finally { setAuthLoading(false); }
 
     if (res.success) {
       setVerificationEmail(regEmail);
@@ -149,12 +153,12 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     e.preventDefault(); setAuthError(null); setAuthLoading(true);
     // The code is validated atomically when the password is changed.
     setAuthLoading(false);
-    if(!/^\\d{6}$/.test(recoveryCode.trim()))setAuthError('Enter the six-digit recovery code.');
+    if(!/^[0-9]{6}$/.test(recoveryCode.trim()))setAuthError('Enter the six-digit recovery code.');
     else {setAuthSuccess('Code entered. Choose your new password.');setAuthMode('reset-password');}
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
-    if(newPassword!==confirmNewPassword || newPassword.length<10) {setAuthError('Passwords must match and contain at least 10 characters.');return;}
+    if(newPassword!==confirmNewPassword || newPassword.length<10 || newPassword.length>128) {setAuthError('Passwords must match and contain at least 10 characters.');return;}
     setAuthLoading(true);
     const result = await changePassword(newPassword,recoveryIdentifier.trim(),recoveryCode.trim());
     setAuthLoading(false);
