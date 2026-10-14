@@ -54,7 +54,6 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
 
   // Password Recovery & Reset inputs
   const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
-  const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
@@ -275,8 +274,8 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
               <p className="text-xs text-slate-500 mt-1">
                 {authMode === 'register' && 'Create your student account to begin your application.'}
                 {authMode === 'signin' && 'Sign in to access your candidate portal.'}
-                {authMode === 'forgot-password' && 'Enter your email or registration number for recovery instructions.'}
-                {authMode === 'reset-password' && 'Enter your reset token and new secure password.'}
+                {authMode === 'forgot-password' && 'Enter your registered email for password recovery instructions.'}
+                {authMode === 'reset-password' && 'Open the password recovery link from your email, then choose a new password.'}
                 {authMode === 'otp-verify' && 'Enter the 6-digit code dispatched to your registered phone or email.'}
                 {authMode === 'email-verify' && 'Confirm your email address using the token sent to your inbox.'}
               </p>
@@ -582,12 +581,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 ===================================================================== */}
             {authMode === 'reset-password' && (
               <form onSubmit={handleResetPassword} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Reset Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <Hash size={16} />
-                    </div>
+
                     <input
                       type="text"
                       required
