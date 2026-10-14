@@ -16,10 +16,13 @@ import {
   FileText,
   TrendingUp,
   ArrowLeft,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { upecAuthApi } from '../lib/upecAuthApi';
 import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
+import OtpInput from '../components/auth/OtpInput';
 
 export type AuthMode =
   | 'signin'
@@ -45,6 +48,8 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   // Sign In inputs
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [visiblePasswords,setVisiblePasswords]=useState<Record<string,boolean>>({});
+  const togglePassword=(field:string)=>setVisiblePasswords(previous=>({...previous,[field]:!previous[field]}));
 
   // Register inputs
   const [regFullName, setRegFullName] = useState('');
@@ -149,7 +154,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
-    if(newPassword!==confirmNewPassword || newPassword.length<10) {setAuthError('Passwords must match and contain at least 8 characters.');return;}
+    if(newPassword!==confirmNewPassword || newPassword.length<10) {setAuthError('Passwords must match and contain at least 10 characters.');return;}
     setAuthLoading(true);
     const result = await changePassword(newPassword,recoveryIdentifier.trim(),recoveryCode.trim());
     setAuthLoading(false);
@@ -469,13 +474,13 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                       <Lock size={15} />
                     </div>
                     <input
-                      type="password"
+                      type={visiblePasswords.register ? "text" : "password"}
                       required
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Create Password (min. 6 chars)"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                    />
+                      placeholder="Create Password (min. 10 chars)"
+                      className="w-full pl-10 pr-12 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    /><button type="button" onClick={()=>togglePassword('register')} aria-label={visiblePasswords.register?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-[#0b1a42]">{visiblePasswords.register?<EyeOff size={17}/>:<Eye size={17}/>}</button>
                   </div>
                 </div>
 
@@ -486,13 +491,13 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                       <Lock size={15} />
                     </div>
                     <input
-                      type="password"
+                      type={visiblePasswords.confirm ? "text" : "password"}
                       required
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
                       placeholder="Re-type password"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                    />
+                      className="w-full pl-10 pr-12 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    /><button type="button" onClick={()=>togglePassword('confirm')} aria-label={visiblePasswords.confirm?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-[#0b1a42]">{visiblePasswords.confirm?<EyeOff size={17}/>:<Eye size={17}/>}</button>
                   </div>
                 </div>
 
@@ -550,13 +555,13 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                       <Lock size={16} />
                     </div>
                     <input
-                      type="password"
+                      type={visiblePasswords.login ? "text" : "password"}
                       required
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="Enter password"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                    />
+                      className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
+                    /><button type="button" onClick={()=>togglePassword('login')} aria-label={visiblePasswords.login?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-[#0b1a42]">{visiblePasswords.login?<EyeOff size={17}/>:<Eye size={17}/>}</button>
                   </div>
                 </div>
 
@@ -605,9 +610,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 </button>
                 {recoveryRequested && (
                   <div className="space-y-3">
-                    <label className="block text-xs font-bold text-[#0b1a42]">6-Digit Recovery Code
-                      <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={recoveryCode} onChange={e=>setRecoveryCode(e.target.value.replace(/\\D/g,''))} placeholder="Enter code from email" className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200 tracking-widest" />
-                    </label>
+                    <OtpInput id="recovery-otp" label="6-Digit Recovery Code" value={recoveryCode} onChange={setRecoveryCode} disabled={authLoading}/>
                     <button type="button" onClick={e=>void handleRecoveryVerify(e as unknown as React.FormEvent)} disabled={authLoading || recoveryCode.length!==6} className="w-full py-3 rounded-xl bg-[#123578] text-white font-bold disabled:opacity-50">Verify Recovery Code</button>
                   </div>
                 )}
@@ -625,10 +628,10 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             {authMode === 'reset-password' && (
               <form onSubmit={handleResetPassword} className="space-y-3">
                 <label className="block text-xs font-bold text-[#0b1a42]">New Password
-                  <input type="password" required minLength={8} value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200" />
+                  <span className="relative block mt-1"><input type={visiblePasswords.new?'text':'password'} required minLength={10} value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full px-3 pr-12 py-3 rounded-xl border border-slate-200" /><button type="button" onClick={()=>togglePassword('new')} aria-label={visiblePasswords.new?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500">{visiblePasswords.new?<EyeOff size={17}/>:<Eye size={17}/>}</button></span>
                 </label>
                 <label className="block text-xs font-bold text-[#0b1a42]">Confirm New Password
-                  <input type="password" required minLength={8} value={confirmNewPassword} onChange={e=>setConfirmNewPassword(e.target.value)} className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200" />
+                  <span className="relative block mt-1"><input type={visiblePasswords.newConfirm?'text':'password'} required minLength={10} value={confirmNewPassword} onChange={e=>setConfirmNewPassword(e.target.value)} className="w-full px-3 pr-12 py-3 rounded-xl border border-slate-200" /><button type="button" onClick={()=>togglePassword('newConfirm')} aria-label={visiblePasswords.newConfirm?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500">{visiblePasswords.newConfirm?<EyeOff size={17}/>:<Eye size={17}/>}</button></span>
                 </label>
                 <button type="submit" disabled={authLoading} className="w-full py-3.5 rounded-xl bg-[#c62839] text-white font-bold disabled:opacity-50">Save New Password</button>
               </form>
@@ -640,21 +643,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             {authMode === 'otp-verify' && (
               <form onSubmit={handleOtpVerify} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit OTP Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <ShieldCheck size={16} />
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      required
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="e.g. 482910"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs font-mono font-bold tracking-widest text-center focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                    />
-                  </div>
+                  <OtpInput id="security-otp" label="6-Digit OTP Code" value={otpCode} onChange={setOtpCode} disabled={authLoading}/>
                 </div>
 
                 <button
@@ -684,17 +673,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit Verification Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={emailToken}
-                    onChange={(e) => setEmailToken(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    inputMode="numeric"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                  />
+                  <OtpInput id="email-otp" label="6-Digit Verification Code" value={emailToken} onChange={setEmailToken} disabled={authLoading}/>
                 </div>
                 <button
                   type="submit"
