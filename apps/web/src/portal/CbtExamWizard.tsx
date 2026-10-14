@@ -65,6 +65,44 @@ export default function CbtExamWizard() {
   const [showPaletteDrawer, setShowPaletteDrawer] = useState(false);
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const examScreenRef = useRef<HTMLDivElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [fullscreenError, setFullscreenError] = useState('');
+  const stopCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    setCameraEnabled(false);
+  };
+  const enableCamera = async () => {
+    try {
+      setCameraError('');
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera unavailable. Use HTTPS and a supported browser.');
+      const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) cameraVideoRef.current.srcObject = stream;
+      setCameraEnabled(true);
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : 'Camera permission was not granted.');
+    }
+  };
+  useEffect(() => {
+    if (cameraVideoRef.current && cameraStreamRef.current) cameraVideoRef.current.srcObject = cameraStreamRef.current;
+  }, [cameraEnabled, stage]);
+  useEffect(() => () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  }, []);
+  const enterExamFullscreen = async () => {
+    try {
+      setFullscreenError('');
+      await examScreenRef.current?.requestFullscreen();
+    } catch {
+      setFullscreenError('Your browser blocked fullscreen. You can continue in the expanded exam view.');
+    }
+  };
   const [calcA, setCalcA] = useState('');
   const [calcB, setCalcB] = useState('');
   const [calcOperation, setCalcOperation] = useState('+');
@@ -227,6 +265,8 @@ export default function CbtExamWizard() {
 
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
+    stopCamera();
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     if (timerRef.current) clearInterval(timerRef.current);
     setIsSubmitModalOpen(false);
 
@@ -582,9 +622,9 @@ export default function CbtExamWizard() {
   // =========================================================================
   if (stage === 'exam') {
     return (
-      <div className="space-y-4 font-sans select-none">
+      <div ref={examScreenRef} className="fixed inset-0 z-[100] overflow-y-auto bg-[#eef2f5] p-3 sm:p-5 space-y-4 font-sans select-none">
         {/* Top Examination Control Strip */}
-        <header className="bg-[#147b37] text-white rounded-md p-3 sm:p-4 border border-[#0c6028] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-16 z-30">
+        <header className="bg-[#147b37] text-white rounded-md p-3 sm:p-4 border border-[#0c6028] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
           {/* Candidate identity & Subject selector */}
           <div className="flex items-center gap-4">
             <div>
@@ -634,6 +674,7 @@ export default function CbtExamWizard() {
             )}
 
             <button type="button" onClick={() => setCalculatorOpen(true)} className="rounded bg-white/15 px-3 py-2 text-xs font-bold hover:bg-white/25" title="Open calculator">Calculator</button>
+            <button type="button" onClick={enterExamFullscreen} className="rounded bg-white/15 px-3 py-2 text-xs font-bold hover:bg-white/25">Fullscreen</button>
             {/* Mobile Question Palette Toggle */}
             <button
               type="button"
@@ -663,6 +704,15 @@ export default function CbtExamWizard() {
           </div>
         </header>
 
+        <div className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-white p-3 text-xs text-slate-700">
+          <span className="font-bold">UPEC practice exam · {currentUser?.fullName || 'Candidate'}</span>
+          <span>Answered {totalAnsweredCount}/{totalQuestionsCount}</span>
+          <span className="ml-auto font-semibold">{cameraEnabled ? 'Camera preview on · Not recording' : 'Camera off · Not recording'}</span>
+          <button type="button" onClick={cameraEnabled ? stopCamera : enableCamera} className="rounded bg-slate-800 px-3 py-2 font-bold text-white">{cameraEnabled ? 'Turn off camera' : 'Enable camera preview'}</button>
+          {cameraEnabled && <video ref={cameraVideoRef} autoPlay muted playsInline aria-label="Your camera preview" className="h-24 w-32 rounded bg-black object-cover"/>}
+          {cameraError && <p role="alert" className="w-full text-red-700">{cameraError}</p>}
+          {fullscreenError && <p role="status" className="w-full text-amber-700">{fullscreenError}</p>}
+        </div>
         {/* Examination Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Main Question Panel (8 cols) */}
@@ -958,7 +1008,7 @@ export default function CbtExamWizard() {
                 <p><strong>A, B, C, D:</strong> Select answer option</p>
                 <p><strong>P or ←:</strong> Previous question</p>
                 <p><strong>N or →:</strong> Next question</p>
-                <p><strong>R:</strong> Clear response</p>
+                <p><strong>R:</strong> Return from submission confirmation</p><p><strong>Y:</strong> Confirm submission</p>
                 <p><strong>F:</strong> Flag / Unflag question</p>
                 <p><strong>S:</strong> Open submit modal</p>
               </div>
