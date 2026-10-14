@@ -34,9 +34,9 @@ interface AuthPageProps {
 }
 
 export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPageProps) {
-  const { login, registerAccount } = useAuth();
+  const { login, registerAccount, verifyEmail, resetPassword, changePassword } = useAuth();
 
-  const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
+  const [authMode, setAuthMode] = useState<AuthMode>(() => window.location.pathname.includes('reset-password') ? 'reset-password' : initialMode);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -93,8 +93,8 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       return;
     }
 
-    if (regPassword.length < 6) {
-      setAuthError('Password must contain at least 6 characters.');
+    if (regPassword.length < 8) {
+      setAuthError('Password must contain at least 8 characters.');
       return;
     }
 
@@ -103,75 +103,44 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     setAuthLoading(false);
 
     if (res.success) {
-      setAuthMode('otp-verify');
-      setAuthSuccess('Account created! A 6-digit verification code has been dispatched.');
+      setVerificationEmail(regEmail);
+      setAuthMode('email-verify');
+      setAuthSuccess('Account registered. Check your email for the confirmation link or code.');
     } else {
       setAuthError(res.error || 'Failed to create student account. Please review fields.');
     }
   };
 
-  // Handle Forgot Password
-  const handleForgotPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (!recoveryIdentifier.trim()) {
-      setAuthError('Please enter your email or registration number.');
-      return;
-    }
-    setAuthSuccess(
-      `Password recovery code dispatched to contact associated with "${recoveryIdentifier}".`
-    );
-    setTimeout(() => {
-      setAuthMode('reset-password');
-    }, 1500);
+  // Supabase sends a password recovery link to the registered email.
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault(); setAuthError(null); setAuthLoading(true);
+    const result = await resetPassword(recoveryIdentifier.trim());
+    setAuthLoading(false);
+    if (!result.success) setAuthError(result.error || 'Could not send recovery email.');
+    else setAuthSuccess('If this email is registered, password recovery instructions will arrive shortly. Open the link before choosing a new password.');
   };
-
-  // Handle Reset Password
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (newPassword !== confirmNewPassword) {
-      setAuthError('Passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setAuthError('New password must contain at least 6 characters.');
-      return;
-    }
-    setAuthSuccess('Your password has been successfully reset. Please sign in.');
-    setTimeout(() => {
-      setAuthMode('signin');
-      setAuthSuccess(null);
-    }, 1800);
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault(); setAuthError(null);
+    if(newPassword!==confirmNewPassword || newPassword.length<8) {setAuthError('Passwords must match and contain at least 8 characters.');return;}
+    setAuthLoading(true);
+    const result = await changePassword(newPassword);
+    setAuthLoading(false);
+    if(!result.success) setAuthError(result.error || 'Open the recovery link from your email first.');
+    else {setAuthSuccess('Password updated. Please sign in.');setAuthMode('signin');}
   };
-
-  // Handle OTP Verification
-  const handleOtpVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (otpCode.trim().length < 4) {
-      setAuthError('Please enter the complete verification code.');
-      return;
-    }
-    setAuthSuccess('Two-factor verification successful. Opening candidate portal...');
-    setTimeout(() => {
-      onNavigate('/student');
-    }, 1200);
+  const handleOtpVerify = async (e: React.FormEvent) => {
+    e.preventDefault();setAuthError(null);setAuthLoading(true);
+    const verified=await verifyEmail(otpCode.trim(),verificationEmail||regEmail);
+    setAuthLoading(false);
+    if(!verified)setAuthError('Verification failed. Check the code and email address.');
+    else {setAuthSuccess('Email verified successfully.');onNavigate('/student');}
   };
-
-  // Handle Email Verification
-  const handleEmailVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (!verificationEmail || !emailToken) {
-      setAuthError('Please provide both email address and verification token.');
-      return;
-    }
-    setAuthSuccess('Email address verified successfully. You may now sign in.');
-    setTimeout(() => {
-      setAuthMode('signin');
-      setAuthSuccess(null);
-    }, 1500);
+  const handleEmailVerify = async (e: React.FormEvent) => {
+    e.preventDefault();setAuthError(null);setAuthLoading(true);
+    const verified=await verifyEmail(emailToken.trim(),verificationEmail.trim());
+    setAuthLoading(false);
+    if(!verified)setAuthError('Verification failed. Check your email and confirmation code.');
+    else {setAuthSuccess('Email verified. You may now sign in.');setAuthMode('signin');}
   };
 
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
