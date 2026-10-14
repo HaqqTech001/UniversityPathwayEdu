@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Key,
   LogIn,
@@ -18,6 +18,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
 
 export type AuthMode =
@@ -63,6 +64,28 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   // Email verification inputs
   const [verificationEmail, setVerificationEmail] = useState('');
   const [emailToken, setEmailToken] = useState('');
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [recoveryRequested, setRecoveryRequested] = useState(false);
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds(n => Math.max(0, n - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
+  const resendCode = async (kind: 'signup' | 'recovery') => {
+    const email = (kind === 'signup' ? verificationEmail : recoveryIdentifier).trim();
+    if (!email || resendSeconds > 0 || authLoading) return;
+    setAuthLoading(true); setAuthError(null); setAuthSuccess(null);
+    try {
+      const { error } = kind === 'signup'
+        ? await supabase.auth.resend({ type: 'signup', email })
+        : await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password' });
+      if (error) throw error;
+      setResendSeconds(60);
+      setAuthSuccess(kind === 'signup' ? 'A new verification code has been requested. Check your inbox and spam folder.' : 'If this address is registered, new recovery instructions will arrive shortly.');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to resend. Please try again.');
+    } finally { setAuthLoading(false); }
+  };
 
   // Handle Sign In
   const handleSignIn = async (e: React.FormEvent) => {
@@ -104,6 +127,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     if (res.success) {
       setVerificationEmail(regEmail);
       setAuthMode('email-verify');
+      setResendSeconds(60);
       setAuthSuccess('Account registered. Check your email for the confirmation link or code.');
     } else {
       setAuthError(res.error || 'Failed to create student account. Please review fields.');
@@ -116,7 +140,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     const result = await resetPassword(recoveryIdentifier.trim());
     setAuthLoading(false);
     if (!result.success) setAuthError(result.error || 'Could not send recovery email.');
-    else setAuthSuccess('If this email is registered, password recovery instructions will arrive shortly. Open the link before choosing a new password.');
+    else { setRecoveryRequested(true); setResendSeconds(60); setAuthSuccess('If this email is registered, recovery instructions will arrive shortly.'); }
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
@@ -549,18 +573,18 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                    Email or Student Reg Number
+                    Registered Email Address
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                       <User size={16} />
                     </div>
                     <input
-                      type="text"
+                      type="email"
                       required
                       value={recoveryIdentifier}
                       onChange={(e) => setRecoveryIdentifier(e.target.value)}
-                      placeholder="e.g. UPEC/2025/0842"
+                      placeholder="candidate@email.com"
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
                     />
                   </div>
@@ -573,6 +597,11 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   <Key size={16} />
                   <span>Send Recovery Code</span>
                 </button>
+                {recoveryRequested && (
+                  <button type="button" onClick={()=>void resendCode('recovery')} disabled={authLoading || resendSeconds>0} className="w-full text-xs font-bold text-[#c62839] disabled:text-slate-400">
+                    {resendSeconds>0 ? `Resend recovery email in ${resendSeconds}s` : 'Resend recovery email'}
+                  </button>
+                )}
               </form>
             )}
 
@@ -581,49 +610,13 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 ===================================================================== */}
             {authMode === 'reset-password' && (
               <form onSubmit={handleResetPassword} className="space-y-3">
-
-                    <input
-                      type="text"
-                      required
-                      value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value)}
-                      placeholder="6-digit reset code"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 chars"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Confirm New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder="Re-type new password"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
-                >
-                  <RefreshCw size={16} />
-                  <span>Save Password &amp; Sign In</span>
-                </button>
+                <label className="block text-xs font-bold text-[#0b1a42]">New Password
+                  <input type="password" required minLength={8} value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200" />
+                </label>
+                <label className="block text-xs font-bold text-[#0b1a42]">Confirm New Password
+                  <input type="password" required minLength={8} value={confirmNewPassword} onChange={e=>setConfirmNewPassword(e.target.value)} className="w-full mt-1 px-3 py-3 rounded-xl border border-slate-200" />
+                </label>
+                <button type="submit" disabled={authLoading} className="w-full py-3.5 rounded-xl bg-[#c62839] text-white font-bold disabled:opacity-50">Save New Password</button>
               </form>
             )}
 
@@ -677,13 +670,15 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Activation Token</label>
+                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">6-Digit Verification Code</label>
                   <input
                     type="text"
                     required
                     value={emailToken}
                     onChange={(e) => setEmailToken(e.target.value)}
-                    placeholder="Enter token"
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                    inputMode="numeric"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
                   />
                 </div>
@@ -693,6 +688,9 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 >
                   <CheckCircle2 size={16} />
                   <span>Confirm Email</span>
+                </button>
+                <button type="button" onClick={()=>void resendCode('signup')} disabled={authLoading || resendSeconds>0} className="w-full text-xs font-bold text-[#c62839] disabled:text-slate-400">
+                  {resendSeconds>0 ? `Resend verification code in ${resendSeconds}s` : 'Resend verification code'}
                 </button>
               </form>
             )}
