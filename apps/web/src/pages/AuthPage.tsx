@@ -44,6 +44,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  useEffect(()=>{if(!authError&&!authSuccess)return;const timer=window.setTimeout(()=>{setAuthError(null);setAuthSuccess(null);},authError?7000:4500);return ()=>window.clearTimeout(timer);},[authError,authSuccess]);
 
   // Sign In inputs
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -180,6 +181,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     else {setAuthSuccess('Email verified. You may now sign in.');setAuthMode('signin');}
   };
 
+  useEffect(()=>{setAuthError(null);setAuthSuccess(null);},[authMode]);
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
   const promoCopy: Record<AuthMode, { heading: string; description: string; benefits: string[] }> = {
     signin: { heading: 'Welcome Back to University Pathway', description: 'Continue your academic journey from your student dashboard.', benefits: ['Access your student dashboard', 'Review your application', 'Follow your progress', 'See important updates'] },
