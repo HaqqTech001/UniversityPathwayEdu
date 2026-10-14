@@ -4,24 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-<<<<<<< HEAD
+
     "dev": "vite --host 0.0.0.0 --port 3001",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3001",
-=======
-    "dev": "vite --host 0.0.0.0 --port 3100",
-    "build": "vite build",
-    "preview": "vite preview --port 3100",
->>>>>>> f4df9c6281f56f71ea1b0be1ba7fbca079648305
     "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.1.1",
-<<<<<<< HEAD
-=======
     "@tailwindcss/vite": "^4.3.3",
     "tailwindcss": "^4.3.3",
->>>>>>> f4df9c6281f56f71ea1b0be1ba7fbca079648305
     "lucide-react": "^0.546.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
