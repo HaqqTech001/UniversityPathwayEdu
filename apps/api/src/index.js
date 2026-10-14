@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
-import {initializeDatabase} from './db.js';
-import rooms from './rooms.js';
+import {supabaseAdmin} from './db.js';
 import {signToken} from './security.js';
 const app=express();
 app.disable('x-powered-by');
@@ -14,7 +13,7 @@ if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'
     res.json({token:signToken({sub,role})});
   });
 }
-app.use('/api/cbt',rooms);
+app.get('/api/backend/status',async(_req,res)=>{ const {error}=await supabaseAdmin.from('upec_users').select('id',{head:true,count:'exact'});res.status(error?503:200).json({database:error?'not_ready':'connected',service:'supabase',detail:error?.message}); });
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Internal server error'});});
 const port=Number(process.env.PORT||4000);
-initializeDatabase().then(()=>app.listen(port,()=>console.log('UPEC API listening on '+port))).catch(err=>{console.error('Database initialization failed',err);process.exit(1);});
+app.listen(port,()=>console.log('UPEC API listening on '+port));
