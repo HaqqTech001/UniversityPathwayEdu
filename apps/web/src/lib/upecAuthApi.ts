@@ -17,6 +17,9 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
 }
 
 export const upecAuthApi = {
+  dashboard: (token: string) => authorized<{user:any;biodata:any;application:any}>('/api/student/dashboard',token),
+  saveBiodata: (token: string, details: Record<string,unknown>) => authorized<{biodata:any}>('/api/student/biodata',token,'PUT',{details}),
+  submitApplication: (token: string, formData: Record<string,unknown>) => authorized<{application:{reference_number:string}}>('/api/student/applications',token,'POST',{formData}),
   register: (fullName: string, email: string, phone: string, password: string) =>
     post<{message:string}>('/register', { fullName, email, phone, password }),
   verify: (email: string, code: string) =>
@@ -30,3 +33,10 @@ export const upecAuthApi = {
   reset: (email: string, code: string, password: string) =>
     post<{message:string}>('/reset', { email, code, password }),
 };
+
+async function authorized<T>(path:string,token:string,method='GET',body?:unknown):Promise<T>{
+ const response=await fetch(baseUrl+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||'Request failed');
+ return data as T;
+}
