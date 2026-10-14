@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { upecAuthApi } from '../lib/upecAuthApi';
+const TOKEN_KEY='upec_student_token';
+export const getStudentToken=()=>sessionStorage.getItem(TOKEN_KEY);
 
 export interface Biodata {
   surname: string;
@@ -56,7 +58,7 @@ interface AuthContextType {
   verifyEmail: (code: string, email?: string) => Promise<boolean>;
   logout: () => void;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
-  changePassword: (password: string) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (password: string, email?: string, code?: string) => Promise<{ success: boolean; error?: string }>;
   updateBiodata: (data: Partial<Biodata>) => void;
   saveApplicationDraft: (draft: Partial<ApplicationRecord>) => void;
   submitApplication: (appData: Partial<ApplicationRecord>) => string; // returns ref number
@@ -83,81 +85,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<StudentUser | null>(null);
   const [ready, setReady] = useState(false);
-  const loadUser = async (authUser: {id:string;email?:string;email_confirmed_at?:string|null;user_metadata?:any} | null) => {
-    if (!authUser) { setCurrentUser(null); return; }
-    const [profileResult, bioResult, appResult] = await Promise.all([
-      supabase.from('profiles').select('full_name,phone,role').eq('id',authUser.id).maybeSingle(),
-      supabase.from('student_biodata').select('details,completed_at').eq('user_id',authUser.id).maybeSingle(),
-      supabase.from('applications').select('*').eq('student_id',authUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-    ]);
-    if (profileResult.error || bioResult.error || appResult.error) {
-      console.error('Could not load student profile',profileResult.error||bioResult.error||appResult.error);
-      setCurrentUser(null); return;
-    }
-    const profile=profileResult.data;
-    if (profile?.role && profile.role !== 'student') { setCurrentUser(null); return; }
-    const fullName=profile?.full_name || authUser.user_metadata?.full_name || '';
-    const email=authUser.email || '';
-    const phone=profile?.phone || authUser.user_metadata?.phone || '';
-    setCurrentUser({
-      id:authUser.id, regNumber:'UPEC/'+authUser.id.slice(0,8).toUpperCase(),
-      fullName,email,phone,isEmailVerified:!!authUser.email_confirmed_at,
-      profileCompleted:!!bioResult.data?.completed_at,
-      biodata:{...emptyBiodata(email,fullName,phone),...(bioResult.data?.details||{})},
-      application:mapApplication(appResult.data),
-    });
+  const fromDashboard=(result:any):StudentUser=>{
+    const a=result.user,b=result.biodata,app=result.application;
+    return {id:a.id,regNumber:'UPEC/'+a.id.slice(0,8).toUpperCase(),fullName:a.full_name,email:a.email,phone:a.phone,isEmailVerified:!!a.verified_at,profileCompleted:!!b?.completed_at,biodata:{...emptyBiodata(a.email,a.full_name,a.phone),...(b?.details||{})},application:mapApplication(app)};
   };
-  useEffect(()=>{
-    let active=true;
-    supabase.auth.getUser().then(async({data,error})=>{
-      if(!active)return;
-      if(!error)await loadUser(data.user);
-      if(active)setReady(true);
-    }).catch(()=>{if(active)setReady(true);});
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
-      // Avoid awaiting Supabase queries inside auth callback.
-      setTimeout(()=>{if(active)void loadUser(session?.user||null);},0);
-    });
-    return ()=>{active=false;subscription.unsubscribe();};
-  },[]);
+  const refresh=async()=>{const token=getStudentToken();if(!token){setCurrentUser(null);return;}try{setCurrentUser(fromDashboard(await upecAuthApi.dashboard(token)));}catch{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);}};
+  useEffect(()=>{void refresh().finally(()=>setReady(true));},[]);
   const login=async(identifier:string,pass:string)=>{
-    if(!identifier.includes('@'))return {success:false,error:'Sign in with your registered email address.'};
-    const {data,error}=await supabase.auth.signInWithPassword({email:identifier.trim(),password:pass});
-    if(error)return {success:false,error:error.message};
-    await loadUser(data.user);
-    return {success:true};
+    try{const result=await upecAuthApi.login(identifier.trim(),pass);sessionStorage.setItem(TOKEN_KEY,result.token);await refresh();return {success:true};}
+    catch(error){return {success:false,error:error instanceof Error?error.message:'Sign in failed'};}
   };
   const registerAccount=async(fullName:string,email:string,phone:string,pass:string)=>{
-    if(!fullName.trim()||!email.trim()||!phone.trim()||pass.length<8)return {success:false,error:'Enter your name, email, phone and a password of at least 8 characters.'};
-    const {data,error}=await supabase.auth.signUp({email:email.trim(),password:pass,options:{data:{full_name:fullName.trim(),phone:phone.trim()}}});
-    if(error)return {success:false,error:error.message};
-    if(data.session && data.user)await loadUser(data.user);
-    return {success:true};
+    try{await upecAuthApi.register(fullName,email,phone,pass);return {success:true};}
+    catch(error){return {success:false,error:error instanceof Error?error.message:'Registration failed'};}
   };
   const verifyEmail=async(code:string,email?:string)=>{
     if(!email)return false;
-    const {error}=await supabase.auth.verifyOtp({email,token:code,type:'email'});
-    if(error)return false;
-    const {data}=await supabase.auth.getUser();await loadUser(data.user);
-    return true;
+    try{await upecAuthApi.verify(email,code);return true;}catch{return false;}
   };
   const resetPassword=async(email:string)=>{
-    const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/reset-password'});
-    return {success:!error,error:error?.message};
+    try{await upecAuthApi.recover(email);return {success:true};}
+    catch(error){return {success:false,error:error instanceof Error?error.message:'Recovery failed'};}
   };
-  const changePassword=async(password:string)=>{
-    const {error}=await supabase.auth.updateUser({password});
-    return {success:!error,error:error?.message};
+  const changePassword=async(password:string,email?:string,code?:string)=>{
+    if(!email||!code)return {success:false,error:'Enter your recovery email and code.'};
+    try{await upecAuthApi.reset(email,code,password);return {success:true};}
+    catch(error){return {success:false,error:error instanceof Error?error.message:'Password reset failed'};}
   };
-  const logout=()=>{void supabase.auth.signOut();setCurrentUser(null);};
+  const logout=()=>{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);};
   const updateBiodata=(data:Partial<Biodata>)=>{
     if(!currentUser)return;
     const biodata={...currentUser.biodata,...data};
-    const completed=!!(biodata.surname&&biodata.firstName&&biodata.guardianName&&biodata.guardianPhone);
-    void supabase.from('student_biodata').upsert({
-      user_id:currentUser.id,details:biodata,completed_at:completed?new Date().toISOString():null,
-    }).then(({error})=>{if(error)console.error('Biodata save failed',error);});
-    setCurrentUser({...currentUser,biodata,profileCompleted:completed});
+    const token=getStudentToken();if(!token)return;
+    void upecAuthApi.saveBiodata(token,biodata).then(()=>refresh()).catch(error=>console.error('Biodata save failed',error));
   };
   const saveApplicationDraft=(draft:Partial<ApplicationRecord>)=>{
     if(!currentUser)return;
