@@ -44,6 +44,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  useEffect(()=>{if(!authError&&!authSuccess)return;const timer=window.setTimeout(()=>{setAuthError(null);setAuthSuccess(null);},authError?7000:4500);return ()=>window.clearTimeout(timer);},[authError,authSuccess]);
 
   // Sign In inputs
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -97,8 +98,10 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     setAuthSuccess(null);
     setAuthLoading(true);
 
-    const res = await login(loginIdentifier, loginPassword);
-    setAuthLoading(false);
+    let res: {success:boolean;error?:string};
+    try { res = await login(loginIdentifier, loginPassword); }
+    catch { res = {success:false,error:'Unable to sign in. Please check your connection and try again.'}; }
+    finally { setAuthLoading(false); }
 
     if (res.success) {
       onNavigate('/student');
@@ -118,14 +121,16 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       return;
     }
 
-    if (regPassword.length < 10) {
-      setAuthError('Password must contain at least 10 characters.');
+    if (regPassword.length < 10 || regPassword.length > 128) {
+      setAuthError('Choose a password between 10 and 128 characters.');
       return;
     }
 
     setAuthLoading(true);
-    const res = await registerAccount(regFullName, regEmail, regPhone, regPassword);
-    setAuthLoading(false);
+    let res: {success:boolean;error?:string};
+    try { res = await registerAccount(regFullName, regEmail, regPhone, regPassword); }
+    catch { res = {success:false,error:'Unable to create your account. Please try again.'}; }
+    finally { setAuthLoading(false); }
 
     if (res.success) {
       setVerificationEmail(regEmail);
@@ -137,7 +142,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     }
   };
 
-  // Supabase sends a password recovery link to the registered email.
+  // Request a six-digit recovery code from the Express backend.
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null); setAuthLoading(true);
     const result = await resetPassword(recoveryIdentifier.trim());
@@ -149,12 +154,12 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     e.preventDefault(); setAuthError(null); setAuthLoading(true);
     // The code is validated atomically when the password is changed.
     setAuthLoading(false);
-    if(!/^\\d{6}$/.test(recoveryCode.trim()))setAuthError('Enter the six-digit recovery code.');
+    if(!/^[0-9]{6}$/.test(recoveryCode.trim()))setAuthError('Enter the six-digit recovery code.');
     else {setAuthSuccess('Code entered. Choose your new password.');setAuthMode('reset-password');}
   };
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault(); setAuthError(null);
-    if(newPassword!==confirmNewPassword || newPassword.length<10) {setAuthError('Passwords must match and contain at least 10 characters.');return;}
+    if(newPassword!==confirmNewPassword || newPassword.length<10 || newPassword.length>128) {setAuthError('Passwords must match and contain at least 10 characters.');return;}
     setAuthLoading(true);
     const result = await changePassword(newPassword,recoveryIdentifier.trim(),recoveryCode.trim());
     setAuthLoading(false);
@@ -166,7 +171,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     const verified=await verifyEmail(otpCode.trim(),verificationEmail||regEmail);
     setAuthLoading(false);
     if(!verified)setAuthError('Verification failed. Check the code and email address.');
-    else {setAuthSuccess('Email verified successfully.');onNavigate('/student');}
+    else {setAuthSuccess('Email verified. Please sign in.');setAuthMode('signin');}
   };
   const handleEmailVerify = async (e: React.FormEvent) => {
     e.preventDefault();setAuthError(null);setAuthLoading(true);
@@ -176,6 +181,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     else {setAuthSuccess('Email verified. You may now sign in.');setAuthMode('signin');}
   };
 
+  useEffect(()=>{setAuthError(null);setAuthSuccess(null);},[authMode]);
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
   const promoCopy: Record<AuthMode, { heading: string; description: string; benefits: string[] }> = {
     signin: { heading: 'Welcome Back to University Pathway', description: 'Continue your academic journey from your student dashboard.', benefits: ['Access your student dashboard', 'Review your application', 'Follow your progress', 'See important updates'] },

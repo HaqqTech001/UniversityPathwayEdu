@@ -48,7 +48,10 @@ async function verifyCode(account,purpose,code) {
 const wrap = fn => (req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.post('/register',wrap(async(req,res)=>{
   const {fullName,phone,password}=req.body||{},email=normalize(req.body?.email);
-  if(!emailPattern.test(email)||String(fullName||'').trim().length<2||String(phone||'').trim().length<5||typeof password!=='string'||password.length<10||password.length>128)return respond(res,400,'Invalid registration details');
+  if(!emailPattern.test(email))return respond(res,400,'Enter a valid email address.');
+  if(String(fullName||'').trim().length<2)return respond(res,400,'Enter your full name.');
+  if(String(phone||'').trim().length<5)return respond(res,400,'Enter a valid phone number.');
+  if(typeof password!=='string'||password.length<10||password.length>128)return respond(res,400,'Password must contain between 10 and 128 characters.');
   const password_hash=await hashPassword(password);
   const {data,error}=await db.from('local_accounts').insert({email,full_name:fullName.trim(),phone:phone.trim(),password_hash}).select('id,email').single();
   if(error){if(error.code==='23505')return respond(res,409,'Email already registered');throw error;}
@@ -75,11 +78,11 @@ router.post('/verify',wrap(async(req,res)=>{
 }));
 router.post('/login',wrap(async(req,res)=>{
   const email=normalize(req.body?.email),password=req.body?.password;
-  if(!emailPattern.test(email)||typeof password!=='string')return respond(res,401,'Invalid credentials');
+  if(!emailPattern.test(email)||typeof password!=='string')return respond(res,400,'Enter your email address and password.');
   const {data:account,error}=await db.from('local_accounts').select('*').eq('email',email).maybeSingle();
   if(error)throw error;
   const candidate=await hashPassword(password);
-  if(!account||!equalHash(account.password_hash,candidate)){await delay();return respond(res,401,'Invalid credentials');}
+  if(!account||!equalHash(account.password_hash,candidate)){await delay();return respond(res,401,'Incorrect email or password.');}
   if(!account.verified_at)return respond(res,403,'Verify your email before signing in');
   res.json({token:signToken({sub:account.id,role:'student'}),user:{id:account.id,email:account.email,fullName:account.full_name,phone:account.phone,isEmailVerified:true}});
 }));

@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refresh=async()=>{const token=getStudentToken();if(!token){setCurrentUser(null);return;}try{setCurrentUser(fromDashboard(await upecAuthApi.dashboard(token)));}catch{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);}};
   useEffect(()=>{void refresh().finally(()=>setReady(true));},[]);
   const login=async(identifier:string,pass:string)=>{
-    try{const result=await upecAuthApi.login(identifier.trim(),pass);sessionStorage.setItem(TOKEN_KEY,result.token);await refresh();return {success:true};}
+    try{const result=await upecAuthApi.login(identifier.trim(),pass);sessionStorage.setItem(TOKEN_KEY,result.token);await refresh();if(!getStudentToken())return {success:false,error:'Unable to verify your session. Please try again.'};return {success:true};}
     catch(error){return {success:false,error:error instanceof Error?error.message:'Sign in failed'};}
   };
   const registerAccount=async(fullName:string,email:string,phone:string,pass:string)=>{
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const loginAsDemoStudent=()=>{console.warn('Demo authentication is disabled.');};
   return <AuthContext.Provider value={{
-    currentUser:ready?currentUser:null,isAuthenticated:ready&&!!currentUser,
+    currentUser:ready?currentUser:null,isAuthenticated:ready&&!!currentUser&&currentUser.isEmailVerified,
     login,registerAccount,verifyEmail,logout,resetPassword,changePassword,
     loginAsDemoStudent,updateBiodata,saveApplicationDraft,submitApplication,
   }}>{children}</AuthContext.Provider>;
