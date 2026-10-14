@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export interface Biodata {
   surname: string;
@@ -52,313 +53,137 @@ interface AuthContextType {
   login: (identifier: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   loginAsDemoStudent: () => void;
   registerAccount: (fullName: string, email: string, phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  verifyEmail: (code: string) => boolean;
+  verifyEmail: (code: string, email?: string) => Promise<boolean>;
   logout: () => void;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (password: string) => Promise<{ success: boolean; error?: string }>;
   updateBiodata: (data: Partial<Biodata>) => void;
   saveApplicationDraft: (draft: Partial<ApplicationRecord>) => void;
   submitApplication: (appData: Partial<ApplicationRecord>) => string; // returns ref number
 }
 
-const STORAGE_KEY = 'upec_student_auth_session';
 
-const DEFAULT_DEMO_STUDENT: StudentUser = {
-  id: 'upec-std-842',
-  regNumber: 'UPEC/2025/0842',
-  fullName: 'Amina Bello',
-  email: 'amina.bello@example.com',
-  phone: '09133903600',
-  isEmailVerified: true,
-  profileCompleted: true,
-  biodata: {
-    surname: 'Bello',
-    firstName: 'Amina',
-    otherNames: 'Zainab',
-    gender: 'Female',
-    dateOfBirth: '2007-04-14',
-    phone: '09133903600',
-    email: 'amina.bello@example.com',
-    address: '14, Taiwo Isale Road, Ilorin, Kwara State',
-    stateOfOrigin: 'Kwara State',
-    lga: 'Ilorin South',
-    guardianName: 'Alhaji M. K. Bello',
-    guardianPhone: '08033001122',
-    guardianRelationship: 'Father',
-    guardianAddress: '14, Taiwo Isale Road, Ilorin, Kwara State',
-    previousSchool: 'Government Secondary School, Ilorin',
-    targetExam: 'JAMB (UTME) 2025',
-    targetCourse: 'Medicine and Surgery (MBBS)',
-    targetInstitution: 'University of Ilorin (UNILORIN)',
-  },
-  application: {
-    referenceNumber: 'UPEC/APP/2025/0842',
-    programme: 'JAMB (UTME) Intensive Coaching',
-    session: '2024/2025 Academic Cohort A',
-    studyCenter: 'Sawmill Main Center, Ilorin',
-    chosenSubjects: ['Use of English', 'Biology', 'Chemistry', 'Physics'],
-    submittedAt: 'October 12, 2024',
-    status: 'approved',
-    cbtEnrolled: true,
-    paymentReference: 'TXN-UPEC-992144',
-    paymentStatus: 'verified',
-  },
+const emptyBiodata = (email: string, fullName: string, phone: string): Biodata => {
+  const parts = fullName.trim().split(/\s+/);
+  return {
+    surname: parts[parts.length - 1] || '', firstName: parts[0] || '',
+    gender: 'Male', dateOfBirth: '', phone, email, address: '',
+    stateOfOrigin: '', lga: '', guardianName: '', guardianPhone: '',
+    guardianRelationship: '', guardianAddress: '', previousSchool: '',
+    targetExam: '', targetCourse: '', targetInstitution: '',
+  };
 };
-
+const mapApplication = (row: any): ApplicationRecord | null => row ? ({
+  referenceNumber: row.reference_number, programme: row.programme,
+  session: row.academic_session || '', studyCenter: row.study_centre || '',
+  chosenSubjects: row.subjects || [], submittedAt: row.submitted_at || '',
+  status: row.status, cbtEnrolled: false, paymentStatus: 'pending',
+}) : null;
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<StudentUser | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch {
-      // fallback to null
+  const [currentUser, setCurrentUser] = useState<StudentUser | null>(null);
+  const [ready, setReady] = useState(false);
+  const loadUser = async (authUser: {id:string;email?:string;email_confirmed_at?:string|null;user_metadata?:any} | null) => {
+    if (!authUser) { setCurrentUser(null); return; }
+    const [profileResult, bioResult, appResult] = await Promise.all([
+      supabase.from('profiles').select('full_name,phone,role').eq('id',authUser.id).maybeSingle(),
+      supabase.from('student_biodata').select('details,completed_at').eq('user_id',authUser.id).maybeSingle(),
+      supabase.from('applications').select('*').eq('student_id',authUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    ]);
+    if (profileResult.error || bioResult.error || appResult.error) {
+      console.error('Could not load student profile',profileResult.error||bioResult.error||appResult.error);
+      setCurrentUser(null); return;
     }
-    // Default to null for realistic authentication guard, but with demo student available
-    return null;
-  });
-
-  useEffect(() => {
-    try {
-      if (currentUser) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentUser));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [currentUser]);
-
-  const login = async (identifier: string, _pass: string) => {
-    const trimmed = identifier.trim().toLowerCase();
-    // Check if matches demo student
-    if (
-      trimmed === 'upec/2025/0842'.toLowerCase() ||
-      trimmed === 'amina.bello@example.com'.toLowerCase() ||
-      trimmed === '09133903600' ||
-      trimmed.includes('amina')
-    ) {
-      setCurrentUser(DEFAULT_DEMO_STUDENT);
-      return { success: true };
-    }
-
-    // Try finding user in saved accounts
-    try {
-      const savedAccounts = localStorage.getItem('upec_registered_accounts');
-      if (savedAccounts) {
-        const list: StudentUser[] = JSON.parse(savedAccounts);
-        const found = list.find(
-          (u) =>
-            u.email.toLowerCase() === trimmed ||
-            u.regNumber.toLowerCase() === trimmed ||
-            u.phone === trimmed
-        );
-        if (found) {
-          setCurrentUser(found);
-          return { success: true };
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // If identifier is provided with anything reasonable, create dynamic active student
-    if (identifier.length >= 3) {
-      const isReg = identifier.startsWith('UPEC/');
-      const user: StudentUser = {
-        id: `upec-std-${Math.floor(100 + Math.random() * 900)}`,
-        regNumber: isReg ? identifier.toUpperCase() : `UPEC/2025/0${Math.floor(800 + Math.random() * 199)}`,
-        fullName: isReg ? 'Enrolled Student' : identifier.split('@')[0].replace('.', ' '),
-        email: identifier.includes('@') ? identifier : `${identifier.replace(/\//g, '').toLowerCase()}@student.pathway.edu.ng`,
-        phone: '09133903600',
-        isEmailVerified: true,
-        profileCompleted: true,
-        biodata: {
-          ...DEFAULT_DEMO_STUDENT.biodata,
-          surname: identifier.split('@')[0] || 'Applicant',
-          firstName: 'Student',
-        },
-        application: DEFAULT_DEMO_STUDENT.application,
-      };
-      setCurrentUser(user);
-      return { success: true };
-    }
-
-    return { success: false, error: 'Invalid Registration Number, Email, or Password' };
-  };
-
-  const loginAsDemoStudent = () => {
-    setCurrentUser(DEFAULT_DEMO_STUDENT);
-  };
-
-  const registerAccount = async (
-    fullName: string,
-    email: string,
-    phone: string,
-    _pass: string
-  ) => {
-    if (!fullName || !email || !phone) {
-      return { success: false, error: 'Please fill in all required fields' };
-    }
-
-    const regNo = `UPEC/2025/0${Math.floor(850 + Math.random() * 140)}`;
-    const names = fullName.trim().split(' ');
-    const surname = names[names.length - 1] || 'Candidate';
-    const firstName = names[0] || 'Student';
-
-    const newUser: StudentUser = {
-      id: `upec-std-${Date.now()}`,
-      regNumber: regNo,
-      fullName,
-      email,
-      phone,
-      isEmailVerified: true, // Mark verified after creation per directive
-      profileCompleted: false, // Profile incomplete, will prompt structured biodata
-      biodata: {
-        surname,
-        firstName,
-        otherNames: names.slice(1, -1).join(' '),
-        gender: 'Male',
-        dateOfBirth: '2007-01-01',
-        phone,
-        email,
-        address: 'Ilorin, Kwara State',
-        stateOfOrigin: 'Kwara State',
-        lga: 'Ilorin West',
-        guardianName: '',
-        guardianPhone: '',
-        guardianRelationship: 'Parent',
-        guardianAddress: '',
-        previousSchool: '',
-        targetExam: 'JAMB (UTME)',
-        targetCourse: '',
-        targetInstitution: '',
-      },
-      application: null, // No application yet
-    };
-
-    try {
-      const savedAccounts = localStorage.getItem('upec_registered_accounts');
-      const list: StudentUser[] = savedAccounts ? JSON.parse(savedAccounts) : [];
-      list.push(newUser);
-      localStorage.setItem('upec_registered_accounts', JSON.stringify(list));
-    } catch {
-      // ignore
-    }
-
-    setCurrentUser(newUser);
-    return { success: true };
-  };
-
-  const verifyEmail = (_code: string) => {
-    if (currentUser) {
-      const updated = { ...currentUser, isEmailVerified: true };
-      setCurrentUser(updated);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  };
-
-  const updateBiodata = (data: Partial<Biodata>) => {
-    if (!currentUser) return;
-    const updatedBiodata: Biodata = {
-      ...currentUser.biodata,
-      ...data,
-    };
-    const updatedUser: StudentUser = {
-      ...currentUser,
-      biodata: updatedBiodata,
-      profileCompleted: Boolean(
-        updatedBiodata.surname &&
-        updatedBiodata.firstName &&
-        updatedBiodata.guardianName &&
-        updatedBiodata.guardianPhone
-      ),
-    };
-    setCurrentUser(updatedUser);
-  };
-
-  const saveApplicationDraft = (draft: Partial<ApplicationRecord>) => {
-    if (!currentUser) return;
-    const existing = currentUser.application;
-    const app: ApplicationRecord = {
-      referenceNumber: existing?.referenceNumber || `UPEC/APP/2025/${Math.floor(1000 + Math.random() * 9000)}`,
-      programme: draft.programme || existing?.programme || 'JAMB (UTME) Intensive Coaching',
-      session: draft.session || existing?.session || '2024/2025 Academic Cohort A',
-      studyCenter: draft.studyCenter || existing?.studyCenter || 'Sawmill Main Center, Ilorin',
-      chosenSubjects: draft.chosenSubjects || existing?.chosenSubjects || ['Use of English', 'Mathematics', 'Physics', 'Chemistry'],
-      submittedAt: existing?.submittedAt || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      status: 'draft',
-      cbtEnrolled: draft.cbtEnrolled ?? (existing?.cbtEnrolled || true),
-      paymentReference: draft.paymentReference || existing?.paymentReference,
-      paymentStatus: draft.paymentStatus || existing?.paymentStatus || 'pending',
-    };
-
+    const profile=profileResult.data;
+    if (profile?.role && profile.role !== 'student') { setCurrentUser(null); return; }
+    const fullName=profile?.full_name || authUser.user_metadata?.full_name || '';
+    const email=authUser.email || '';
+    const phone=profile?.phone || authUser.user_metadata?.phone || '';
     setCurrentUser({
-      ...currentUser,
-      application: app,
+      id:authUser.id, regNumber:'UPEC/'+authUser.id.slice(0,8).toUpperCase(),
+      fullName,email,phone,isEmailVerified:!!authUser.email_confirmed_at,
+      profileCompleted:!!bioResult.data?.completed_at,
+      biodata:{...emptyBiodata(email,fullName,phone),...(bioResult.data?.details||{})},
+      application:mapApplication(appResult.data),
     });
   };
-
-  const submitApplication = (appData: Partial<ApplicationRecord>): string => {
-    if (!currentUser) return '';
-    const refNum = `UPEC/APP/2025/${Math.floor(1000 + Math.random() * 9000)}`;
-    const app: ApplicationRecord = {
-      referenceNumber: currentUser.application?.referenceNumber || refNum,
-      programme: appData.programme || currentUser.application?.programme || 'JAMB (UTME) Intensive Coaching',
-      session: appData.session || currentUser.application?.session || '2024/2025 Academic Cohort A',
-      studyCenter: appData.studyCenter || currentUser.application?.studyCenter || 'Sawmill Main Center, Ilorin',
-      chosenSubjects: appData.chosenSubjects || currentUser.application?.chosenSubjects || ['Use of English', 'Mathematics', 'Physics', 'Chemistry'],
-      submittedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      status: 'submitted',
-      cbtEnrolled: appData.cbtEnrolled ?? true,
-      paymentReference: appData.paymentReference || `TXN-UPEC-${Math.floor(100000 + Math.random() * 900000)}`,
-      paymentStatus: 'pending',
-    };
-
-    setCurrentUser({
-      ...currentUser,
-      profileCompleted: true,
-      application: app,
+  useEffect(()=>{
+    let active=true;
+    supabase.auth.getUser().then(async({data,error})=>{
+      if(!active)return;
+      if(!error)await loadUser(data.user);
+      if(active)setReady(true);
+    }).catch(()=>{if(active)setReady(true);});
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      // Avoid awaiting Supabase queries inside auth callback.
+      setTimeout(()=>{if(active)void loadUser(session?.user||null);},0);
     });
-    return app.referenceNumber;
+    return ()=>{active=false;subscription.unsubscribe();};
+  },[]);
+  const login=async(identifier:string,pass:string)=>{
+    if(!identifier.includes('@'))return {success:false,error:'Sign in with your registered email address.'};
+    const {data,error}=await supabase.auth.signInWithPassword({email:identifier.trim(),password:pass});
+    if(error)return {success:false,error:error.message};
+    await loadUser(data.user);
+    return {success:true};
   };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        isAuthenticated: currentUser !== null,
-        login,
-        loginAsDemoStudent,
-        registerAccount,
-        verifyEmail,
-        logout,
-        updateBiodata,
-        saveApplicationDraft,
-        submitApplication,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const registerAccount=async(fullName:string,email:string,phone:string,pass:string)=>{
+    if(!fullName.trim()||!email.trim()||!phone.trim()||pass.length<8)return {success:false,error:'Enter your name, email, phone and a password of at least 8 characters.'};
+    const {data,error}=await supabase.auth.signUp({email:email.trim(),password:pass,options:{data:{full_name:fullName.trim(),phone:phone.trim()}}});
+    if(error)return {success:false,error:error.message};
+    if(data.session && data.user)await loadUser(data.user);
+    return {success:true};
+  };
+  const verifyEmail=async(code:string,email?:string)=>{
+    if(!email)return false;
+    const {error}=await supabase.auth.verifyOtp({email,token:code,type:'email'});
+    if(error)return false;
+    const {data}=await supabase.auth.getUser();await loadUser(data.user);
+    return true;
+  };
+  const resetPassword=async(email:string)=>{
+    const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/reset-password'});
+    return {success:!error,error:error?.message};
+  };
+  const changePassword=async(password:string)=>{
+    const {error}=await supabase.auth.updateUser({password});
+    return {success:!error,error:error?.message};
+  };
+  const logout=()=>{void supabase.auth.signOut();setCurrentUser(null);};
+  const updateBiodata=(data:Partial<Biodata>)=>{
+    if(!currentUser)return;
+    const biodata={...currentUser.biodata,...data};
+    const completed=!!(biodata.surname&&biodata.firstName&&biodata.guardianName&&biodata.guardianPhone);
+    void supabase.from('student_biodata').upsert({
+      user_id:currentUser.id,details:biodata,completed_at:completed?new Date().toISOString():null,
+    }).then(({error})=>{if(error)console.error('Biodata save failed',error);});
+    setCurrentUser({...currentUser,biodata,profileCompleted:completed});
+  };
+  const saveApplicationDraft=(draft:Partial<ApplicationRecord>)=>{
+    if(!currentUser)return;
+    const app:ApplicationRecord={referenceNumber:currentUser.application?.referenceNumber||'',
+      programme:draft.programme||currentUser.application?.programme||'',
+      session:draft.session||currentUser.application?.session||'',
+      studyCenter:draft.studyCenter||currentUser.application?.studyCenter||'',
+      chosenSubjects:draft.chosenSubjects||currentUser.application?.chosenSubjects||[],
+      submittedAt:currentUser.application?.submittedAt||'',status:'draft',
+      cbtEnrolled:false,paymentStatus:'pending'};
+    setCurrentUser({...currentUser,application:app});
+    // Drafts remain local until application submission is migrated to server-side API.
+  };
+  const submitApplication=(_appData:Partial<ApplicationRecord>):string=>{
+    // Prevent false success: application submission requires the secure backend workflow.
+    throw new Error('Online application submission is being connected. No application has been submitted.');
+  };
+  const loginAsDemoStudent=()=>{console.warn('Demo authentication is disabled.');};
+  return <AuthContext.Provider value={{
+    currentUser:ready?currentUser:null,isAuthenticated:ready&&!!currentUser,
+    login,registerAccount,verifyEmail,logout,resetPassword,changePassword,
+    loginAsDemoStudent,updateBiodata,saveApplicationDraft,submitApplication,
+  }}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+export const useAuth=()=>{
+  const context=useContext(AuthContext);
+  if(!context)throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
