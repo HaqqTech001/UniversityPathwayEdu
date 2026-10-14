@@ -79,12 +79,16 @@ export default function CbtExamWizard() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const availableSubjectsList = [
-    'Use of English',
-    'Mathematics',
-    'Biology',
-    'Chemistry',
-    'Physics',
+    'Use of English', 'Mathematics', 'Biology', 'Chemistry', 'Physics',
+    'Geography', 'Government', 'Economics', 'Agricultural Science',
+    'Commerce', 'Accounting', 'Literature in English', 'Christian Religious Studies',
+    'Islamic Religious Studies', 'History', 'Further Mathematics', 'French',
+    'Arabic', 'Hausa', 'Igbo', 'Yoruba', 'Music', 'Fine Arts', 'Home Economics',
+    'Physical and Health Education',
   ];
+  const subjectsWithQuestions = new Set(CBT_QUESTION_BANK.map(question => question.subject));
+  const unavailableSubjects = selectedSubjects.filter(subject => !subjectsWithQuestions.has(subject));
+  const canStartExam = selectedSubjects.length === 4 && unavailableSubjects.length === 0;
 
   // Filter current subject's questions
   const currentSubjectQuestions = examQuestions.filter(
@@ -112,6 +116,7 @@ export default function CbtExamWizard() {
 
   // Start Exam Handler
   const handleStartExam = () => {
+    if (!canStartExam) return;
     const questions = CBT_QUESTION_BANK.filter((q) =>
       selectedSubjects.includes(q.subject)
     );
@@ -290,7 +295,7 @@ export default function CbtExamWizard() {
               JAMB UTME &amp; Post-UTME Practice Examination
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-              Configure your practice examination session. Test your subject speed, question mastery, and time allocation under authentic computerized conditions.
+              Configure your practice examination session. Test your subject speed, question mastery, and time allocation in a JAMB-inspired practice environment using original sample questions.
             </p>
           </div>
           <div className="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-[#c62839]/20 to-transparent pointer-events-none" />
@@ -392,6 +397,7 @@ export default function CbtExamWizard() {
                 {availableSubjectsList.map((subj) => {
                   const isSelected = selectedSubjects.includes(subj);
                   const isEnglish = subj === 'Use of English';
+                  const hasQuestions = subjectsWithQuestions.has(subj);
 
                   return (
                     <button
@@ -405,7 +411,7 @@ export default function CbtExamWizard() {
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span>{subj}</span>
+                      <span className="text-left">{subj}{!hasQuestions && <span className="block text-[10px] font-normal text-amber-700">Questions coming soon</span>}</span>
                       {isSelected ? (
                         <Check size={14} className="text-emerald-600 shrink-0" />
                       ) : (
@@ -415,6 +421,8 @@ export default function CbtExamWizard() {
                   );
                 })}
               </div>
+              <p className="mt-3 text-xs leading-6 text-slate-500">Choose your intended UTME subject combination. Subjects without a question bank are shown for planning but cannot start a practice session yet.</p>
+              {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
             {/* 4. Duration Setting for Timed Mode */}
@@ -454,7 +462,8 @@ export default function CbtExamWizard() {
               <button
                 type="button"
                 onClick={handleStartExam}
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                disabled={!canStartExam}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Play size={15} />
                 <span>Begin Examination Now</span>
