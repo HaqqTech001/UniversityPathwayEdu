@@ -26,7 +26,6 @@ interface HomePageProps {
 
 
 export default function HomePage({ onNavigate }: HomePageProps) {
-  const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   const handleNav = (path: string) => {
@@ -35,38 +34,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     } else {
       window.location.href = path;
     }
-  };
-
-  const testimonials = [
-    {
-      quote:
-        '“University Pathway gave me the right guidance and support I needed to excel in my JAMB. I’m now in my dream course!”',
-      name: 'Amina Yusuf',
-      programme: 'JAMB Student',
-      avatar: '/images/avatar_amina.jpg',
-    },
-    {
-      quote:
-        '“The tutors are amazing and the learning environment is very conducive. I highly recommend University Pathway!”',
-      name: 'Tunde Adeyemi',
-      programme: 'WAEC Student',
-      avatar: '/images/avatar_tunde.jpg',
-    },
-    {
-      quote:
-        '“Their counselling helped me choose the best pathway for my future. I’m grateful for their support.”',
-      name: 'Fatima Alao',
-      programme: 'JUPEB Student',
-      avatar: '/images/avatar_fatima.jpg',
-    },
-  ];
-
-  const nextTestimonial = () => {
-    setActiveTestimonialIndex((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setActiveTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   return (
@@ -222,12 +189,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       </section>
 
       {/* =========================================================================
-          SECTION D: OVERLAPPING INFORMATION STRIP (STATS / METRICS BAR)
+          SECTION D: OVERLAPPING INFORMATION STRIP (QUALITATIVE STRENGTHS)
           ========================================================================= */}
       <section className="relative z-20 -mt-10 sm:-mt-14 max-w-6xl mx-auto px-5 sm:px-8">
         <ScrollReveal from="up" delay={100}>
           <div className="bg-white rounded-2xl shadow-[0_15px_45px_rgba(11,26,66,0.12)] border border-slate-100 p-6 sm:p-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-0 lg:divide-x divide-slate-100">
-          {/* Stat 1: Thousands */}
+          {/* Stat 1: Dedicated Guidance */}
           <button
             type="button"
             onClick={() => handleNav('/about')}
@@ -237,12 +204,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <Users size={24} />
             </div>
             <div>
-              <p className="font-serif text-2xl font-black text-[#0b1a42] leading-none group-hover:text-[#c62839] transition-colors">Thousands</p>
-              <p className="text-xs text-slate-500 font-semibold mt-1">of Students Guided</p>
+              <p className="font-serif text-xl font-black text-[#0b1a42] leading-tight group-hover:text-[#c62839] transition-colors">Dedicated</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Academic Guidance</p>
             </div>
           </button>
 
-          {/* Stat 2: High Success Rate */}
+          {/* Stat 2: Rigorous Prep */}
           <button
             type="button"
             onClick={() => handleNav('/programmes')}
@@ -252,12 +219,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <Award size={24} />
             </div>
             <div>
-              <p className="font-serif text-2xl font-black text-[#0b1a42] leading-none group-hover:text-[#c62839] transition-colors">High Success Rate</p>
-              <p className="text-xs text-slate-500 font-semibold mt-1">in National &amp; Int’l Exams</p>
+              <p className="font-serif text-xl font-black text-[#0b1a42] leading-tight group-hover:text-[#c62839] transition-colors">Rigorous</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Exam Preparation</p>
             </div>
           </button>
 
-          {/* Stat 3: Multiple Academic Pathways */}
+          {/* Stat 3: Structured Pathways */}
           <button
             type="button"
             onClick={() => handleNav('/programmes')}
@@ -267,12 +234,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <Landmark size={24} />
             </div>
             <div>
-              <p className="font-serif text-2xl font-black text-[#0b1a42] leading-none group-hover:text-[#c62839] transition-colors">Multiple</p>
-              <p className="text-xs text-slate-500 font-semibold mt-1">Academic Pathways</p>
+              <p className="font-serif text-xl font-black text-[#0b1a42] leading-tight group-hover:text-[#c62839] transition-colors">Structured</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Academic Pathways</p>
             </div>
           </button>
 
-          {/* Stat 4: Trusted Educational Partner */}
+          {/* Stat 4: Committed Support */}
           <button
             type="button"
             onClick={() => handleNav('/contact')}
@@ -282,8 +249,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <ShieldCheck size={24} />
             </div>
             <div>
-              <p className="font-serif text-2xl font-black text-[#0b1a42] leading-none group-hover:text-[#c62839] transition-colors">Trusted</p>
-              <p className="text-xs text-slate-500 font-semibold mt-1">Educational Partner</p>
+              <p className="font-serif text-xl font-black text-[#0b1a42] leading-tight group-hover:text-[#c62839] transition-colors">Committed</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Educational Support</p>
             </div>
           </button>
         </div>
@@ -713,70 +680,68 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       </section>
 
       {/* =========================================================================
-          SECTION I: TESTIMONIALS SECTION
+          SECTION I: STUDENT SUPPORT & ACADEMIC FRAMEWORK
           ========================================================================= */}
       <section className="py-20 bg-[#fafbfe] border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-5 sm:px-8">
-          {/* Header with Navigation Arrows */}
           <ScrollReveal from="up">
-            <div className="flex items-end justify-between gap-6 mb-12">
-              <div>
-                <p className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
-                  TESTIMONIALS
-                </p>
-                <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#0b1a42] mt-2">
-                  What Our <span className="text-[#c62839]">Students Say</span>
-                </h2>
-              </div>
-              {/* Arrows */}
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={prevTestimonial}
-                  aria-label="Previous testimonial"
-                  className="w-10 h-10 rounded-full border border-slate-300 hover:border-[#c62839] hover:text-[#c62839] flex items-center justify-center transition-colors bg-white shadow-sm cursor-pointer"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={nextTestimonial}
-                  aria-label="Next testimonial"
-                  className="w-10 h-10 rounded-full border border-slate-300 hover:border-[#c62839] hover:text-[#c62839] flex items-center justify-center transition-colors bg-white shadow-sm cursor-pointer"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <p className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest inline-flex items-center gap-2">
+                <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
+                STUDENT SUPPORT &amp; FRAMEWORK
+                <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
+              </p>
+              <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#0b1a42] mt-2">
+                Our Pedagogical <span className="text-[#c62839]">Approach &amp; Commitment</span>
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed">
+                We believe in structured learning, rigorous continuous assessment, and individual academic attention to ensure every learner reaches their highest potential.
+              </p>
             </div>
           </ScrollReveal>
 
-          {/* 3 Clean Testimonial Cards matching mockup */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((item, idx) => (
-              <ScrollReveal key={item.name} from="up" delay={idx * 100}>
-                <article
-                  className="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full"
-                >
-                  <p className="text-slate-600 text-[14px] leading-relaxed mb-6 font-normal">
-                    {item.quote}
-                  </p>
-                  <div className="flex items-center gap-3.5 pt-2">
-                    <img
-                      src={item.avatar}
-                      alt={item.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
-                    />
-                    <div>
-                      <h3 className="font-serif font-black text-[15px] text-[#0b1a42] leading-tight">
-                        {item.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">{item.programme}</p>
-                    </div>
-                  </div>
-                </article>
-              </ScrollReveal>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <ScrollReveal from="up" delay={50}>
+              <div className="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-[#fbebee] text-[#c62839] flex items-center justify-center mb-6 font-bold text-lg">
+                  01
+                </div>
+                <h3 className="font-serif font-black text-xl text-[#0b1a42] mb-3">
+                  Structured Lesson Plans
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed flex-1">
+                  Comprehensive curriculum delivery aligned with official examination bodies (JAMB, WAEC, NECO, JUPEB, and international boards) ensuring complete syllabus coverage.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal from="up" delay={100}>
+              <div className="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#d5a75b] flex items-center justify-center mb-6 font-bold text-lg">
+                  02
+                </div>
+                <h3 className="font-serif font-black text-xl text-[#0b1a42] mb-3">
+                  Continuous Practice &amp; Mock Exams
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed flex-1">
+                  Regular computer-based testing (CBT) practice sessions and past-question drills designed to build speed, accuracy, and confidence under timed examination conditions.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal from="up" delay={150}>
+              <div className="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-[#fbebee] text-[#c62839] flex items-center justify-center mb-6 font-bold text-lg">
+                  03
+                </div>
+                <h3 className="font-serif font-black text-xl text-[#0b1a42] mb-3">
+                  Dedicated Mentorship &amp; Counselling
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed flex-1">
+                  One-on-one academic counselling to assist students in selecting appropriate degree courses, admission requirements, and career pathways suited to their strengths.
+                </p>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>

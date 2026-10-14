@@ -1,0 +1,49 @@
+import React, { useState } from 'react';
+import { ArrowRight, Check, ChevronRight, Clock3, Copy, Mail, MapPin, MessageSquare, Navigation, Phone, Send } from 'lucide-react';
+
+type Props = { onNavigate: (path: string) => void };
+const address='23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State, Nigeria';
+const email='unipathway2020@gmail.com';
+const phones=['09166664266','09133903600','08088387657'];
+const mapsUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
+const topics=['Admissions & registration','Programme information','Study resources','Academic guidance','Other enquiry'];
+
+export default function ContactPage({ onNavigate }: Props) {
+  const [form,setForm]=useState({name:'',email:'',phone:'',topic:topics[0],message:''});
+  const [draftReady,setDraftReady]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [error,setError]=useState('');
+  const copyAddress=async()=>{try{await navigator.clipboard.writeText(address);setCopied(true)}catch{setCopied(false)}};
+  const handleSubmit=(e:React.FormEvent<HTMLFormElement>)=>{
+    e.preventDefault();
+    if(form.name.trim().length<2||form.message.trim().length<10||(!form.email.trim()&&!form.phone.trim())){setError('Enter your name, a contact method and a message of at least 10 characters.');return}
+    setError('');
+    const body=['Hello University Pathway Educational Consult,','','I would like to make an enquiry.','', 'Name: '+form.name.trim(),'Email: '+(form.email.trim()||'Not provided'),'Phone: '+(form.phone.trim()||'Not provided'),'Topic: '+form.topic,'','Message:',form.message.trim()].join('\n');
+    const url='mailto:'+email+'?subject='+encodeURIComponent('UPEC enquiry: '+form.topic)+'&body='+encodeURIComponent(body);
+    setDraftReady(true);
+    window.location.href=url;
+  };
+  return <main className="w-full bg-white text-[#111A43]">
+    <section className="relative overflow-hidden bg-[#111A43] px-5 py-20 text-white sm:px-8 sm:py-24"><div className="pointer-events-none absolute -right-28 -top-32 h-96 w-96 rounded-full border-[60px] border-white/5"/><div className="relative mx-auto max-w-7xl"><nav aria-label="Breadcrumb" className="mb-7 flex items-center gap-2 text-sm text-white/75"><button type="button" onClick={()=>onNavigate('/')} className="hover:text-white">Home</button><ChevronRight size={15}/><span className="text-[#D5A75B]">Contact</span></nav><span className="text-xs font-extrabold uppercase tracking-[.2em] text-[#D5A75B]">We're here to help</span><h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-tight sm:text-6xl">Your next academic step starts with a conversation.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-white/75">Ask about academic preparation, admissions guidance or available programmes. Reach us by phone, email or at our Ilorin office.</p></div></section>
+    <section className="relative z-10 mx-auto -mt-8 grid max-w-7xl gap-5 px-5 sm:px-8 md:grid-cols-3" aria-label="Contact details">
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><MapPin/></span><h2 className="mt-5 text-xl font-extrabold">Visit our office</h2><p className="mt-3 text-sm leading-7 text-slate-600">{address}</p><button type="button" onClick={copyAddress} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#C62839]">{copied?<Check size={16}/>:<Copy size={16}/>} {copied?'Address copied':'Copy address'}</button></div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><Phone/></span><h2 className="mt-5 text-xl font-extrabold">Call our team</h2><div className="mt-3 space-y-2">{phones.map(p=><a key={p} className="block text-sm font-semibold text-[#111A43] hover:text-[#C62839]" href={'tel:+234'+p.slice(1)}>{p}</a>)}</div><p className="mt-4 text-xs text-slate-500">Call to confirm current opening hours before visiting.</p></div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><Mail/></span><h2 className="mt-5 text-xl font-extrabold">Send an email</h2><p className="mt-3 text-sm leading-7 text-slate-600">For questions about programmes, applications or academic support.</p><a className="mt-4 block break-all text-sm font-bold text-[#C62839] underline" href={'mailto:'+email}>{email}</a></div>
+    </section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-12">
+      <div className="rounded-3xl border border-slate-200 bg-[#F7F8FC] p-6 shadow-sm sm:p-10 lg:col-span-7"><span className="text-xs font-extrabold uppercase tracking-[.2em] text-[#C62839]">Enquiry desk</span><h2 className="mt-3 text-3xl font-extrabold">Tell us how we can help.</h2><p className="mt-4 text-sm leading-7 text-slate-600">Complete this form to prepare an email to our team. Your email app will open so you can review and send it. The website does not submit or store your message.</p>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-bold">Full name <span className="text-[#C62839]">*</span><input required minLength={2} autoComplete="name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Your full name"/></label><label className="block text-sm font-bold">Email address<input type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="you@example.com"/></label></div>
+          <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-bold">Phone number<input type="tel" autoComplete="tel" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Your phone number"/></label><label className="block text-sm font-bold">Enquiry topic<select value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]">{topics.map(t=><option key={t} value={t}>{t}</option>)}</select></label></div>
+          <label className="block text-sm font-bold">Your message <span className="text-[#C62839]">*</span><textarea required minLength={10} rows={6} value={form.message} onChange={e=>setForm({...form,message:e.target.value})} className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Share your question or the guidance you need."/></label>
+          {error&&<p role="alert" className="text-sm font-semibold text-[#C62839]">{error}</p>}
+          <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C62839] px-7 py-4 text-sm font-bold text-white transition hover:bg-red-700 sm:w-auto"><Send size={17}/> Prepare email enquiry</button>
+          {draftReady&&<p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">Your email app should open with a draft. Please press Send there to deliver your enquiry. If nothing opened, email <a className="font-bold underline" href={'mailto:'+email}>{email}</a> directly.</p>}
+        </form>
+      </div>
+      <aside className="space-y-6 lg:col-span-5"><div className="rounded-3xl bg-[#111A43] p-8 text-white"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#C62839]"><Navigation/></span><h2 className="mt-5 text-2xl font-extrabold">Find us in Ilorin</h2><p className="mt-4 text-sm leading-7 text-white/75">{address}</p><p className="mt-4 text-sm leading-7 text-white/75">Use the map search to confirm the correct destination and directions before travelling. The exact building pin has not yet been independently verified.</p><a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#111A43] hover:bg-[#F7F8FC]"><Navigation size={16}/> Find address on Google Maps</a></div>
+      <div className="rounded-3xl border border-slate-200 bg-white p-8"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><MessageSquare/></span><h2 className="mt-5 text-xl font-extrabold">Ready to begin?</h2><p className="mt-3 text-sm leading-7 text-slate-600">Create your student account to access the dashboard and begin your application journey when the student portal is available.</p><button type="button" onClick={()=>onNavigate('/student/register')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#111A43] px-6 py-3 text-sm font-bold text-white hover:bg-[#C62839]">Create student account <ArrowRight size={16}/></button></div>
+      <div className="rounded-2xl border border-slate-200 bg-[#F7F8FC] p-6"><span className="inline-flex items-center gap-2 text-sm font-bold text-[#111A43]"><Clock3 size={17}/> Visiting the office?</span><p className="mt-2 text-sm leading-7 text-slate-600">Please call ahead to confirm office hours, availability and any documents you may need.</p></div></aside>
+    </section>
+  </main>;
+}

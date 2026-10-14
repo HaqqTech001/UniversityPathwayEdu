@@ -9,7 +9,17 @@ export interface CbtQuestion {
   explanation: string;
 }
 
+// Original UPEC practice questions. These are not official JAMB past questions.
 export const CBT_QUESTION_BANK: CbtQuestion[] = [
+  {"id":"geo-01","subject":"Geography","topic":"Map reading","prompt":"On a map with a scale of 1:50,000, a distance of 4 cm represents how many kilometres on the ground?","options":["0.2 km","2 km","20 km","200 km"],"answer":1,"explanation":"4 × 50,000 cm = 200,000 cm = 2 km."},
+  {"id":"geo-02","subject":"Geography","topic":"Climatology","prompt":"Which instrument is used to measure atmospheric pressure?","options":["Rain gauge","Hygrometer","Barometer","Anemometer"],"answer":2,"explanation":"A barometer measures atmospheric pressure."},
+  {"id":"geo-03","subject":"Geography","topic":"Physical geography","prompt":"Which process primarily forms a river delta?","options":["Deposition of sediments at the river mouth","Volcanic eruption","Wind erosion of hills","Glacial plucking"],"answer":0,"explanation":"Deltas form where rivers deposit sediment as they enter slower-moving water."},
+  {"id":"gov-01","subject":"Government","topic":"Constitution","prompt":"The principle of separation of powers is primarily intended to:","options":["Concentrate authority in one branch","Prevent abuse of power by dividing government functions","Abolish the legislature","Make elections unnecessary"],"answer":1,"explanation":"Separating legislative, executive and judicial functions helps limit arbitrary power."},
+  {"id":"gov-02","subject":"Government","topic":"Democracy","prompt":"Which institution is principally responsible for interpreting laws in a constitutional democracy?","options":["The judiciary","The electoral commission","The civil service","The cabinet"],"answer":0,"explanation":"Courts interpret laws and adjudicate legal disputes."},
+  {"id":"gov-03","subject":"Government","topic":"Federalism","prompt":"A federal system of government is characterised by:","options":["Only one level of government","Constitutional division of powers between levels of government","Rule by military decree","Abolition of regional governments"],"answer":1,"explanation":"Federalism divides authority constitutionally between central and constituent governments."},
+  {"id":"eco-01","subject":"Economics","topic":"Demand and supply","prompt":"If demand rises while supply remains unchanged, the equilibrium price will generally:","options":["Fall","Rise","Stay fixed by definition","Become zero"],"answer":1,"explanation":"Higher demand against unchanged supply tends to raise equilibrium price."},
+  {"id":"eco-02","subject":"Economics","topic":"Opportunity cost","prompt":"Opportunity cost is best described as:","options":["The total money spent on all alternatives","The value of the next best alternative forgone","The cost of producing only exports","A compulsory tax"],"answer":1,"explanation":"Opportunity cost is the value of the next best option given up when a choice is made."},
+  {"id":"eco-03","subject":"Economics","topic":"Inflation","prompt":"A sustained rise in the general price level is called:","options":["Deflation","Inflation","Recession","Depreciation"],"answer":1,"explanation":"Inflation refers to a sustained increase in the overall price level."},
   // 1. USE OF ENGLISH (Compulsory)
   {
     id: 'eng-01',

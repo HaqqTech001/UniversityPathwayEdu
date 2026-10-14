@@ -1,423 +1,49 @@
 import React, { useState } from 'react';
-import {
-  MapPin,
-  Phone,
-  Mail,
-  Clock,
-  Send,
-  CheckCircle2,
-  ChevronRight,
-  MessageSquare,
-  HelpCircle,
-  Compass,
-  ArrowRight,
-  Building2,
-  Navigation,
-  ExternalLink,
-  Copy,
-  Check,
-  Car,
-  Bus,
-  ShieldCheck,
-} from 'lucide-react';
-import ScrollReveal from '../components/ScrollReveal';
-import InteractiveCampusMap from '../components/InteractiveCampusMap';
+import { ArrowRight, Check, ChevronRight, Clock3, Copy, Mail, MapPin, MessageSquare, Navigation, Phone, Send } from 'lucide-react';
 
-interface PageProps {
-  onNavigate: (path: string) => void;
-}
+type Props = { onNavigate: (path: string) => void };
+const address='23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State, Nigeria';
+const email='unipathway2020@gmail.com';
+const phones=['09166664266','09133903600','08088387657'];
+const mapsUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
+const topics=['Admissions & registration','Programme information','Study resources','Academic guidance','Other enquiry'];
 
-export default function ContactPage({ onNavigate }: PageProps) {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    programme: 'JAMB (UTME) Coaching',
-    inquiryType: 'Admission & Registration',
-    message: '',
-  });
-
-  const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
-
-  const handleCopyAddress = () => {
-    const address = '23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State, Nigeria';
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(address);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2500);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+export default function ContactPage({ onNavigate }: Props) {
+  const [form,setForm]=useState({name:'',email:'',phone:'',topic:topics[0],message:''});
+  const [draftReady,setDraftReady]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [error,setError]=useState('');
+  const copyAddress=async()=>{try{await navigator.clipboard.writeText(address);setCopied(true)}catch{setCopied(false)}};
+  const handleSubmit=(e:React.FormEvent<HTMLFormElement>)=>{
     e.preventDefault();
-    if (!formData.fullName || !formData.phone || !formData.message) return;
-    const ticketId = `UPEC-${Math.floor(100000 + Math.random() * 900000)}`;
-    setSubmittedTicket(ticketId);
+    if(form.name.trim().length<2||form.message.trim().length<10||(!form.email.trim()&&!form.phone.trim())){setError('Enter your name, a contact method and a message of at least 10 characters.');return}
+    setError('');
+    const body=['Hello University Pathway Educational Consult,','','I would like to make an enquiry.','', 'Name: '+form.name.trim(),'Email: '+(form.email.trim()||'Not provided'),'Phone: '+(form.phone.trim()||'Not provided'),'Topic: '+form.topic,'','Message:',form.message.trim()].join('\n');
+    const url='mailto:'+email+'?subject='+encodeURIComponent('UPEC enquiry: '+form.topic)+'&body='+encodeURIComponent(body);
+    setDraftReady(true);
+    window.location.href=url;
   };
-
-  return (
-    <main className="w-full bg-white text-[#0b1a42]">
-      {/* =========================================================================
-          HERO BANNER
-          ========================================================================= */}
-      <section className="relative isolate bg-[#08163b] text-white overflow-hidden py-16 sm:py-20">
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/images/contact_hero.jpg"
-            alt="University Pathway Educational Consult Reception Desk"
-            className="w-full h-full object-cover object-center opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#08163b] via-[#08163b]/95 to-[#08163b]/60" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8">
-          <nav className="flex items-center gap-2 text-xs font-semibold text-slate-300 mb-4">
-            <button
-              type="button"
-              onClick={() => onNavigate('/')}
-              className="hover:text-white transition-colors"
-            >
-              Home
-            </button>
-            <ChevronRight size={13} className="text-slate-400" />
-            <span className="text-[#f0bb5b]">Contact Us</span>
-          </nav>
-
-          <div className="max-w-3xl">
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight">
-              Get in Touch with Our Advisors
-            </h1>
-            <p className="mt-4 text-base sm:text-lg text-slate-200 leading-relaxed font-normal">
-              Whether you are preparing for UTME, O’Level makeup, Direct Entry A’Levels, or international exams, our academic counseling desk in Ilorin is ready to guide you.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          MAIN CONTACT CARDS GRID
-          ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 -mt-8 relative z-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Physical Address */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center mb-4">
-                <MapPin size={24} />
-              </div>
-              <h3 className="font-serif text-base font-bold text-[#0b1a42]">Visit Our Center</h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State, Nigeria.
-              </p>
-            </div>
-            <p className="text-[11px] font-semibold text-[#d5a75b] mt-4 pt-3 border-t border-slate-100">
-              Easily accessible via Sawmill Garage transit hub
-            </p>
-          </div>
-
-          {/* Official Phone Lines */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center mb-4">
-                <Phone size={24} />
-              </div>
-              <h3 className="font-serif text-base font-bold text-[#0b1a42]">Call Admissions</h3>
-              <div className="text-xs text-slate-600 mt-2 space-y-1">
-                <p><a href="tel:09133903600" className="hover:text-[#c62839] font-medium">09133903600</a></p>
-                <p><a href="tel:09166664266" className="hover:text-[#c62839] font-medium">09166664266</a></p>
-                <p><a href="tel:08088387657" className="hover:text-[#c62839] font-medium">08088387657</a></p>
-              </div>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-400 mt-4 pt-3 border-t border-slate-100">
-              Phone lines active Mon – Sat
-            </p>
-          </div>
-
-          {/* Official Email */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center mb-4">
-                <Mail size={24} />
-              </div>
-              <h3 className="font-serif text-base font-bold text-[#0b1a42]">Email Inquiries</h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Send your official questions, verification slips, and requests to:
-              </p>
-              <a
-                href="mailto:unipathway2020@gmail.com"
-                className="mt-2 block text-xs font-bold text-[#0b1a42] hover:text-[#c62839] break-all underline"
-              >
-                unipathway2020@gmail.com
-              </a>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-400 mt-4 pt-3 border-t border-slate-100">
-              Response within 24 working hours
-            </p>
-          </div>
-
-          {/* Working Hours */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center mb-4">
-                <Clock size={24} />
-              </div>
-              <h3 className="font-serif text-base font-bold text-[#0b1a42]">Office Hours</h3>
-              <div className="text-xs text-slate-600 mt-2 space-y-1">
-                <p><strong>Mon – Fri:</strong> 8:00 AM – 6:00 PM</p>
-                <p><strong>Saturday:</strong> 9:00 AM – 4:00 PM</p>
-                <p><strong>Sunday:</strong> Closed</p>
-              </div>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-400 mt-4 pt-3 border-t border-slate-100">
-              Sunday sessions by prior appointment
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          INTERACTIVE INQUIRY FORM & LOCATION GUIDE
-          ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
-        <div className="grid lg:grid-cols-12 gap-10 items-start">
-          {/* Left Form (7 cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-8 sm:p-10 shadow-lg">
-            <span className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
-              <span className="w-6 h-0.5 bg-[#c62839]" />
-              ONLINE INQUIRY DESK
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0b1a42] mt-2 leading-tight">
-              Send an Inquiry or Book a Counseling Session
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-              Fill in your details below and an academic advisor from University Pathway will reach out with complete batch timetables and curriculum requirements.
-            </p>
-
-            {submittedTicket ? (
-              <div className="mt-8 p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center animate-in fade-in">
-                <CheckCircle2 size={48} className="mx-auto text-emerald-600 mb-3" />
-                <h3 className="text-lg font-serif font-bold text-emerald-950">
-                  Inquiry Successfully Submitted!
-                </h3>
-                <p className="text-xs text-emerald-800 mt-2 max-w-md mx-auto leading-relaxed">
-                  Thank you, <strong>{formData.fullName}</strong>. Your inquiry reference ticket is{' '}
-                  <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-300">
-                    {submittedTicket}
-                  </span>
-                  . Our admissions officer will contact you on <strong>{formData.phone}</strong> shortly.
-                </p>
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSubmittedTicket(null);
-                      setFormData({
-                        fullName: '',
-                        email: '',
-                        phone: '',
-                        programme: 'JAMB (UTME) Coaching',
-                        inquiryType: 'Admission & Registration',
-                        message: '',
-                      });
-                    }}
-                    className="px-5 py-2.5 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
-                  >
-                    Submit Another Inquiry
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/apply')}
-                    className="px-5 py-2.5 rounded-xl bg-[#c62839] text-white text-xs font-bold shadow-md hover:bg-[#b01f30] transition-colors"
-                  >
-                    Proceed to Registration Form
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                      Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      placeholder="e.g. Amina Bello"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                      Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="e.g. 09133903600"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="e.g. amina@example.com"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                      Programme of Interest
-                    </label>
-                    <select
-                      value={formData.programme}
-                      onChange={(e) => setFormData({ ...formData, programme: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none bg-white"
-                    >
-                      <option value="JAMB (UTME) Coaching">JAMB (UTME) Coaching</option>
-                      <option value="O’Level (WAEC / NECO / NABTEB)">O’Level (WAEC / NECO / NABTEB)</option>
-                      <option value="A’Level (JUPEB / IJMB / Cambridge)">A’Level (JUPEB / IJMB / Cambridge)</option>
-                      <option value="International (IELTS / TOEFL / SAT)">International (IELTS / TOEFL / SAT)</option>
-                      <option value="Private Home Tutoring">Private / One-on-One Tutoring</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                    Nature of Inquiry
-                  </label>
-                  <select
-                    value={formData.inquiryType}
-                    onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none bg-white"
-                  >
-                    <option value="Admission & Registration">Admission &amp; Registration Guidance</option>
-                    <option value="Batch Timetable & Class Hours">Batch Timetable &amp; Class Hours</option>
-                    <option value="Subject Combination Verification">Subject Combination Verification</option>
-                    <option value="CBT Practice Test Enrollment">CBT Practice Test Enrollment</option>
-                    <option value="Other Educational Consulting">Other Educational Consulting</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                    Your Message / Questions <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Tell us about your current academic standing, target university, or specific questions..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none resize-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <Send size={15} />
-                  <span>Send Inquiry to Admissions Desk</span>
-                </button>
-              </form>
-            )}
-          </div>
-
-          {/* Right Information & Location Details (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Location & Directions Card */}
-            <div className="bg-[#08163b] text-white rounded-2xl p-7 sm:p-8 shadow-xl border border-white/10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#c62839] flex items-center justify-center shrink-0">
-                  <Compass size={20} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-serif text-lg font-bold">Directions to Our Center</h3>
-                  <p className="text-xs text-[#f0bb5b]">Ilorin, Kwara State</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <p>
-                  <strong>Physical Landmark:</strong> Located at 23, Olaiya Street, directly off the prominent Sawmill Garage axis in Ilorin.
-                </p>
-                <p>
-                  <strong>By Public Transport:</strong> Board any vehicle or tricycle heading to Sawmill Garage / Olaiya junction. Our center is within short walking distance with clear University Pathway signage.
-                </p>
-                <p>
-                  <strong>Parking:</strong> On-street and designated visitor parking is available for parents and candidates visiting for counseling.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between">
-                <span className="text-xs text-slate-400">Need live assistance on route?</span>
-                <a
-                  href="tel:09133903600"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-[#0b1a42] text-xs font-bold hover:bg-[#f0bb5b] transition-colors"
-                >
-                  <Phone size={12} />
-                  <span>Call Us</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Direct Application Prompt */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 shadow-sm">
-              <h4 className="font-serif text-base font-bold text-[#0b1a42]">
-                Ready to Begin Your Registration?
-              </h4>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                You do not have to wait for physical office consultation to begin. Complete our 4-step registration wizard online and secure your seat in the upcoming cohort.
-              </p>
-              <button
-                type="button"
-                onClick={() => onNavigate('/apply')}
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0b1a42] hover:bg-[#c62839] text-white text-xs font-bold transition-colors shadow-sm"
-              >
-                <span>Go to Online Application</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          CAMPUS & STUDY CENTER LOCATION MAP
-          ========================================================================= */}
-      <section className="bg-slate-50 border-t border-slate-200 py-16 sm:py-20">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8">
-          <div className="mb-8">
-            <span className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
-              <span className="w-6 h-0.5 bg-[#c62839]" />
-              CAMPUS &amp; STUDY CENTER LOCATION
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0b1a42] mt-2">
-              Find Our Center in Ilorin
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
-              Centrally located at 23 Olaiya Street near Sawmill Garage transit terminal. Easily accessible by road from any part of Ilorin, Offa, Ogbomoso, and neighboring areas.
-            </p>
-          </div>
-
-          <InteractiveCampusMap />
-        </div>
-      </section>
-    </main>
-  );
+  return <main className="w-full bg-white text-[#111A43]">
+    <section className="relative overflow-hidden bg-[#111A43] px-5 py-20 text-white sm:px-8 sm:py-24"><div className="pointer-events-none absolute -right-28 -top-32 h-96 w-96 rounded-full border-[60px] border-white/5"/><div className="relative mx-auto max-w-7xl"><nav aria-label="Breadcrumb" className="mb-7 flex items-center gap-2 text-sm text-white/75"><button type="button" onClick={()=>onNavigate('/')} className="hover:text-white">Home</button><ChevronRight size={15}/><span className="text-[#D5A75B]">Contact</span></nav><span className="text-xs font-extrabold uppercase tracking-[.2em] text-[#D5A75B]">We're here to help</span><h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-tight sm:text-6xl">Your next academic step starts with a conversation.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-white/75">Ask about academic preparation, admissions guidance or available programmes. Reach us by phone, email or at our Ilorin office.</p></div></section>
+    <section className="relative z-10 mx-auto -mt-8 grid max-w-7xl gap-5 px-5 sm:px-8 md:grid-cols-3" aria-label="Contact details">
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><MapPin/></span><h2 className="mt-5 text-xl font-extrabold">Visit our office</h2><p className="mt-3 text-sm leading-7 text-slate-600">{address}</p><button type="button" onClick={copyAddress} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#C62839]">{copied?<Check size={16}/>:<Copy size={16}/>} {copied?'Address copied':'Copy address'}</button></div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><Phone/></span><h2 className="mt-5 text-xl font-extrabold">Call our team</h2><div className="mt-3 space-y-2">{phones.map(p=><a key={p} className="block text-sm font-semibold text-[#111A43] hover:text-[#C62839]" href={'tel:+234'+p.slice(1)}>{p}</a>)}</div><p className="mt-4 text-xs text-slate-500">Call to confirm current opening hours before visiting.</p></div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><Mail/></span><h2 className="mt-5 text-xl font-extrabold">Send an email</h2><p className="mt-3 text-sm leading-7 text-slate-600">For questions about programmes, applications or academic support.</p><a className="mt-4 block break-all text-sm font-bold text-[#C62839] underline" href={'mailto:'+email}>{email}</a></div>
+    </section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-12">
+      <div className="rounded-3xl border border-slate-200 bg-[#F7F8FC] p-6 shadow-sm sm:p-10 lg:col-span-7"><span className="text-xs font-extrabold uppercase tracking-[.2em] text-[#C62839]">Enquiry desk</span><h2 className="mt-3 text-3xl font-extrabold">Tell us how we can help.</h2><p className="mt-4 text-sm leading-7 text-slate-600">Complete this form to prepare an email to our team. Your email app will open so you can review and send it. The website does not submit or store your message.</p>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-bold">Full name <span className="text-[#C62839]">*</span><input required minLength={2} autoComplete="name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Your full name"/></label><label className="block text-sm font-bold">Email address<input type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="you@example.com"/></label></div>
+          <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-bold">Phone number<input type="tel" autoComplete="tel" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Your phone number"/></label><label className="block text-sm font-bold">Enquiry topic<select value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#C62839]">{topics.map(t=><option key={t} value={t}>{t}</option>)}</select></label></div>
+          <label className="block text-sm font-bold">Your message <span className="text-[#C62839]">*</span><textarea required minLength={10} rows={6} value={form.message} onChange={e=>setForm({...form,message:e.target.value})} className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-[#C62839]" placeholder="Share your question or the guidance you need."/></label>
+          {error&&<p role="alert" className="text-sm font-semibold text-[#C62839]">{error}</p>}
+          <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C62839] px-7 py-4 text-sm font-bold text-white transition hover:bg-red-700 sm:w-auto"><Send size={17}/> Prepare email enquiry</button>
+          {draftReady&&<p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">Your email app should open with a draft. Please press Send there to deliver your enquiry. If nothing opened, email <a className="font-bold underline" href={'mailto:'+email}>{email}</a> directly.</p>}
+        </form>
+      </div>
+      <aside className="space-y-6 lg:col-span-5"><div className="rounded-3xl bg-[#111A43] p-8 text-white"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#C62839]"><Navigation/></span><h2 className="mt-5 text-2xl font-extrabold">Find us in Ilorin</h2><p className="mt-4 text-sm leading-7 text-white/75">{address}</p><p className="mt-4 text-sm leading-7 text-white/75">Use the map search to confirm the correct destination and directions before travelling. The exact building pin has not yet been independently verified.</p><a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#111A43] hover:bg-[#F7F8FC]"><Navigation size={16}/> Find address on Google Maps</a></div>
+      <div className="rounded-3xl border border-slate-200 bg-white p-8"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-[#C62839]"><MessageSquare/></span><h2 className="mt-5 text-xl font-extrabold">Ready to begin?</h2><p className="mt-3 text-sm leading-7 text-slate-600">Create your student account to access the dashboard and begin your application journey when the student portal is available.</p><button type="button" onClick={()=>onNavigate('/student/register')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#111A43] px-6 py-3 text-sm font-bold text-white hover:bg-[#C62839]">Create student account <ArrowRight size={16}/></button></div>
+      <div className="rounded-2xl border border-slate-200 bg-[#F7F8FC] p-6"><span className="inline-flex items-center gap-2 text-sm font-bold text-[#111A43]"><Clock3 size={17}/> Visiting the office?</span><p className="mt-2 text-sm leading-7 text-slate-600">Please call ahead to confirm office hours, availability and any documents you may need.</p></div></aside>
+    </section>
+  </main>;
 }

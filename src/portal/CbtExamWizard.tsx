@@ -64,6 +64,48 @@ export default function CbtExamWizard() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [showPaletteDrawer, setShowPaletteDrawer] = useState(false);
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const examScreenRef = useRef<HTMLDivElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [fullscreenError, setFullscreenError] = useState('');
+  const stopCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    setCameraEnabled(false);
+  };
+  const enableCamera = async () => {
+    try {
+      setCameraError('');
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera unavailable. Use HTTPS and a supported browser.');
+      const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) cameraVideoRef.current.srcObject = stream;
+      setCameraEnabled(true);
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : 'Camera permission was not granted.');
+    }
+  };
+  useEffect(() => {
+    if (cameraVideoRef.current && cameraStreamRef.current) cameraVideoRef.current.srcObject = cameraStreamRef.current;
+  }, [cameraEnabled, stage]);
+  useEffect(() => () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  }, []);
+  const enterExamFullscreen = async () => {
+    try {
+      setFullscreenError('');
+      await examScreenRef.current?.requestFullscreen();
+    } catch {
+      setFullscreenError('Your browser blocked fullscreen. You can continue in the expanded exam view.');
+    }
+  };
+  const [calcA, setCalcA] = useState('');
+  const [calcB, setCalcB] = useState('');
+  const [calcOperation, setCalcOperation] = useState('+');
 
   // Results & History
   const [latestAttempt, setLatestAttempt] = useState<ExamAttemptRecord | null>(null);
@@ -79,12 +121,16 @@ export default function CbtExamWizard() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const availableSubjectsList = [
-    'Use of English',
-    'Mathematics',
-    'Biology',
-    'Chemistry',
-    'Physics',
+    'Use of English', 'Mathematics', 'Biology', 'Chemistry', 'Physics',
+    'Geography', 'Government', 'Economics', 'Agricultural Science',
+    'Commerce', 'Accounting', 'Literature in English', 'Christian Religious Studies',
+    'Islamic Religious Studies', 'History', 'Further Mathematics', 'French',
+    'Arabic', 'Hausa', 'Igbo', 'Yoruba', 'Music', 'Fine Arts', 'Home Economics',
+    'Physical and Health Education',
   ];
+  const subjectsWithQuestions = new Set(CBT_QUESTION_BANK.map(question => question.subject));
+  const unavailableSubjects = selectedSubjects.filter(subject => !subjectsWithQuestions.has(subject));
+  const canStartExam = selectedSubjects.length === 4 && unavailableSubjects.length === 0;
 
   // Filter current subject's questions
   const currentSubjectQuestions = examQuestions.filter(
@@ -112,6 +158,7 @@ export default function CbtExamWizard() {
 
   // Start Exam Handler
   const handleStartExam = () => {
+    if (!canStartExam) return;
     const questions = CBT_QUESTION_BANK.filter((q) =>
       selectedSubjects.includes(q.subject)
     );
@@ -163,6 +210,13 @@ export default function CbtExamWizard() {
         return;
       }
 
+      if (isSubmitModalOpen) {
+        const key = e.key.toUpperCase();
+        if (key === 'R' || e.key === 'Escape') { e.preventDefault(); setIsSubmitModalOpen(false); }
+        if (key === 'Y') { e.preventDefault(); handleForceSubmit(); }
+        return;
+      }
+      if (calculatorOpen || keyboardHelpOpen || showPaletteDrawer) return;
       const key = e.key.toUpperCase();
 
       if (['A', 'B', 'C', 'D'].includes(key) && activeQuestion) {
@@ -184,15 +238,12 @@ export default function CbtExamWizard() {
       } else if (key === 'F' && activeQuestion) {
         // Flag
         toggleFlag(activeQuestion.id);
-      } else if (key === 'R' && activeQuestion) {
-        // Clear response
-        clearResponse(activeQuestion.id);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [stage, activeQuestion, currentQuestionIndex, currentSubjectQuestions.length]);
+  }, [stage, activeQuestion, currentQuestionIndex, currentSubjectQuestions.length, isSubmitModalOpen, calculatorOpen, keyboardHelpOpen, showPaletteDrawer]);
 
   const toggleFlag = (id: string) => {
     setFlagged((prev) =>
@@ -214,6 +265,8 @@ export default function CbtExamWizard() {
 
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
+    stopCamera();
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     if (timerRef.current) clearInterval(timerRef.current);
     setIsSubmitModalOpen(false);
 
@@ -283,14 +336,14 @@ export default function CbtExamWizard() {
         {/* Banner */}
         <div className="bg-[#08163b] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-[#0f2150]">
           <div className="relative z-10 max-w-2xl">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/90 block mb-1">
               COMPUTER-BASED TEST (CBT) SIMULATOR
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white leading-tight">
               JAMB UTME &amp; Post-UTME Practice Examination
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-              Configure your practice examination session. Test your subject speed, question mastery, and time allocation under authentic computerized conditions.
+              Configure your practice examination session. Test your subject speed, question mastery, and time allocation in a JAMB-inspired practice environment using original sample questions.
             </p>
           </div>
           <div className="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-[#c62839]/20 to-transparent pointer-events-none" />
@@ -298,7 +351,7 @@ export default function CbtExamWizard() {
 
         {/* Setup Configuration Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="lg:col-span-8 bg-white rounded-md border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
             {/* 1. Exam Type */}
             <div>
               <label className="block text-xs font-bold text-[#0b1a42] uppercase tracking-wider mb-2">
@@ -392,6 +445,7 @@ export default function CbtExamWizard() {
                 {availableSubjectsList.map((subj) => {
                   const isSelected = selectedSubjects.includes(subj);
                   const isEnglish = subj === 'Use of English';
+                  const hasQuestions = subjectsWithQuestions.has(subj);
 
                   return (
                     <button
@@ -405,7 +459,7 @@ export default function CbtExamWizard() {
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span>{subj}</span>
+                      <span className="text-left">{subj}{!hasQuestions && <span className="block text-[10px] font-normal text-amber-700">Questions coming soon</span>}</span>
                       {isSelected ? (
                         <Check size={14} className="text-emerald-600 shrink-0" />
                       ) : (
@@ -415,6 +469,8 @@ export default function CbtExamWizard() {
                   );
                 })}
               </div>
+              <p className="mt-3 text-xs leading-6 text-slate-500">Choose your intended UTME subject combination. Subjects without a question bank are shown for planning but cannot start a practice session yet.</p>
+              {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
             {/* 4. Duration Setting for Timed Mode */}
@@ -454,7 +510,8 @@ export default function CbtExamWizard() {
               <button
                 type="button"
                 onClick={handleStartExam}
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                disabled={!canStartExam}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Play size={15} />
                 <span>Begin Examination Now</span>
@@ -565,9 +622,9 @@ export default function CbtExamWizard() {
   // =========================================================================
   if (stage === 'exam') {
     return (
-      <div className="space-y-4 font-sans select-none">
+      <div ref={examScreenRef} className="fixed inset-0 z-[100] overflow-y-auto bg-[#eef2f5] p-3 sm:p-5 space-y-4 font-sans select-none">
         {/* Top Examination Control Strip */}
-        <header className="bg-[#08163b] text-white rounded-2xl p-4 sm:p-5 border border-[#0f2150] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-16 z-30">
+        <header className="bg-[#147b37] text-white rounded-md p-3 sm:p-4 border border-[#0c6028] shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
           {/* Candidate identity & Subject selector */}
           <div className="flex items-center gap-4">
             <div>
@@ -616,6 +673,8 @@ export default function CbtExamWizard() {
               </div>
             )}
 
+            <button type="button" onClick={() => setCalculatorOpen(true)} className="rounded bg-white/15 px-3 py-2 text-xs font-bold hover:bg-white/25" title="Open calculator">Calculator</button>
+            <button type="button" onClick={enterExamFullscreen} className="rounded bg-white/15 px-3 py-2 text-xs font-bold hover:bg-white/25">Fullscreen</button>
             {/* Mobile Question Palette Toggle */}
             <button
               type="button"
@@ -638,13 +697,22 @@ export default function CbtExamWizard() {
             <button
               type="button"
               onClick={() => setIsSubmitModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-xs font-bold text-white shadow-md transition-all cursor-pointer"
+              className="px-4 py-2 rounded bg-red-700 hover:bg-red-800 text-xs font-bold text-white shadow-md transition-all cursor-pointer"
             >
               Submit Exam
             </button>
           </div>
         </header>
 
+        <div className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-white p-3 text-xs text-slate-700">
+          <span className="font-bold">UPEC practice exam · {currentUser?.fullName || 'Candidate'}</span>
+          <span>Answered {totalAnsweredCount}/{totalQuestionsCount}</span>
+          <span className="ml-auto font-semibold">{cameraEnabled ? 'Camera preview on · Not recording' : 'Camera off · Not recording'}</span>
+          <button type="button" onClick={cameraEnabled ? stopCamera : enableCamera} className="rounded bg-slate-800 px-3 py-2 font-bold text-white">{cameraEnabled ? 'Turn off camera' : 'Enable camera preview'}</button>
+          {cameraEnabled && <video ref={cameraVideoRef} autoPlay muted playsInline aria-label="Your camera preview" className="h-24 w-32 rounded bg-black object-cover"/>}
+          {cameraError && <p role="alert" className="w-full text-red-700">{cameraError}</p>}
+          {fullscreenError && <p role="status" className="w-full text-amber-700">{fullscreenError}</p>}
+        </div>
         {/* Examination Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Main Question Panel (8 cols) */}
@@ -699,7 +767,7 @@ export default function CbtExamWizard() {
 
                 {/* Question Prompt */}
                 <div className="py-2">
-                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#0b1a42] leading-relaxed">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#08163b] leading-relaxed">
                     {activeQuestion.prompt}
                   </h3>
                 </div>
@@ -773,7 +841,7 @@ export default function CbtExamWizard() {
           </div>
 
           {/* Desktop Right Question Palette (4 cols) */}
-          <aside className="hidden lg:block lg:col-span-4 bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-5 sticky top-36">
+          <aside className="hidden lg:block lg:col-span-4 bg-white rounded-md border border-slate-200/90 p-6 shadow-xs space-y-5 sticky top-36">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h4 className="font-serif text-sm font-bold text-[#0b1a42]">
                 {activeSubject} Palette
@@ -785,13 +853,13 @@ export default function CbtExamWizard() {
             </div>
 
             {/* Legend */}
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500">
+            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-md bg-emerald-500" />
                 <span>Answered</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md border border-slate-300 bg-white" />
+                <span className="w-3 h-3 rounded-md bg-red-500" />
                 <span>Unanswered</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -799,7 +867,7 @@ export default function CbtExamWizard() {
                 <span>Flagged</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md bg-[#0b1a42]" />
+                <span className="w-3 h-3 rounded-md bg-[#1765ba]" />
                 <span>Current</span>
               </div>
             </div>
@@ -818,12 +886,12 @@ export default function CbtExamWizard() {
                     onClick={() => setCurrentQuestionIndex(idx)}
                     className={`h-10 rounded-xl text-xs font-bold relative flex items-center justify-center transition-all cursor-pointer ${
                       isCurrent
-                        ? 'bg-[#0b1a42] text-white ring-2 ring-[#0b1a42] ring-offset-2'
+                        ? 'bg-[#1765ba] text-white ring-2 ring-[#1765ba] ring-offset-2'
                         : isFlagged
                         ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : isAnswered
                         ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
                   >
                     {idx + 1}
@@ -854,6 +922,21 @@ export default function CbtExamWizard() {
             </div>
           </aside>
         </div>
+
+        {calculatorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Practice calculator">
+            <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between"><h3 className="font-bold text-[#08163b]">Practice calculator</h3><button type="button" onClick={() => setCalculatorOpen(false)} aria-label="Close calculator"><X size={20}/></button></div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <input type="number" aria-label="First number" value={calcA} onChange={e => setCalcA(e.target.value)} className="min-w-0 rounded border p-2"/>
+                <select aria-label="Operation" value={calcOperation} onChange={e => setCalcOperation(e.target.value)} className="rounded border p-2"><option>+</option><option>-</option><option>×</option><option>÷</option></select>
+                <input type="number" aria-label="Second number" value={calcB} onChange={e => setCalcB(e.target.value)} className="min-w-0 rounded border p-2"/>
+              </div>
+              <p className="mt-4 rounded bg-slate-100 p-4 text-lg font-bold text-[#08163b]">Result: {calcA === '' || calcB === '' ? '—' : calcOperation === '÷' && Number(calcB) === 0 ? 'Undefined' : calcOperation === '+' ? Number(calcA) + Number(calcB) : calcOperation === '-' ? Number(calcA) - Number(calcB) : calcOperation === '×' ? Number(calcA) * Number(calcB) : Number(calcA) / Number(calcB)}</p>
+              <p className="mt-2 text-xs text-slate-500">Basic practice calculator; not a reproduction of JAMB's calculator.</p>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Palette Drawer Overlay */}
         {showPaletteDrawer && (
@@ -925,7 +1008,7 @@ export default function CbtExamWizard() {
                 <p><strong>A, B, C, D:</strong> Select answer option</p>
                 <p><strong>P or ←:</strong> Previous question</p>
                 <p><strong>N or →:</strong> Next question</p>
-                <p><strong>R:</strong> Clear response</p>
+                <p><strong>R:</strong> Return from submission confirmation</p><p><strong>Y:</strong> Confirm submission</p>
                 <p><strong>F:</strong> Flag / Unflag question</p>
                 <p><strong>S:</strong> Open submit modal</p>
               </div>
@@ -1011,7 +1094,7 @@ export default function CbtExamWizard() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
-              OFFICIAL CBT EVALUATION REPORT
+              UPEC PRACTICE CBT EVALUATION REPORT
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white">
               Examination Performance Sheet

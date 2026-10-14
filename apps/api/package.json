@@ -1,0 +1,15 @@
+{
+  "name": "@upec/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "dotenv": "^17.2.3",
+    "@supabase/supabase-js": "^2.57.0"
+  }
+}

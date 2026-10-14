@@ -34,9 +34,9 @@ interface AuthPageProps {
 }
 
 export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPageProps) {
-  const { login, registerAccount } = useAuth();
+  const { login, registerAccount, verifyEmail, resetPassword, changePassword } = useAuth();
 
-  const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
+  const [authMode, setAuthMode] = useState<AuthMode>(() => window.location.pathname.includes('reset-password') ? 'reset-password' : initialMode);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -54,7 +54,6 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
 
   // Password Recovery & Reset inputs
   const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
-  const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
@@ -93,8 +92,8 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       return;
     }
 
-    if (regPassword.length < 6) {
-      setAuthError('Password must contain at least 6 characters.');
+    if (regPassword.length < 8) {
+      setAuthError('Password must contain at least 8 characters.');
       return;
     }
 
@@ -103,81 +102,69 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     setAuthLoading(false);
 
     if (res.success) {
-      setAuthMode('otp-verify');
-      setAuthSuccess('Account created! A 6-digit verification code has been dispatched.');
+      setVerificationEmail(regEmail);
+      setAuthMode('email-verify');
+      setAuthSuccess('Account registered. Check your email for the confirmation link or code.');
     } else {
       setAuthError(res.error || 'Failed to create student account. Please review fields.');
     }
   };
 
-  // Handle Forgot Password
-  const handleForgotPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (!recoveryIdentifier.trim()) {
-      setAuthError('Please enter your email or registration number.');
-      return;
-    }
-    setAuthSuccess(
-      `Password recovery code dispatched to contact associated with "${recoveryIdentifier}".`
-    );
-    setTimeout(() => {
-      setAuthMode('reset-password');
-    }, 1500);
+  // Supabase sends a password recovery link to the registered email.
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault(); setAuthError(null); setAuthLoading(true);
+    const result = await resetPassword(recoveryIdentifier.trim());
+    setAuthLoading(false);
+    if (!result.success) setAuthError(result.error || 'Could not send recovery email.');
+    else setAuthSuccess('If this email is registered, password recovery instructions will arrive shortly. Open the link before choosing a new password.');
   };
-
-  // Handle Reset Password
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (newPassword !== confirmNewPassword) {
-      setAuthError('Passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setAuthError('New password must contain at least 6 characters.');
-      return;
-    }
-    setAuthSuccess('Your password has been successfully reset. Please sign in.');
-    setTimeout(() => {
-      setAuthMode('signin');
-      setAuthSuccess(null);
-    }, 1800);
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault(); setAuthError(null);
+    if(newPassword!==confirmNewPassword || newPassword.length<8) {setAuthError('Passwords must match and contain at least 8 characters.');return;}
+    setAuthLoading(true);
+    const result = await changePassword(newPassword);
+    setAuthLoading(false);
+    if(!result.success) setAuthError(result.error || 'Open the recovery link from your email first.');
+    else {setAuthSuccess('Password updated. Please sign in.');setAuthMode('signin');}
   };
-
-  // Handle OTP Verification
-  const handleOtpVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (otpCode.trim().length < 4) {
-      setAuthError('Please enter the complete verification code.');
-      return;
-    }
-    setAuthSuccess('Two-factor verification successful. Opening candidate portal...');
-    setTimeout(() => {
-      onNavigate('/student');
-    }, 1200);
+  const handleOtpVerify = async (e: React.FormEvent) => {
+    e.preventDefault();setAuthError(null);setAuthLoading(true);
+    const verified=await verifyEmail(otpCode.trim(),verificationEmail||regEmail);
+    setAuthLoading(false);
+    if(!verified)setAuthError('Verification failed. Check the code and email address.');
+    else {setAuthSuccess('Email verified successfully.');onNavigate('/student');}
   };
-
-  // Handle Email Verification
-  const handleEmailVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (!verificationEmail || !emailToken) {
-      setAuthError('Please provide both email address and verification token.');
-      return;
-    }
-    setAuthSuccess('Email address verified successfully. You may now sign in.');
-    setTimeout(() => {
-      setAuthMode('signin');
-      setAuthSuccess(null);
-    }, 1500);
+  const handleEmailVerify = async (e: React.FormEvent) => {
+    e.preventDefault();setAuthError(null);setAuthLoading(true);
+    const verified=await verifyEmail(emailToken.trim(),verificationEmail.trim());
+    setAuthLoading(false);
+    if(!verified)setAuthError('Verification failed. Check your email and confirmation code.');
+    else {setAuthSuccess('Email verified. You may now sign in.');setAuthMode('signin');}
   };
 
   const isRegisterMode = authMode === 'register' || authMode === 'signin';
+  const promoCopy: Record<AuthMode, { heading: string; description: string; benefits: string[] }> = {
+    signin: { heading: 'Welcome Back to University Pathway', description: 'Continue your academic journey from your student dashboard.', benefits: ['Access your student dashboard', 'Review your application', 'Follow your progress', 'See important updates'] },
+    register: { heading: 'Your Journey Starts Here', description: 'Create a student account and take the first step towards your goals.', benefits: ['Create your student account', 'Explore available programmes', 'Start your application', 'Track your next steps'] },
+    'forgot-password': { heading: 'We Will Help You Get Back', description: 'Recover access to your student account safely.', benefits: ['Request recovery instructions', 'Protect your account', 'Choose a new password', 'Return to your dashboard'] },
+    'reset-password': { heading: 'A Fresh Start, Securely', description: 'Set a new password to protect your student account.', benefits: ['Choose a strong password', 'Confirm your new password', 'Keep your account protected', 'Return to sign in'] },
+    'otp-verify': { heading: 'One More Step to Get Started', description: 'Verification helps protect your account and your academic information.', benefits: ['Confirm your identity', 'Protect your student details', 'Complete account setup', 'Continue your journey'] },
+    'email-verify': { heading: 'Confirm Your Email Address', description: 'Keep your contact details accurate for important account updates.', benefits: ['Confirm your email', 'Protect your account', 'Stay informed', 'Continue to sign in'] },
+  };
+  const promo = promoCopy[authMode];
+  // Each authentication step has its own photographic treatment.
+  const promoImages: Record<AuthMode, { src: string; alt: string; position: string }> = {
+    signin: { src: '/images/auth_student.jpg', alt: 'Student ready to continue studying', position: 'center top' },
+    register: { src: '/images/african_students_hero.jpg', alt: 'Students beginning their academic journey', position: 'center center' },
+    'forgot-password': { src: '/images/student_support.jpg', alt: 'Student receiving academic support', position: 'center center' },
+    'reset-password': { src: '/images/student_writing_banner.jpg', alt: 'Student working at a desk', position: 'center center' },
+    'otp-verify': { src: '/images/classroom.jpg', alt: 'Students learning in a classroom', position: 'center center' },
+    'email-verify': { src: '/images/campus_atmosphere.jpg', alt: 'Academic learning environment', position: 'center center' },
+  };
+  const promoImage = promoImages[authMode];
 
   return (
-    <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 font-sans">
+    <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center px-3 py-5 sm:px-6 sm:py-8 lg:py-10 font-sans">
       {/* Optional Return link */}
       <div className="w-full max-w-6xl mb-3 flex items-center justify-between px-2">
         <button
@@ -192,77 +179,78 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       </div>
 
       {/* Main Authentication Composition Matching Approved Mockup */}
-      <main className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col lg:flex-row min-h-[620px]">
+      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px]">
         
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className="lg:w-[58%] bg-gradient-to-br from-[#0c2661] via-[#091b46] to-[#040c24] text-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+        <div className="hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden md:min-h-[640px] lg:min-h-[680px]">
           
           {/* Top Header section inside left panel */}
-          <div className="relative z-10 max-w-lg">
+          <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
             <div className="mb-4">
               <UniversityPathwayLogo />
             </div>
 
-            <h1 className="font-serif text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mt-2">
-              Welcome to <br />University Pathway
+            <h1 className="font-serif text-[clamp(1.45rem,2.35vw,2.35rem)] font-black text-white leading-tight tracking-tight mt-2 break-words">
+              {promo.heading}
             </h1>
 
             <p className="text-slate-200 text-xs sm:text-sm mt-2 font-normal">
-              Create an account to start your academic journey.
+              {promo.description}
             </p>
 
             {/* Four Small Vertically Stacked Benefit Rows with Colourful Icons */}
-            <div className="mt-6 space-y-2.5">
-              {[
-                { label: 'Access your programme', icon: BookOpen },
-                { label: 'Complete your application', icon: FileText },
-                { label: 'Track your progress', icon: TrendingUp },
-                { label: 'Get important updates', icon: ShieldCheck },
-              ].map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3 bg-white/10 px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit sm:w-80">
+            <div className="mt-5 space-y-2.5">
+              {promo.benefits.map((label, index) => { const Icon = [BookOpen, FileText, TrendingUp, ShieldCheck][index]; return (
+                <div key={label} className="flex items-center gap-2 lg:gap-3 bg-white/10 px-2.5 lg:px-3.5 py-2.5 rounded-xl border border-white/15 backdrop-blur-sm w-fit max-w-full lg:w-80">
                   <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#f0bb5b] to-[#c62839] flex items-center justify-center text-white shrink-0 shadow-sm">
                     <Icon size={14} />
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-white">{label}</span>
+                  <span className="text-xs lg:text-sm font-semibold text-white">{label}</span>
                 </div>
-              ))}
+              ); })}
             </div>
           </div>
 
           {/* Large Student Photograph on the Right Half of Left Panel with Diagonal Cut */}
-          <div className="absolute right-0 bottom-0 top-0 w-1/2 pointer-events-none hidden lg:block overflow-hidden">
+          <div className="absolute right-0 bottom-0 top-0 w-[54%] pointer-events-none hidden xl:block overflow-hidden">
             {/* Diagonal overlay boundary matching reference */}
-            <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#091b46] to-transparent z-10" />
+            <div className="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-[#091b46] via-[#091b46]/60 to-transparent z-10" />
             <img
-              src="/images/auth_student.jpg"
-              alt="Smiling Student with Books"
-              className="absolute right-0 bottom-0 h-full w-full object-cover object-top scale-105"
+              src={promoImage.src}
+              alt={promoImage.alt}
+              className="absolute right-0 bottom-0 h-full w-full object-cover scale-105"
               style={{
-                clipPath: 'polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                clipPath: 'polygon(32% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                objectPosition: promoImage.position,
               }}
               onError={(e) => {
+                (e.currentTarget as HTMLImageElement).onerror = null;
                 (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
               }}
             />
           </div>
 
-          {/* Mobile / Tablet fallback student photo */}
-          <div className="mt-6 lg:hidden rounded-2xl overflow-hidden h-44 relative shadow-md">
+          {/* Tablet: full-bleed editorial photo integrated into the promo panel.
+              The dark-to-transparent fade preserves legibility of the benefits above. */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 top-[38%] z-0 overflow-hidden xl:hidden">
             <img
-              src="/images/auth_student.jpg"
-              alt="Smiling Student with Books"
-              className="w-full h-full object-cover object-top"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = '/images/african_students_hero.jpg';
+              src={promoImage.src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: promoImage.position }}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = '/images/african_students_hero.jpg';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c2661] via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#091b46] via-[#091b46]/70 via-[30%] to-[#091b46]/40" />
+            <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#040c24] via-[#040c24]/75 to-transparent" />
           </div>
 
           {/* Help Desk Footer inside Left Panel */}
-          <div className="relative z-10 mt-6 pt-4 border-t border-white/15 text-[11px] text-slate-300 flex flex-wrap items-center justify-between">
+          <div className="relative z-20 mt-8 pt-4 border-t border-white/25 text-[11px] text-white/90 flex flex-wrap items-center justify-between gap-2">
             <span>Admissions Help Desk: 09133903600</span>
             <span>23 Olaiya Street, Ilorin</span>
           </div>
@@ -271,7 +259,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className="lg:w-[42%] bg-white p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
+        <div className="w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0">
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
@@ -284,10 +272,10 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 {authMode === 'email-verify' && 'Email Verification'}
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                {authMode === 'register' && 'Join thousands of students on the path to success.'}
+                {authMode === 'register' && 'Create your student account to begin your application.'}
                 {authMode === 'signin' && 'Sign in to access your candidate portal.'}
-                {authMode === 'forgot-password' && 'Enter your email or registration number for recovery instructions.'}
-                {authMode === 'reset-password' && 'Enter your reset token and new secure password.'}
+                {authMode === 'forgot-password' && 'Enter your registered email for password recovery instructions.'}
+                {authMode === 'reset-password' && 'Open the password recovery link from your email, then choose a new password.'}
                 {authMode === 'otp-verify' && 'Enter the 6-digit code dispatched to your registered phone or email.'}
                 {authMode === 'email-verify' && 'Confirm your email address using the token sent to your inbox.'}
               </p>
@@ -326,6 +314,34 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 >
                   Sign In
                 </button>
+              </div>
+            )}
+
+            {/* Google account option: intentionally disabled until verified OAuth backend is configured. */}
+            {isRegisterMode && (
+              <div className="mb-5">
+                <button
+                  type="button"
+                  disabled
+                  aria-describedby="google-auth-status"
+                  className="flex w-full min-h-[48px] items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-not-allowed"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+                    <path fill="#4285F4" d="M21.35 12.25c0-.76-.07-1.49-.2-2.19H12v4.14h5.23a4.48 4.48 0 0 1-1.94 2.94v2.44h3.13c1.83-1.69 2.93-4.17 2.93-7.33Z"/>
+                    <path fill="#34A853" d="M12 21.75c2.62 0 4.81-.87 6.42-2.37l-3.13-2.44c-.87.58-1.98.92-3.29.92a5.78 5.78 0 0 1-5.44-4.01H3.34v2.51A9.75 9.75 0 0 0 12 21.75Z"/>
+                    <path fill="#FBBC05" d="M6.56 13.85a5.9 5.9 0 0 1 0-3.7V7.64H3.34a9.75 9.75 0 0 0 0 8.72l3.22-2.51Z"/>
+                    <path fill="#EA4335" d="M12 6.14c1.43 0 2.7.49 3.71 1.45l2.78-2.78A9.29 9.29 0 0 0 12 2.25a9.75 9.75 0 0 0-8.66 5.39l3.22 2.51A5.78 5.78 0 0 1 12 6.14Z"/>
+                  </svg>
+                  {authMode === 'register' ? 'Sign up with Google' : 'Continue with Google'}
+                </button>
+                <p id="google-auth-status" className="mt-2 text-center text-[11px] text-slate-500">
+                  Google sign-in will be available once secure account integration is configured.
+                </p>
+                <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                  <span className="h-px flex-1 bg-slate-200" />
+                  or use your email
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
               </div>
             )}
 
@@ -565,12 +581,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 ===================================================================== */}
             {authMode === 'reset-password' && (
               <form onSubmit={handleResetPassword} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">Reset Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <Hash size={16} />
-                    </div>
+
                     <input
                       type="text"
                       required
