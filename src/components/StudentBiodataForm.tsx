@@ -33,6 +33,8 @@ export default function StudentBiodataForm({
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successToast, setSuccessToast] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Initialize form state directly from authenticated student's record
   const [formData, setFormData] = useState({
@@ -158,15 +160,17 @@ export default function StudentBiodataForm({
     }
   };
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.declarationConfirmed) {
       setErrors({ declarationConfirmed: 'You must check the confirmation declaration to proceed.' });
       return;
     }
 
-    // Persist into AuthContext student record
-    updateBiodata({
+    setSaving(true);
+    setSaveError(null);
+    try {
+    await updateBiodata({
       surname: formData.surname,
       firstName: formData.firstName,
       otherNames: formData.middleName,
@@ -188,10 +192,12 @@ export default function StudentBiodataForm({
     });
 
     setSuccessToast(true);
-    setTimeout(() => {
-      setSuccessToast(false);
-      if (onSuccess) onSuccess();
-    }, 1500);
+    if (onSuccess) onSuccess();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save your profile. Please retry.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
