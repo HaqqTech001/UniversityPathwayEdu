@@ -59,7 +59,7 @@ interface AuthContextType {
   logout: () => void;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   changePassword: (password: string, email?: string, code?: string) => Promise<{ success: boolean; error?: string }>;
-  updateBiodata: (data: Partial<Biodata>) => void;
+  updateBiodata: (data: Partial<Biodata>) => Promise<void>;
   saveApplicationDraft: (draft: Partial<ApplicationRecord>) => void;
   submitApplication: (appData: Partial<ApplicationRecord>) => string; // returns ref number
 }
@@ -113,11 +113,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     catch(error){return {success:false,error:error instanceof Error?error.message:'Password reset failed'};}
   };
   const logout=()=>{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);};
-  const updateBiodata=(data:Partial<Biodata>)=>{
-    if(!currentUser)return;
+  const updateBiodata=async(data:Partial<Biodata>):Promise<void>=>{
+    if(!currentUser)throw new Error('Sign in to update your profile.');
     const biodata={...currentUser.biodata,...data};
-    const token=getStudentToken();if(!token)return;
-    void upecAuthApi.saveBiodata(token,biodata).then(()=>refresh()).catch(error=>console.error('Biodata save failed',error));
+    const token=getStudentToken();if(!token)throw new Error('Session expired. Sign in again.');
+    await upecAuthApi.saveBiodata(token,biodata);
+    await refresh();
   };
   const saveApplicationDraft=(draft:Partial<ApplicationRecord>)=>{
     if(!currentUser)return;
