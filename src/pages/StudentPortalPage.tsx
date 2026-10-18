@@ -151,7 +151,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       setPasswordNotice('Password must be at least 6 characters.');
       return;
     }
-    setPasswordNotice('Password updated successfully.');
+    setPasswordNotice('Password changes are not connected to an authentication service yet. No password was changed.');
     setPasswordState({ current: '', newPass: '', confirmPass: '' });
     setTimeout(() => setPasswordNotice(null), 3500);
   };
@@ -416,10 +416,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                     Manage and review your active cohort registration files and examination streams.
                   </p>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold self-start sm:self-auto flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>Approved &amp; Active</span>
-                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-700">{currentUser.application?.status.replace(/_/g, " ") || "No application"}</span>
               </div>
 
               {currentUser.application ? (
@@ -663,44 +660,10 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
         {dashboardTab === 'notices' && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="font-serif text-xl font-bold text-[#0b1a42]">
-                Official Institutional Notices &amp; Announcements
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Updates directly from the University Pathway Academic Board and Center Administration.
-              </p>
-            </div>
-
-            <div className="space-y-4 pt-2">
-              <article className="p-5 rounded-2xl bg-red-50/50 border border-red-200/60">
-                <div className="flex items-center justify-between text-[11px] font-bold text-[#c62839] mb-1.5">
-                  <span className="uppercase tracking-wider">MOCK EXAM REMINDER</span>
-                  <span>Posted Oct 9, 2024</span>
-                </div>
-                <h4 className="font-bold text-sm text-[#0b1a42]">
-                  Saturday Computerized Mock #13 Attendance Mandatory
-                </h4>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  All Batch A candidates are required to arrive by 7:45 AM for biometric attendance and desk allocation. Bring your scientific calculators. Computer terminals will be assigned by registration sequence.
-                </p>
-              </article>
-
-              <article className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5">
-                  <span className="uppercase tracking-wider">ACADEMIC WORKSHOP</span>
-                  <span>Posted Oct 5, 2024</span>
-                </div>
-                <h4 className="font-bold text-sm text-[#0b1a42]">
-                  Compulsory JAMB English Literature Prescribed Text Review
-                </h4>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  Special Friday interactive seminar on the compulsory English text will hold in Main Hall A from 9:00 AM to 11:30 AM. Handouts will be distributed.
-                </p>
-              </article>
-            </div>
-          </div>
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-[#0b1a42]">Notifications</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">No official announcements are available in your account yet. Updates will appear here when the institution publishes them.</p>
+          </section>
         )}
 
         {/* =========================================================================
