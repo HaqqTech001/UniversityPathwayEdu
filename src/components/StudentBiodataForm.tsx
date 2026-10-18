@@ -937,13 +937,15 @@ export default function StudentBiodataForm({
           ) : (
             <button
               type="submit"
+              disabled={saving}
               className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <Save size={15} />
-              <span>Save &amp; Submit Registration File</span>
+              <span>{saving ? "Saving profile..." : "Save student profile"}</span>
             </button>
           )}
         </div>
+        {saveError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">{saveError}</p>}
       </form>
     </div>
   );
