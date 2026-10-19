@@ -452,7 +452,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                     </div>
                     <div>
                       <span className="text-slate-400 font-bold uppercase text-[10px]">CBT Enrolment</span>
-                      <p className="font-bold text-emerald-700 mt-0.5">Active Candidate</p>
+                      <p className="font-bold text-[#0b1a42] mt-0.5">{currentUser.application.cbtEnrolled ? "Enrolled" : "Not yet confirmed"}</p>
                     </div>
                   </div>
 
@@ -487,10 +487,10 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 <div className="mt-8 text-center py-10 bg-slate-50 rounded-2xl border border-slate-200">
                   <FileText size={36} className="text-slate-300 mx-auto mb-3" />
                   <h4 className="font-serif text-base font-bold text-[#0b1a42]">
-                    No Additional Applications
+                    No application submitted
                   </h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                    Your current registration is cleared. To enquire about additional cohorts, contact the centre desk.
+                    Once your application is submitted, its reference number and review status will appear here.
                   </p>
                 </div>
               )}
