@@ -29,10 +29,10 @@ begin
  end if;
  update public.local_student_applications a
  set form_data=p_form_data,
-     subjects=to_jsonb(array_remove(array[
+     subjects=array_remove(array[
        nullif(trim(p_form_data->>'utmeSubject2'),''),
        nullif(trim(p_form_data->>'utmeSubject3'),''),
-       nullif(trim(p_form_data->>'utmeSubject4'),'')],null)),
+       nullif(trim(p_form_data->>'utmeSubject4'),'')],null),
      status='under_review'
  where a.id=p_application_id;
  insert into public.local_application_resubmissions(application_id,student_account_id)
