@@ -24,3 +24,17 @@
 .review-actions .secondary-button{background:#e9edf5;color:#111a43}
 .admissions-filters input:focus-visible,.admissions-filters select:focus-visible,.review-dialog textarea:focus-visible,.review-actions button:focus-visible{outline:3px solid #d5a75b;outline-offset:2px}
 @media(max-width:560px){.admissions-filters{align-items:stretch;flex-direction:column}.admissions-filters label,.admissions-filters label:first-child{width:100%;flex:auto}.admissions-filters button{width:100%}.review-actions button{flex:1}}
+
+.details-button{border:1px solid #cbd5e1;background:#fff;color:#111a43;border-radius:9px;padding:9px 12px;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.details-button:hover{border-color:#111a43;background:#f2f5fc}
+.details-button:focus-visible{outline:3px solid #d5a75b;outline-offset:2px}
+.application-details{width:min(100%,760px)}
+.application-details h3{margin-top:28px;font-size:18px;color:#111a43}
+.details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.details-grid>div{padding:12px;border:1px solid #e2e8f0;border-radius:10px;min-width:0}
+.details-grid dt{color:#516078;font-weight:700;font-size:12px;text-transform:capitalize;margin-bottom:6px}
+.details-grid dd{margin:0;overflow-wrap:anywhere;color:#111a43}
+.review-timeline{padding-left:24px}.review-timeline li{padding:0 0 18px 12px;border-left:2px solid #d5a75b;margin-left:2px}
+.review-timeline time{display:block;margin-top:6px;color:#516078;font-size:13px}
+.review-timeline p{margin:6px 0 0;overflow-wrap:anywhere}
+@media(max-width:560px){.details-grid{grid-template-columns:1fr}}
