@@ -59,6 +59,10 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     }
   }, []);
 
+  const [correctionOpen,setCorrectionOpen]=useState(false);
+  const [correctionForm,setCorrectionForm]=useState<Record<string,unknown>>({});
+  const [correctionBusy,setCorrectionBusy]=useState(false);
+  const [correctionMessage,setCorrectionMessage]=useState('');
   const [applicationHistory,setApplicationHistory]=useState<Array<{id:string;new_status:string;created_at:string}>>([]);
   const [historyLoading,setHistoryLoading]=useState(false);
   const [historyError,setHistoryError]=useState('');
@@ -75,6 +79,20 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       .finally(()=>{if(!cancelled)setHistoryLoading(false);});
     return()=>{cancelled=true;};
   },[isAuthenticated,applicationId,dashboardTab]);
+
+  const submitCorrection=async(e:React.FormEvent)=>{
+    e.preventDefault();
+    const id=currentUser?.application?.id,token=getStudentToken();
+    if(!id||!token)return;
+    setCorrectionBusy(true);setCorrectionMessage('');
+    try{
+      await upecAuthApi.correctApplication(token,id,correctionForm);
+      setCorrectionOpen(false);
+      setCorrectionMessage('Corrections submitted successfully. The admissions team will review your application again.');
+      window.location.reload();
+    }catch(error){setCorrectionMessage(error instanceof Error?error.message:'Unable to resubmit correction.');}
+    finally{setCorrectionBusy(false);}
+  };
 
   // Edit biodata modal state
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);
@@ -431,6 +449,10 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   <span>{currentUser.application ? currentUser.application.status.replace(/_/g,' ') : 'No application submitted'}</span>
                 </span>
               </div>
+
+              {currentUser.application?.status==='action_required'&&<section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6"><h3 className="text-base font-bold text-[#0b1a42]">Application correction required</h3><p className="mt-2 text-sm leading-6 text-slate-700">Your application has been returned for correction. Review your submitted details before sending it back to admissions. Programme and session cannot be changed here.</p><button type="button" className="mt-4 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white" onClick={()=>{setCorrectionForm({...currentUser.application?.formData});setCorrectionMessage('');setCorrectionOpen(true);}}>Correct application</button></section>}
+              {correctionOpen&&currentUser.application&&<section className="mt-5 rounded-2xl border border-[#d5a75b] bg-white p-5 sm:p-6"><h3 className="font-bold text-[#0b1a42]">Review and correct submitted information</h3><form onSubmit={submitCorrection} className="mt-4 space-y-4"><p className="text-xs text-slate-500">Only text fields can be edited here. Programme and academic session are fixed.</p>{Object.entries(correctionForm).filter(([key,value])=>typeof value==='string'&&!['programmeCategory','preferredSession'].includes(key)).map(([key,value])=><label key={key} className="block text-sm font-semibold capitalize text-[#0b1a42]">{key.replace(/([A-Z])/g,' $1')}<input value={String(value)} maxLength={500} onChange={e=>setCorrectionForm(prev=>({...prev,[key]:e.target.value}))} className="mt-2 block w-full rounded-xl border border-slate-300 p-3 font-normal"/></label>)}{correctionMessage&&<p role="alert" className="text-sm text-red-700">{correctionMessage}</p>}<div className="flex flex-wrap gap-3"><button type="button" onClick={()=>setCorrectionOpen(false)} className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-bold text-[#0b1a42]">Cancel</button><button type="submit" disabled={correctionBusy} className="rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{correctionBusy?'Submitting...':'Resubmit for review'}</button></div></form></section>}
+              {!correctionOpen&&correctionMessage&&<p role="status" className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{correctionMessage}</p>}
 
               {currentUser.application && <section aria-label="Application status history" className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
                 <h3 className="text-base font-bold text-[#0b1a42]">Application status history</h3>
