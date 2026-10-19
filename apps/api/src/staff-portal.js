@@ -48,6 +48,7 @@ router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
 router.patch('/applications/:id/status',permit('applications.review'),wrap(async(req,res)=>{
  const allowed=['under_review','approved','action_required','rejected'];
  const status=req.body?.status;
+ if(req.staff.role==='teacher'||req.staff.role==='content_editor'||req.staff.role==='cbt_manager')return res.status(403).json({error:'Admissions review access denied.'});
  if(!allowed.includes(status)||! /^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid review request.'});
  const {data,error}=await db.from('local_student_applications').update({status}).eq('id',req.params.id).select('id,reference_number,status').maybeSingle();
  if(error)throw error;
