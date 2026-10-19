@@ -62,14 +62,16 @@ router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
 router.get('/applications/:id',permit('applications.read'),wrap(async(req,res)=>{
  const id=req.params.id;
  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid application ID.'});
- const [application,reviews]=await Promise.all([
+ const [application,reviews,resubmissions]=await Promise.all([
   db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').eq('id',id).maybeSingle(),
-  db.from('local_application_reviews').select('id,previous_status,new_status,note,created_at').eq('application_id',id).order('created_at',{ascending:false}).limit(100)
+  db.from('local_application_reviews').select('id,previous_status,new_status,note,created_at').eq('application_id',id).order('created_at',{ascending:false}).limit(100),
+  db.from('local_application_resubmissions').select('id,submitted_at').eq('application_id',id).order('submitted_at',{ascending:false}).limit(100)
  ]);
  if(application.error)throw application.error;
  if(!application.data)return res.status(404).json({error:'Application not found.'});
  if(reviews.error)throw reviews.error;
- res.json({application:application.data,reviews:reviews.data||[]});
+ if(resubmissions.error)throw resubmissions.error;
+ res.json({application:application.data,reviews:reviews.data||[],resubmissions:resubmissions.data||[]});
 }));
 router.patch('/applications/:id/status',permit('applications.review'),wrap(async(req,res)=>{
  const allowed=['under_review','approved','action_required','rejected'];
