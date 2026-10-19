@@ -33,9 +33,10 @@ export default function StaffDashboard({profile,onLogout}){
  return <main className="workspace">
   <header className="workspace-header"><div><span className="eyebrow">UPEC · OPERATIONS</span><h1>Staff Desk</h1><p>Role: {profile.role?.replaceAll('_',' ')}</p></div><button onClick={()=>{clearOpsToken();onLogout();}}>Sign out</button></header>
   <section className="workspace-content">
+   {canRead&&!loading&&!error&&<div className="ops-metrics"><article><span>Applications loaded</span><strong>{applications.length}</strong></article><article><span>Submitted</span><strong>{submittedCount}</strong></article><article><span>Under review</span><strong>{applications.filter(a=>a.status==='under_review').length}</strong></article><article><span>Approved</span><strong>{applications.filter(a=>a.status==='approved').length}</strong></article></div>}
    <h2>Applications</h2>
    {!canRead?<p className="notice">Your role does not have permission to view applications.</p>:<>
-    <p>Applications are loaded from the staff API, subject to your assigned permissions.</p>
+    <p>Showing up to 100 recent applications from the staff API. Summary figures reflect these loaded records, not institution-wide totals.</p>
     {error&&<p role="alert" className="form-error">{error}</p>}
     {loading?<p>Loading applications...</p>:applications.length===0?<p>No applications available.</p>:
     <div className="table-scroll"><table><thead><tr><th>Reference</th><th>Programme</th><th>Session</th><th>Status</th>{canReview&&<th>Review</th>}</tr></thead>
