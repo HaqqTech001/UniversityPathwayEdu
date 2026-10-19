@@ -62,6 +62,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   changePassword: (password: string, email?: string, code?: string) => Promise<{ success: boolean; error?: string }>;
   updateBiodata: (data: Partial<Biodata>) => Promise<void>;
+  refreshStudent: () => Promise<void>;
   saveApplicationDraft: (draft: Partial<ApplicationRecord>) => void;
   submitApplication: (appData: Partial<ApplicationRecord>) => Promise<string>;
 }
@@ -153,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={{
     currentUser:ready?currentUser:null,isAuthenticated:ready&&!!currentUser&&currentUser.isEmailVerified,
     login,registerAccount,verifyEmail,logout,resetPassword,changePassword,
-    loginAsDemoStudent,updateBiodata,saveApplicationDraft,submitApplication,
+    loginAsDemoStudent,updateBiodata,refreshStudent:refresh,saveApplicationDraft,submitApplication,
   }}>{children}</AuthContext.Provider>;
 };
 export const useAuth=()=>{
