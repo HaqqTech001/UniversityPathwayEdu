@@ -51,17 +51,14 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
  const status=req.body?.status,note=String(req.body?.note||'').trim();
  if(!allowed.includes(status)||! /^[0-9a-f-]{36}$/i.test(req.params.id)||note.length>2000)return res.status(400).json({error:'Invalid review request.'});
  if(['action_required','rejected'].includes(status)&&note.length<5)return res.status(400).json({error:'A review reason is required.'});
- const {data:previous,error:readError}=await db.from('local_student_applications').select('id,status').eq('id',req.params.id).maybeSingle();
- if(readError)throw readError;
- if(!previous)return res.status(404).json({error:'Application not found.'});
- if(previous.status===status)return res.status(409).json({error:'Application already has this status.'});
- const transitions={submitted:['under_review'],under_review:['approved','action_required','rejected'],action_required:['under_review'],rejected:[],approved:[]};
- if(!(transitions[previous.status]||[]).includes(status))return res.status(409).json({error:'Invalid application status transition.'});
- const {data,error}=await db.from('local_student_applications').update({status}).eq('id',req.params.id).eq('status',previous.status).select('id,reference_number,status').maybeSingle();
- if(error)throw error;
- if(!data)return res.status(409).json({error:'Application status changed. Refresh and try again.'});
- const {error:auditError}=await db.from('local_application_reviews').insert({application_id:data.id,reviewer_account_id:req.actor.sub,previous_status:previous.status,new_status:status,note:note||null});
- if(auditError){console.error('Admissions audit write failed',auditError);return res.status(503).json({error:'Status updated but review history could not be recorded. Contact the administrator before continuing.'});}
- res.json({application:data});
+ const {data,error}=await db.rpc('upec_review_application',{p_application_id:req.params.id,p_reviewer_id:req.actor.sub,p_status:status,p_note:note||null});
+ if(error){
+  if(error.code==='42501')return res.status(403).json({error:'Review permission denied.'});
+  if(/not found/i.test(error.message))return res.status(404).json({error:'Application not found.'});
+  if(/invalid status|reason required/i.test(error.message))return res.status(409).json({error:error.message});
+  throw error;
+ }
+ if(!data?.length)return res.status(409).json({error:'Review could not be completed.'});
+ res.json({application:data[0]});
 }));
 export default router;
