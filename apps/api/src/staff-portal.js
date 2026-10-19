@@ -4,6 +4,7 @@ import {supabaseAdmin as db} from './db.js';
 import {requireRole,signToken} from './security.js';
 
 const router=Router();
+// TODO: add distributed rate limiting and account lockout before production rollout.
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const normalize=value=>String(value||'').trim().toLowerCase();
 const hashPassword=password=>new Promise((resolve,reject)=>crypto.scrypt(password,process.env.AUTH_PASSWORD_PEPPER,64,(err,key)=>err?reject(err):resolve(key.toString('hex'))));
