@@ -222,21 +222,25 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       <style>{`
         @keyframes upecPromoEnter { from { opacity: .35; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes upecFormEnter { from { opacity: .35; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes upecPromoSwitchRight { from { transform: translateX(-72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes upecPromoSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes upecFormSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes upecFormSwitchRight { from { transform: translateX(-72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
         @media (min-width: 768px) {
           .auth-promo-panel { animation: upecPromoEnter 650ms cubic-bezier(.22,1,.36,1) both; }
-          .auth-form-panel { animation: upecFormEnter 650ms cubic-bezier(.22,1,.36,1) both; }
+          .auth-form-panel { animation: upecFormEnter 650ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-promo-panel { animation: upecPromoSwitchRight 650ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-form-panel { animation: upecFormSwitchLeft 650ms cubic-bezier(.22,1,.36,1) both; }
         }
         @media (prefers-reduced-motion: reduce) {
           .auth-promo-panel, .auth-form-panel { animation: none !important; transition: none !important; }
         }
       `}</style>
       {/* Main Authentication Composition Matching Approved Mockup */}
-      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px] auth-stage">
+      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px] auth-stage" data-reversed={panelsReversed}>
         
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] md:transition-[order] md:duration-500 bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] ${panelsReversed ? "md:order-2" : "md:order-1"}`} >
+        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] ${panelsReversed ? "md:order-2" : "md:order-1"}`} >
           
           {/* Top Header section inside left panel */}
           <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
