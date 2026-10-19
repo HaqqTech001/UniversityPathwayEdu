@@ -1,5 +1,4 @@
-// Backend-managed authentication client. This is not enabled in the student UI
-// until profile, biodata, application and session migration is complete.
+// Backend-managed authentication and student portal API client.
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 
 type AuthUser = { id: string; email: string; fullName: string; phone: string; isEmailVerified: boolean };
