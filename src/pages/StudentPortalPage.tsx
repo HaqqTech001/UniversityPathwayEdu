@@ -42,7 +42,12 @@ interface PageProps {
 }
 
 export default function StudentPortalPage({ onNavigate }: PageProps) {
-  const { currentUser, isAuthenticated, updateBiodata } = useAuth();
+  const { currentUser, isAuthenticated, updateBiodata, submitApplication } = useAuth();
+  const [applicationProgramme, setApplicationProgramme] = useState('JAMB / UTME');
+  const [applicationSession, setApplicationSession] = useState('2026/2027');
+  const [applicationSubjects, setApplicationSubjects] = useState('');
+  const [applicationSaving, setApplicationSaving] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState<string | null>(null);
 
   // Navigation tab state controlled by the Left Navigation Drawer
   const [dashboardTab, setDashboardTab] = useState<string>(() => {
@@ -489,6 +494,42 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   </div>
                 </div>
               ) : (
+                <form className="mt-6 space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-7" onSubmit={async (event) => {
+                  event.preventDefault();
+                  setApplicationSaving(true);
+                  setApplicationMessage(null);
+                  try {
+                    const reference = await submitApplication({
+                      programme: applicationProgramme,
+                      session: applicationSession,
+                      chosenSubjects: applicationSubjects.split(',').map(subject => subject.trim()).filter(Boolean).slice(0, 3),
+                    });
+                    setApplicationMessage('Application submitted successfully. Reference: ' + reference);
+                  } catch (error) {
+                    setApplicationMessage(error instanceof Error ? error.message : 'Unable to submit application.');
+                  } finally {
+                    setApplicationSaving(false);
+                  }
+                }}>
+                  <h3 className="font-serif text-lg font-bold text-[#0b1a42]">Start your application</h3>
+                  <p className="text-sm text-slate-600">Complete your biodata before applying. Your application will be reviewed by the admissions team.</p>
+                  <label className="block text-sm font-semibold text-[#0b1a42]">Programme
+                    <select required value={applicationProgramme} onChange={event => setApplicationProgramme(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3">
+                      <option>JAMB / UTME</option><option>WAEC / NECO</option><option>JUPEB / A-Level</option><option>International Examinations</option>
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold text-[#0b1a42]">Academic session
+                    <input required value={applicationSession} onChange={event => setApplicationSession(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3" placeholder="2026/2027" />
+                  </label>
+                  <label className="block text-sm font-semibold text-[#0b1a42]">Optional subject choices (separate with commas)
+                    <input value={applicationSubjects} onChange={event => setApplicationSubjects(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3" placeholder="Mathematics, Physics, Chemistry" />
+                  </label>
+                  {applicationMessage && <p role="status" className="rounded-xl bg-white p-3 text-sm text-[#0b1a42]">{applicationMessage}</p>}
+                  <button type="submit" disabled={!currentUser.profileCompleted || applicationSaving} className="rounded-xl bg-[#c62839] px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    {applicationSaving ? 'Submitting...' : 'Submit application'}
+                  </button>
+                  {!currentUser.profileCompleted && <p className="text-sm text-amber-800">Complete your profile in the Biodata tab to enable submission.</p>}
+                </form>
                 <div className="mt-8 text-center py-10 bg-slate-50 rounded-2xl border border-slate-200">
                   <FileText size={36} className="text-slate-300 mx-auto mb-3" />
                   <h4 className="font-serif text-base font-bold text-[#0b1a42]">
