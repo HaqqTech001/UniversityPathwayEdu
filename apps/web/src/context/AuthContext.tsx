@@ -61,7 +61,7 @@ interface AuthContextType {
   changePassword: (password: string, email?: string, code?: string) => Promise<{ success: boolean; error?: string }>;
   updateBiodata: (data: Partial<Biodata>) => Promise<void>;
   saveApplicationDraft: (draft: Partial<ApplicationRecord>) => void;
-  submitApplication: (appData: Partial<ApplicationRecord>) => string; // returns ref number
+  submitApplication: (appData: Partial<ApplicationRecord>) => Promise<string>;
 }
 
 
@@ -132,9 +132,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser({...currentUser,application:app});
     // Drafts remain local until application submission is migrated to server-side API.
   };
-  const submitApplication=(_appData:Partial<ApplicationRecord>):string=>{
-    // Prevent false success: application submission requires the secure backend workflow.
-    throw new Error('Online application submission is being connected. No application has been submitted.');
+  const submitApplication=async(appData:Partial<ApplicationRecord>):Promise<string>=>{
+    if(!currentUser?.profileCompleted)throw new Error('Complete your biodata before applying.');
+    const token=getStudentToken();
+    if(!token)throw new Error('Please sign in again.');
+    const response=await upecAuthApi.submitApplication(token,{
+      programmeCategory:appData.programme,
+      preferredSession:appData.session,
+      studyCentre:appData.studyCenter,
+      utmeSubject2:appData.chosenSubjects?.[0]||'',
+      utmeSubject3:appData.chosenSubjects?.[1]||'',
+      utmeSubject4:appData.chosenSubjects?.[2]||'',
+    });
+    await refresh();
+    return response.application.reference_number;
   };
   const loginAsDemoStudent=()=>{console.warn('Demo authentication is disabled.');};
   return <AuthContext.Provider value={{
