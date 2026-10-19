@@ -202,6 +202,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     'email-verify': { src: '/images/campus_atmosphere.jpg', alt: 'Academic learning environment', position: 'center center' },
   };
   const promoImage = promoImages[authMode];
+  const panelsReversed = authMode === 'register';
 
   return (
     <div className="min-h-screen bg-[#06102b] flex flex-col items-center justify-center px-3 py-5 sm:px-6 sm:py-8 lg:py-10 font-sans">
@@ -218,13 +219,24 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         <span className="text-xs text-slate-400 hidden sm:inline">University Pathway Educational Consult</span>
       </div>
 
+      <style>{`
+        @keyframes upecPromoEnter { from { opacity: .35; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes upecFormEnter { from { opacity: .35; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+        @media (min-width: 768px) {
+          .auth-promo-panel { animation: upecPromoEnter 650ms cubic-bezier(.22,1,.36,1) both; }
+          .auth-form-panel { animation: upecFormEnter 650ms cubic-bezier(.22,1,.36,1) both; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .auth-promo-panel, .auth-form-panel { animation: none !important; transition: none !important; }
+        }
+      `}</style>
       {/* Main Authentication Composition Matching Approved Mockup */}
-      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px]">
+      <main className="w-full max-w-6xl bg-white rounded-[20px] sm:rounded-[30px] shadow-[0_30px_90px_rgba(0,0,0,0.3)] border border-white/10 overflow-hidden flex flex-col md:flex-row md:min-h-[640px] lg:min-h-[680px] auth-stage">
         
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className="hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden md:min-h-[640px] lg:min-h-[680px]">
+        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] md:transition-[order] md:duration-500 bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] ${panelsReversed ? "md:order-2" : "md:order-1"}`} >
           
           {/* Top Header section inside left panel */}
           <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
@@ -299,7 +311,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className="w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0">
+        <div className={`w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0 auth-form-panel ${panelsReversed ? "md:order-1" : "md:order-2"}`}>
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
