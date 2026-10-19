@@ -26,6 +26,7 @@ export interface Biodata {
 
 export interface ApplicationRecord {
   id?: string;
+  formData?: Record<string,unknown>;
   referenceNumber: string;
   programme: string;
   session: string;
@@ -77,7 +78,7 @@ const emptyBiodata = (email: string, fullName: string, phone: string): Biodata =
   };
 };
 const mapApplication = (row: any): ApplicationRecord | null => row ? ({
-  id: row.id, referenceNumber: row.reference_number, programme: row.programme,
+  id: row.id, formData: row.form_data || {}, referenceNumber: row.reference_number, programme: row.programme,
   session: row.academic_session || '', studyCenter: row.study_centre || '',
   chosenSubjects: row.subjects || [], submittedAt: row.submitted_at || '',
   status: row.status, cbtEnrolled: false, paymentStatus: 'pending',
