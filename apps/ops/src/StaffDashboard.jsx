@@ -3,6 +3,7 @@ import {opsRequest,clearOpsToken} from './api';
 export default function StaffDashboard({profile,onLogout}){
  const [applications,setApplications]=useState([]);
  const [members,setMembers]=useState([]);
+ const [metrics,setMetrics]=useState(null);
  const [directoryLoading,setDirectoryLoading]=useState(false);
  const [error,setError]=useState('');
  const [loading,setLoading]=useState(true);
@@ -10,11 +11,15 @@ export default function StaffDashboard({profile,onLogout}){
  const canRead=profile.permissions?.includes('applications.read');
  const canManageStaff=profile.role==='super_admin'&&profile.permissions?.includes('staff.manage');
  const canReview=profile.permissions?.includes('applications.review');
- const submittedCount=applications.filter(item=>item.status==='submitted').length;
  const load=async()=>{
   setLoading(true);setError('');
-  try{const data=canRead?await opsRequest('/applications'):{applications:[]};setApplications(data.applications||[]);}
-  catch(err){setError(err.message);}
+  try{
+   if(!canRead){setApplications([]);setMetrics(null);return;}
+   const [data,summary]=await Promise.all([opsRequest('/applications'),opsRequest('/applications/metrics')]);
+   setApplications(data.applications||[]);
+   setMetrics(summary);
+  }
+  catch(err){setMetrics(null);setError(err.message);}
   finally{setLoading(false);}
  };
  useEffect(()=>{void load();},[canRead]);
@@ -33,10 +38,10 @@ export default function StaffDashboard({profile,onLogout}){
  return <main className="workspace">
   <header className="workspace-header"><div><span className="eyebrow">UPEC · OPERATIONS</span><h1>Staff Desk</h1><p>Role: {profile.role?.replaceAll('_',' ')}</p></div><button onClick={()=>{clearOpsToken();onLogout();}}>Sign out</button></header>
   <section className="workspace-content">
-   {canRead&&!loading&&!error&&<div className="ops-metrics"><article><span>Applications loaded</span><strong>{applications.length}</strong></article><article><span>Submitted</span><strong>{submittedCount}</strong></article><article><span>Under review</span><strong>{applications.filter(a=>a.status==='under_review').length}</strong></article><article><span>Approved</span><strong>{applications.filter(a=>a.status==='approved').length}</strong></article></div>}
+   {canRead&&!loading&&!error&&metrics&&<div className="ops-metrics"><article><span>Total applications</span><strong>{metrics.total}</strong></article><article><span>Submitted</span><strong>{metrics.submitted}</strong></article><article><span>Under review</span><strong>{metrics.under_review}</strong></article><article><span>Approved</span><strong>{metrics.approved}</strong></article></div>}
    <h2>Applications</h2>
    {!canRead?<p className="notice">Your role does not have permission to view applications.</p>:<>
-    <p>Showing up to 100 recent applications from the staff API. Summary figures reflect these loaded records, not institution-wide totals.</p>
+    <p>Dashboard figures reflect all applications in the database. The review table displays up to 100 recent applications.</p>
     {error&&<p role="alert" className="form-error">{error}</p>}
     {loading?<p>Loading applications...</p>:applications.length===0?<p>No applications available.</p>:
     <div className="table-scroll"><table><thead><tr><th>Reference</th><th>Programme</th><th>Session</th><th>Status</th>{canReview&&<th>Review</th>}</tr></thead>
