@@ -298,7 +298,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
               </aside>
             </div>
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">Frontend preview only: account and application statuses are not yet verified by a backend. Sample results, notices and deadlines are intentionally not shown.</p>
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">Account details are loaded from the student service. Official announcements will appear when published.</p>
           </div>
         )}
 
