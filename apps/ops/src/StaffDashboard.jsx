@@ -10,6 +10,7 @@ export default function StaffDashboard({profile,onLogout}){
  const canRead=profile.permissions?.includes('applications.read');
  const canManageStaff=profile.role==='super_admin'&&profile.permissions?.includes('staff.manage');
  const canReview=profile.permissions?.includes('applications.review');
+ const submittedCount=applications.filter(item=>item.status==='submitted').length;
  const load=async()=>{
   setLoading(true);setError('');
   try{const data=canRead?await opsRequest('/applications'):{applications:[]};setApplications(data.applications||[]);}
