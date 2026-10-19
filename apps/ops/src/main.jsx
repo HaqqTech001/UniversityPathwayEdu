@@ -1,16 +1,24 @@
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import StaffLogin from './StaffLogin';
+import StaffDashboard from './StaffDashboard';
+import {getOpsToken,clearOpsToken,opsRequest} from './api';
 import './style.css';
 
 function App(){
-  return <main className="shell">
-    <section className="panel">
-      <span className="eyebrow">UNIVERSITY PATHWAY · OPERATIONS</span>
-      <h1>Staff Administration</h1>
-      <p>This is the separate UPEC operations application. Staff sign-in and privileged actions remain unavailable until server-verified permissions are configured.</p>
-      <div className="notice" role="status">Protected access is being configured. Student accounts do not provide administrative access.</div>
-      <a href={import.meta.env.VITE_PUBLIC_SITE_URL || 'http://localhost:5173'}>Return to public website</a>
-    </section>
-  </main>;
+ const [profile,setProfile]=useState(null);
+ const [checking,setChecking]=useState(true);
+ const verify=async()=>{
+  try{
+   const result=await opsRequest('/me');
+   if(!result.role||!Array.isArray(result.permissions))throw Error('Invalid staff profile');
+   setProfile(result);
+  }catch{clearOpsToken();setProfile(null);}
+  finally{setChecking(false);}
+ };
+ useEffect(()=>{if(getOpsToken())void verify();else setChecking(false);},[]);
+ if(checking)return <main className="shell"><p>Verifying staff access...</p></main>;
+ if(!profile)return <StaffLogin onSuccess={verify}/>;
+ return <StaffDashboard profile={profile} onLogout={()=>setProfile(null)}/>;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><App/></React.StrictMode>);
