@@ -428,7 +428,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 </div>
                 <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold self-start sm:self-auto flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>Approved &amp; Active</span>
+                  <span>{currentUser.application ? currentUser.application.status.replace(/_/g,' ') : 'No application submitted'}</span>
                 </span>
               </div>
 
@@ -509,7 +509,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                     No Additional Applications
                   </h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                    Your current registration is cleared. To enquire about additional cohorts, contact the centre desk.
+                    You have not submitted an application yet. Complete your profile and use the application journey to get started.
                   </p>
                 </div>
               )}
