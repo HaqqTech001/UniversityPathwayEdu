@@ -42,6 +42,18 @@ router.use(wrap(async(req,res,next)=>{
 router.get('/me',(req,res)=>res.json({role:req.staff.role,permissions:req.staff.permissions}));
 const permit=permission=>(req,res,next)=>req.staff.permissions.includes(permission)?next():res.status(403).json({error:'Insufficient staff permissions.'});
 router.get('/members',permit('staff.manage'),wrap(async(req,res)=>{const {data,error}=await db.from('local_staff_members').select('account_id,role,permissions,active').limit(100);if(error)throw error;res.json({members:data||[]});}));
+// Accurate dashboard counts are calculated across the full database, not the
+// first 100 application records returned to the admissions review table.
+router.get('/applications/metrics',permit('applications.read'),wrap(async(req,res)=>{
+ const statuses=['submitted','under_review','approved','action_required','rejected'];
+ const queries=[db.from('local_student_applications').select('id',{count:'exact',head:true}),
+  ...statuses.map(status=>db.from('local_student_applications').select('id',{count:'exact',head:true}).eq('status',status))];
+ const results=await Promise.all(queries);
+ const failure=results.find(result=>result.error);
+ if(failure)throw failure.error;
+ const counts=Object.fromEntries(statuses.map((status,index)=>[status,results[index+1].count??0]));
+ res.json({total:results[0].count??0,...counts});
+}));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
