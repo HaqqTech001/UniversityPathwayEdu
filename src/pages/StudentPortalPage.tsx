@@ -116,9 +116,11 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     setIsEditingBiodata(true);
   };
 
-  const handleSaveBiodata = (e: React.FormEvent) => {
+  const handleSaveBiodata = async (e: React.FormEvent) => {
+    setEditSuccessMsg(null);
+    try {
     e.preventDefault();
-    updateBiodata({
+    await updateBiodata({
       surname: editForm.surname,
       firstName: editForm.firstName,
       otherNames: editForm.otherNames,
@@ -139,6 +141,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     setIsEditingBiodata(false);
     setEditSuccessMsg('Your biodata records have been updated successfully.');
     setTimeout(() => setEditSuccessMsg(null), 4000);
+    } catch (error) {
+      setEditSuccessMsg(error instanceof Error ? error.message : 'Unable to save profile. Please try again.');
+    }
   };
 
   const handlePasswordChange = (e: React.FormEvent) => {
