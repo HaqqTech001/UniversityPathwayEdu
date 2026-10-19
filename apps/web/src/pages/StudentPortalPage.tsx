@@ -43,7 +43,7 @@ interface PageProps {
 }
 
 export default function StudentPortalPage({ onNavigate }: PageProps) {
-  const { currentUser, isAuthenticated, updateBiodata } = useAuth();
+  const { currentUser, isAuthenticated, updateBiodata, refreshStudent } = useAuth();
 
   // Navigation tab state controlled by the Left Navigation Drawer
   const [dashboardTab, setDashboardTab] = useState<string>(() => {
@@ -89,7 +89,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       await upecAuthApi.correctApplication(token,id,correctionForm);
       setCorrectionOpen(false);
       setCorrectionMessage('Corrections submitted successfully. The admissions team will review your application again.');
-      window.location.reload();
+      await refreshStudent();
     }catch(error){setCorrectionMessage(error instanceof Error?error.message:'Unable to resubmit correction.');}
     finally{setCorrectionBusy(false);}
   };
