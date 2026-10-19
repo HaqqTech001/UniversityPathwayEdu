@@ -24,6 +24,18 @@ router.get('/dashboard',wrap(async(req,res)=>{
  if(!account.data?.verified_at)return res.status(401).json({error:'Unauthorized'});
  res.json({user:account.data,biodata:biodata.data,application:application.data});
 }));
+router.get('/applications/:id/history',wrap(async(req,res)=>{
+ const id=req.params.id;
+ if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid application ID.'});
+ const {data:application,error:applicationError}=await db.from('local_student_applications').select('id,status,reference_number').eq('id',id).eq('account_id',req.actor.sub).maybeSingle();
+ if(applicationError)throw applicationError;
+ if(!application)return res.status(404).json({error:'Application not found.'});
+ const {data,error}=await db.from('local_application_reviews').select('id,new_status,created_at,note').eq('application_id',id).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;
+ // Review notes are internal administrative records, not necessarily applicant-facing messages.
+ // Expose only the status events until a separate public-feedback workflow is approved.
+ res.json({application,reviews:(data||[]).map(({id,new_status,created_at})=>({id,new_status,created_at}))});
+}));
 router.put('/biodata',wrap(async(req,res)=>{
  const details=req.body?.details;
  if(!details||typeof details!=='object'||Array.isArray(details)||JSON.stringify(details).length>12000)return res.status(400).json({error:'Invalid biodata'});
