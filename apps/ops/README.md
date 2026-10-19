@@ -1,13 +1,25 @@
 # UPEC Operations Application
 
-The staff and administrative workspace is an independent React/Vite application. It is not part of the public/student frontend bundle.
+Independent React/Vite staff workspace for University Pathway Educational Consult. This is separate from the public website and student portal.
 
 ## Development
 
-From this directory, install dependencies with `npm install` and run `npm run dev`. The development server uses port 5174.
+Install dependencies with `npm install` in this directory, then run `npm run dev` (port 5174). Start the API in `apps/api` separately, with its required secrets and Supabase environment configuration.
 
-## Security status
+Set `VITE_API_URL` to the API origin (defaults to `http://localhost:4000`). Set `VITE_PUBLIC_SITE_URL` for links to the public website, when used. Never expose API secrets in `VITE_` variables.
 
-This is currently a restricted-access application shell, **not** a functional staff portal. Do not deploy privileged workflows until staff identity verification, server-enforced role permissions, application review endpoints and database migration checks are complete. Never reuse a student session as proof of staff authorization.
+## Staff access and admissions
 
-Set `VITE_PUBLIC_SITE_URL` to the public site origin for the return link. Do not place secrets in `VITE_` environment variables.
+Staff sign in through `POST /api/staff/auth/login`. The API checks staff membership and permissions; student sessions do not provide staff access.
+
+- `GET /api/staff/me` — role and permissions.
+- `GET /api/staff/applications` — up to 100 recent records; requires `applications.read`.
+- `GET /api/staff/applications/metrics` — institution-wide exact counts by status; requires `applications.read`.
+- `PATCH /api/staff/applications/:id/status` — review workflow with transactional audit logging; requires `applications.review`.
+- `GET /api/staff/members` — read-only staff memberships; requires `staff.manage`.
+
+The dashboard shows database-wide metrics separately from the 100-record review table. Status changes refresh both datasets.
+
+## Production readiness
+
+Before production rollout, configure secure secrets and mail delivery, apply and verify Supabase migrations/RPC permissions, test review transitions and authorization, and implement distributed rate limiting and account lockout for staff authentication. The current staff directory is intentionally read-only. Do not treat an unverified frontend build or untested deployment as production-ready.
