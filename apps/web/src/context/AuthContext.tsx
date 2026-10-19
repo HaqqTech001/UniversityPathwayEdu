@@ -25,13 +25,14 @@ export interface Biodata {
 }
 
 export interface ApplicationRecord {
+  id?: string;
   referenceNumber: string;
   programme: string;
   session: string;
   studyCenter: string;
   chosenSubjects: string[];
   submittedAt: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'action_required';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'action_required' | 'rejected';
   cbtEnrolled: boolean;
   paymentReference?: string;
   paymentStatus: 'pending' | 'verified';
@@ -76,7 +77,7 @@ const emptyBiodata = (email: string, fullName: string, phone: string): Biodata =
   };
 };
 const mapApplication = (row: any): ApplicationRecord | null => row ? ({
-  referenceNumber: row.reference_number, programme: row.programme,
+  id: row.id, referenceNumber: row.reference_number, programme: row.programme,
   session: row.academic_session || '', studyCenter: row.study_centre || '',
   chosenSubjects: row.subjects || [], submittedAt: row.submitted_at || '',
   status: row.status, cbtEnrolled: false, paymentStatus: 'pending',
