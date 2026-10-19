@@ -16,6 +16,7 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
 }
 
 export const upecAuthApi = {
+  correctApplication: (token:string,applicationId:string,formData:Record<string,unknown>) => authorized<{application:{id:string;status:string}}>('/api/student/applications/'+encodeURIComponent(applicationId)+'/correction',token,'PUT',{formData}),
   applicationHistory: (token: string, applicationId: string) => authorized<{application:{id:string;status:string;reference_number:string};reviews:Array<{id:string;new_status:string;created_at:string}>}>('/api/student/applications/'+encodeURIComponent(applicationId)+'/history',token),
   dashboard: (token: string) => authorized<{user:any;biodata:any;application:any}>('/api/student/dashboard',token),
   saveBiodata: (token: string, details: Record<string,unknown>) => authorized<{biodata:any}>('/api/student/biodata',token,'PUT',{details}),
