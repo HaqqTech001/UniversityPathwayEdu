@@ -37,6 +37,12 @@ router.post('/applications',wrap(async(req,res)=>{
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
  const programme=String(formData.programmeCategory||'').trim(),academic_session=String(formData.preferredSession||'').trim();
  if(!programme||!academic_session)return res.status(400).json({error:'Programme and session are required'});
+ const {data:profile,error:profileError}=await db.from('local_student_biodata').select('completed_at').eq('account_id',req.actor.sub).maybeSingle();
+ if(profileError)throw profileError;
+ if(!profile?.completed_at)return res.status(409).json({error:'Complete your student biodata before submitting an application.'});
+ const {data:existing,error:existingError}=await db.from('local_student_applications').select('id,status').eq('account_id',req.actor.sub).eq('programme',programme).eq('academic_session',academic_session).limit(1);
+ if(existingError)throw existingError;
+ if(existing?.length)return res.status(409).json({error:'You have already submitted an application for this programme and session. Check your application status in the student portal.'});
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at').single();
  if(error)throw error;
