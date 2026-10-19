@@ -489,7 +489,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-[#0b1a42] shadow-xs cursor-pointer"
                     >
                       <Printer size={14} />
-                      <span>View Official Slip</span>
+                      <span>View Application Documents</span>
                     </button>
                   </div>
                 </div>
@@ -555,7 +555,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   Official Documents &amp; Clearance Slips
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  Download or print your institutional registration verification slip for classroom and CBT lab admission.
+                  View your application information. This document is not proof of admission or CBT clearance.
                 </p>
               </div>
 
@@ -565,7 +565,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
               >
                 <Printer size={15} />
-                <span>Print Registration Slip</span>
+                <span>Print Application Record</span>
               </button>
             </div>
 
@@ -579,7 +579,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   </div>
                   <div>
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#c62839] block">
-                      OFFICIAL ADMISSION CLEARANCE SLIP
+                      STUDENT APPLICATION RECORD
                     </span>
                     <h3 className="font-serif text-xl sm:text-2xl font-black text-[#0b1a42]">
                       University Pathway Educational Consult
@@ -596,7 +596,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                     {currentUser.regNumber}
                   </p>
                   <span className="inline-block mt-1 px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    VALID 2024/2025
+                    SUBJECT TO ADMISSIONS REVIEW
                   </span>
                 </div>
               </div>
