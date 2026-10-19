@@ -41,6 +41,7 @@ router.use(wrap(async(req,res,next)=>{
 }));
 router.get('/me',(req,res)=>res.json({role:req.staff.role,permissions:req.staff.permissions}));
 const permit=permission=>(req,res,next)=>req.staff.permissions.includes(permission)?next():res.status(403).json({error:'Insufficient staff permissions.'});
+router.get('/members',permit('staff.manage'),wrap(async(req,res)=>{const {data,error}=await db.from('local_staff_members').select('account_id,role,permissions,active').limit(100);if(error)throw error;res.json({members:data||[]});}));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
