@@ -33,7 +33,8 @@ import {
 } from 'lucide-react';
 import CbtExamWizard from '../portal/CbtExamWizard';
 import StudentBiodataForm from '../components/StudentBiodataForm';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getStudentToken } from '../context/AuthContext';
+import { upecAuthApi } from '../lib/upecAuthApi';
 import StudentPortalLayout from '../layouts/StudentPortalLayout';
 import AuthPage from './AuthPage';
 
@@ -57,6 +58,23 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       setDashboardTab('cbt');
     }
   }, []);
+
+  const [applicationHistory,setApplicationHistory]=useState<Array<{id:string;new_status:string;created_at:string}>>([]);
+  const [historyLoading,setHistoryLoading]=useState(false);
+  const [historyError,setHistoryError]=useState('');
+  const applicationId=currentUser?.application?.id;
+  React.useEffect(()=>{
+    if(!isAuthenticated||!applicationId){setApplicationHistory([]);setHistoryError('');return;}
+    const token=getStudentToken();
+    if(!token)return;
+    let cancelled=false;
+    setHistoryLoading(true);setHistoryError('');
+    upecAuthApi.applicationHistory(token,applicationId).then(data=>{
+      if(!cancelled)setApplicationHistory(data.reviews);
+    }).catch(error=>{if(!cancelled)setHistoryError(error instanceof Error?error.message:'Unable to load status history.');})
+      .finally(()=>{if(!cancelled)setHistoryLoading(false);});
+    return()=>{cancelled=true;};
+  },[isAuthenticated,applicationId,dashboardTab]);
 
   // Edit biodata modal state
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);
@@ -413,6 +431,12 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   <span>Approved &amp; Active</span>
                 </span>
               </div>
+
+              {currentUser.application && <section aria-label="Application status history" className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+                <h3 className="text-base font-bold text-[#0b1a42]">Application status history</h3>
+                <p className="mt-1 text-xs text-slate-500">Updates recorded by the admissions office for your application.</p>
+                {historyLoading ? <p className="mt-4 text-sm text-slate-600">Loading status updates...</p> : historyError ? <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{historyError}</p> : applicationHistory.length===0 ? <p className="mt-4 text-sm text-slate-600">No review decisions have been recorded yet.</p> : <ol className="mt-5 space-y-4 border-l-2 border-[#d5a75b] pl-5">{applicationHistory.map(event=><li key={event.id}><strong className="block text-sm capitalize text-[#0b1a42]">{event.new_status.replace(/_/g,' ')}</strong><time className="text-xs text-slate-500" dateTime={event.created_at}>{new Date(event.created_at).toLocaleString()}</time></li>)}</ol>}
+              </section>}
 
               {currentUser.application ? (
                 <div className="mt-6 rounded-2xl border border-slate-200 p-6 bg-slate-50/50 space-y-6">
