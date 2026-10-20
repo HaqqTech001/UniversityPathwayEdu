@@ -16,6 +16,8 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
 }
 
 export const upecAuthApi = {
+  studentNotifications:(token:string)=>authorized<{notifications:Array<{key:string;title:string;body:string;createdAt:string;type:string;read:boolean}>}>('/api/student/notifications',token),
+  markNotificationRead:(token:string,key:string)=>authorized<{read:boolean}>('/api/student/notifications/read',token,'POST',{key}),
   openLearningResource:(token:string,id:string)=>authorized<{url:string}>('/api/student/learning/resources/'+encodeURIComponent(id)+'/open',token),
   studentNotices:(token:string)=>authorized<{notices:Array<{id:string;title:string;body:string;published_at:string}>}>('/api/student/learning/notices',token),
   learningResources:(token:string)=>authorized<{resources:Array<{id:string;title:string;description:string;resource_url:string;resource_type:string;subject_id:string}>}>('/api/student/learning/resources',token),
