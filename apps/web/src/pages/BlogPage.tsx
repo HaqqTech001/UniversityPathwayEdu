@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, Clock3, Copy, Search, X } from 'lucide-react';
 
 type PageProps = { onNavigate: (path: string) => void };
@@ -46,9 +46,19 @@ export default function BlogPage({ onNavigate }: PageProps) {
   const [query,setQuery]=useState('');
   const [category,setCategory]=useState<string>('All articles');
   const [copied,setCopied]=useState(false);
+  const [remotePosts,setRemotePosts]=useState<Article[]>([]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/blog/posts',{signal:controller.signal})
+      .then(r=>r.ok?r.json():Promise.reject(new Error('Blog unavailable')))
+      .then(data=>{if(Array.isArray(data.posts))setRemotePosts(data.posts);})
+      .catch(()=>{});
+    return()=>controller.abort();
+  },[]);
+  const available=useMemo(()=>[...remotePosts,...articles.filter(item=>!remotePosts.some(post=>post.slug===item.slug))],[remotePosts]);
   const slug = typeof window !== 'undefined' ? decodeURIComponent(window.location.pathname.split('/').filter(Boolean)[1] || '') : '';
-  const selected = articles.find(a=>a.slug===slug);
-  const filtered = useMemo(()=>articles.filter(a=>(category==='All articles'||a.category===category)&&[a.title,a.excerpt,a.category].join(' ').toLowerCase().includes(query.trim().toLowerCase())),[query,category]);
+  const selected = available.find(a=>a.slug===slug);
+  const filtered = useMemo(()=>available.filter(a=>(category==='All articles'||a.category===category)&&[a.title,a.excerpt,a.category].join(' ').toLowerCase().includes(query.trim().toLowerCase())),[query,category,available]);
   const navigate=(path:string)=>{setCopied(false);onNavigate(path)};
   if(slug&&!selected) return <main className="mx-auto max-w-4xl px-5 py-28 text-center"><h1 className="text-4xl font-extrabold text-[#111A43]">Article not found</h1><p className="mt-4 text-slate-600">This guide is unavailable or its address is incorrect.</p><button type="button" onClick={()=>navigate('/blog')} className="mt-7 font-bold text-[#C62839] underline">Back to academic insights</button></main>;
   if(selected) {
