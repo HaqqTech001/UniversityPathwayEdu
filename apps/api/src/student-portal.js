@@ -16,15 +16,20 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.use('/practice',utmeRoutes);
 // Published institutional assessments: never send answer keys or explanations.
 router.get('/assessments',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at,opens_at,closes_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at,opens_at,closes_at,restricted').eq('status','published').order('created_at',{ascending:false}).limit(100);
  if(error)throw error;
- const now=Date.now();res.json({assessments:(data||[]).filter(a=>(!a.opens_at||Date.parse(a.opens_at)<=now)&&(!a.closes_at||Date.parse(a.closes_at)>now))});
+ const now=Date.now();
+ const {data:eligible,error:eligibleError}=await db.from('upec_assessment_eligibility').select('assessment_id').eq('student_account_id',req.actor.sub);
+ if(eligibleError)throw eligibleError;
+ const assigned=new Set((eligible||[]).map(row=>row.assessment_id));
+ res.json({assessments:(data||[]).filter(a=>(!a.opens_at||Date.parse(a.opens_at)<=now)&&(!a.closes_at||Date.parse(a.closes_at)>now)&&(!a.restricted||assigned.has(a.id))).map(({restricted,...a})=>a)});
 }));
 const validUuid=value=>typeof value==='string'&&/^[0-9a-f-]{36}$/i.test(value);
 router.post('/assessments/:id/start',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
  const {data:attemptId,error}=await db.rpc('upec_begin_assessment',{p_assessment:req.params.id,p_student:req.actor.sub});
  if(error?.code==='P0002')return res.status(404).json({error:'Assessment is unavailable.'});
+ if(error?.code==='42501')return res.status(403).json({error:'You are not assigned to this assessment.'});
  if(error)throw error;
  res.json({attemptId});
 }));
