@@ -1,4 +1,4 @@
-import {studentLessonFeeChangeEmail} from './fee-email-templates.js';
+import {studentLessonFeeChangeEmail,lessonFeeChangeEmail} from './fee-email-templates.js';
 import {queueEmail} from './notification-worker.js';
 import academicRoutes from './academic-routes.js';
 import {Router} from 'express';
@@ -147,6 +147,13 @@ router.post('/finance/programme-rates',permit('finance.manage'),wrap(async(req,r
     const letter=studentLessonFeeChangeEmail({name:account.full_name,studentName:account.full_name||'Student',programme:data.programme_code,oldAmount:previousRates.data?.[0]?.monthly_amount_ngn??null,newAmount:data.monthly_amount_ngn,effectiveMonth:data.effective_month});
     await queueEmail({key:'lesson-rate-student:'+data.id+':'+account.id,to:account.email,...letter});
     queued++;
+    const guardian=await db.from('upec_guardian_contacts').select('guardian_name,email,verified_at').eq('student_account_id',account.id).maybeSingle();
+    if(guardian.error)throw guardian.error;
+    if(guardian.data?.verified_at&&guardian.data.email){
+     const parentLetter=lessonFeeChangeEmail({guardianName:guardian.data.guardian_name,studentName:account.full_name||'Student',programme:data.programme_code,oldAmount:previousRates.data?.[0]?.monthly_amount_ngn??null,newAmount:data.monthly_amount_ngn,effectiveMonth:data.effective_month});
+     await queueEmail({key:'lesson-rate-guardian:'+data.id+':'+account.id,to:guardian.data.email,...parentLetter});
+     queued++;
+    }
    }
   }
  }catch(notifyError){notificationError='Some student email notices could not be queued.';console.error('Student fee notice queue failed:',notifyError);}
