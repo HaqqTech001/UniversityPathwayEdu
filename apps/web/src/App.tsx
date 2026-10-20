@@ -11,6 +11,7 @@ import ProgrammesPage from './pages/ProgrammesPage';
 import AdmissionsPage from './pages/AdmissionsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import BlogPage from './pages/BlogPage';
+import NewsPage from './pages/NewsPage';
 import ContactPage from './pages/ContactPage';
 import ApplyPage from './pages/ApplyPage';
 import StudentPortalPage from './pages/StudentPortalPage';
@@ -121,6 +122,9 @@ export default function App() {
 
       case '/blog':
         return <BlogPage onNavigate={navigate} />;
+
+      case '/news':
+        return <NewsPage onNavigate={navigate} />;
 
       case '/contact':
         return <ContactPage onNavigate={navigate} />;
