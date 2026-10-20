@@ -20,6 +20,38 @@ router.get('/assessments',wrap(async(req,res)=>{
  if(error)throw error;
  res.json({assessments:data||[]});
 }));
+const validUuid=value=>typeof value==='string'&&/^[0-9a-f-]{36}$/i.test(value);
+router.post('/assessments/:id/start',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {data:attemptId,error}=await db.rpc('upec_begin_assessment',{p_assessment:req.params.id,p_student:req.actor.sub});
+ if(error?.code==='P0002')return res.status(404).json({error:'Assessment is unavailable.'});
+ if(error)throw error;
+ res.json({attemptId});
+}));
+router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
+ const {data:attempt,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,expires_at,submitted_at,score,total_questions,answers').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(error)throw error;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ if(attempt.submitted_at)return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:attempt.score,totalQuestions:attempt.total_questions}});
+ const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',attempt.assessment_id).order('position').limit(100);
+ if(linkError)throw linkError;
+ const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options').in('id',(links||[]).map(l=>l.question_id));
+ if(questionError)throw questionError;
+ const byId=new Map((questions||[]).map(q=>[q.id,q]));
+ res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at},questions:(links||[]).map(l=>byId.get(l.question_id)).filter(Boolean)});
+}));
+router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
+ const answers=req.body?.answers;
+ if(!answers||typeof answers!=='object'||Array.isArray(answers)||Object.keys(answers).length>100)return res.status(400).json({error:'Invalid answers.'});
+ const {data,error}=await db.rpc('upec_submit_assessment',{p_attempt:req.params.id,p_student:req.actor.sub,p_answers:answers});
+ if(error?.code==='P0002')return res.status(404).json({error:'Attempt not found.'});
+ if(error?.code==='22023')return res.status(409).json({error:error.message});
+ if(error)throw error;
+ const result=data?.[0];
+ res.json({result:{attemptId:result.attempt_id,score:result.correct_count,totalQuestions:result.question_count,submittedAt:result.submitted_time}});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
