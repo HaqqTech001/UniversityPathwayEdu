@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from 'react';
-import {ArrowLeft,ArrowRight,BookOpen,Search,Clock3} from 'lucide-react';
+import {ArrowLeft,ArrowRight,BookOpen,Search} from 'lucide-react';
 type Article={title:string;summary:string;url:string;source:string;publishedAt:string|null};
 type Props={onNavigate:(path:string)=>void};
 const categories=['All updates','JAMB & UTME','WAEC & NECO','Admissions','Scholarships','Education Policy'] as const;
