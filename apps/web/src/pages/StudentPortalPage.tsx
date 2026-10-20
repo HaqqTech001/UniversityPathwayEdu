@@ -1,3 +1,4 @@
+import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
 import {
   ArrowRight,
@@ -696,6 +697,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
 
             <CbtExamWizard />
             <JambPastQuestions />
+            <InstitutionalAssessments />
           </div>
         )}
 
