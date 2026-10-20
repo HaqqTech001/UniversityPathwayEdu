@@ -166,7 +166,17 @@ router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
 }));
 router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid publication request.'});
- const {data,error}=await db.from('upec_learning_resources').update({status:req.body.status}).eq('id',req.params.id).select('id,status').maybeSingle();
+ const {data:resource,error:lookupError}=await db.from('upec_learning_resources').select('id,storage_path,status').eq('id',req.params.id).maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(req.body.status==='published'&&resource.storage_path){
+  const slash=resource.storage_path.lastIndexOf('/');
+  const folder=resource.storage_path.slice(0,slash),filename=resource.storage_path.slice(slash+1);
+  const {data:files,error:storageError}=await db.storage.from('upec-learning').list(folder,{search:filename,limit:100});
+  if(storageError)throw storageError;
+  if(!files?.some(file=>file.name===filename&&file.metadata&&Number(file.metadata.size)>0))return res.status(409).json({error:'Upload is incomplete. Complete the file transfer before publishing.'});
+ }
+ const {data,error}=await db.from('upec_learning_resources').update({status:req.body.status}).eq('id',req.params.id).eq('status',resource.status).select('id,status').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Resource not found.'});
  res.json({resource:data});
 }));
