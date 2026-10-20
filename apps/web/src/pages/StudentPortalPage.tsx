@@ -1,3 +1,4 @@
+import StudentNotices from '../portal/StudentNotices';
 import StudentLearningResources from '../portal/StudentLearningResources';
 import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
@@ -706,20 +707,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
-        {dashboardTab === 'notices' && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
-            <div className="flex flex-col gap-2 border-b border-slate-100 pb-5">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#c62839]">Student communications</p>
-              <h2 className="font-serif text-xl font-bold text-[#0b1a42] sm:text-2xl">Notifications & announcements</h2>
-              <p className="text-sm leading-6 text-slate-500">Important updates from University Pathway will appear here when the notification service is available.</p>
-            </div>
-            <div className="mx-auto flex max-w-md flex-col items-center py-14 text-center">
-              <span className="mb-5 rounded-2xl bg-slate-100 p-5 text-[#08163b]"><Bell size={28}/></span>
-              <h3 className="text-lg font-bold text-[#08163b]">No notifications yet</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-500">You have no announcements to review. We won't display sample examination dates or mandatory notices as real updates.</p>
-            </div>
-          </section>
-        )}
+        {dashboardTab === 'notices' && <StudentNotices />}
 
         {/* Account settings */}
         {dashboardTab === 'settings' && (
