@@ -19,13 +19,14 @@ const request=async(path)=>{
 };
 router.get('/utme/format',(_req,res)=>res.json({exam:'UTME',subjectsPerExam:4,compulsorySubject:'Use of English',englishQuestions:60,otherSubjectQuestions:40,totalQuestions:180,durationMinutes:120,options:['A','B','C','D'],scoringMaximum:400,source:'JAMB examination manual 2024',simulation:true}));
 router.get('/utme/provider-status',(_req,res)=>res.json({provider:'ALOC Station',configured:Boolean(process.env.ALOC_API_KEY),source:'third-party',officialJambApi:false,solutionsEnabled:false}));
-router.get('/utme/years',async(req,res,next)=>{
+router.get('/utme/questions',async(req,res,next)=>{
  const subject=String(req.query.subject||'').toLowerCase();
- if(!subjects.has(subject))return res.status(400).json({error:'Choose a supported subject.'});
+ const year=Number(req.query.year);
+ if(!subjects.has(subject)||!Number.isInteger(year)||year<1990||year>2030)return res.status(400).json({error:'Choose a valid subject and examination year.'});
  try{
-  const result=await request('/subjects/'+encodeURIComponent(subject)+'/years');
+  const result=await request('/questions?subject='+encodeURIComponent(subject)+'&examType=jamb&year='+year+'&limit=10');
   if(result.unconfigured)return res.status(503).json({error:'Past-question provider has not been configured.'});
-  res.json({provider:'ALOC Station',subject,years:result.data||[]});
+  res.json({provider:'ALOC Station',mode:'practice',source:'third-party',officialJambApi:false,questions:result.data||[],pagination:result.pagination||null});
  }catch(error){next(error);}
 });
 export default router;
