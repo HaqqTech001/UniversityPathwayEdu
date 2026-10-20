@@ -102,7 +102,10 @@ router.get('/notifications',wrap(async(req,res)=>{
   db.from('upec_assessments').select('id,title,opens_at,closes_at,restricted').eq('status','published').not('opens_at','is',null).order('opens_at',{ascending:true}).limit(100),
   db.from('upec_assessment_eligibility').select('assessment_id').eq('student_account_id',req.actor.sub).limit(100)
  ]);
- for(const x of [notices,applications,reads,exams,eligible])if(x.error)throw x.error;
+ for(const x of [notices,applications,reads])if(x.error)throw x.error;
+ // Optional academic tables are deployed separately from notifications.
+ const noExamTables=Boolean(exams.error||eligible.error);
+ if(noExamTables)console.warn('Exam reminders unavailable until academic migrations are deployed');
  const ids=(applications.data||[]).map(a=>a.id);
  const reviews=ids.length?await db.from('local_application_reviews').select('id,application_id,new_status,created_at').in('application_id',ids).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
  if(reviews.error)throw reviews.error;
@@ -113,7 +116,7 @@ router.get('/notifications',wrap(async(req,res)=>{
  const events=[
   ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
   ...(reviews.data||[]).map(v=>({key:'review:'+v.id,title:'Application status: '+v.new_status.replaceAll('_',' '),body:'Reference '+appById.get(v.application_id)?.reference_number+' has an update. View your application for details.',createdAt:v.created_at,type:'application'})),
-  ...(exams.data||[]).filter(e=>(!e.restricted||assigned.has(e.id))&&Date.parse(e.opens_at)>=now&&Date.parse(e.opens_at)<=now+48*3600000).map(e=>({key:'exam:'+e.id+':'+Date.parse(e.opens_at),title:'Upcoming assessment: '+e.title,body:'Scheduled to open '+new Date(e.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Check your CBT page for availability.',createdAt:e.opens_at,type:'examination'}))
+  ...(noExamTables?[]:(exams.data||[])).filter(e=>(!e.restricted||assigned.has(e.id))&&Date.parse(e.opens_at)>=now&&Date.parse(e.opens_at)<=now+48*3600000).map(e=>({key:'exam:'+e.id+':'+Date.parse(e.opens_at),title:'Upcoming assessment: '+e.title,body:'Scheduled to open '+new Date(e.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Check your CBT page for availability.',createdAt:e.opens_at,type:'examination'}))
  ];
  events.sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||''));
  res.json({notifications:events.slice(0,100).map(e=>({...e,read:read.has(e.key)}))});
