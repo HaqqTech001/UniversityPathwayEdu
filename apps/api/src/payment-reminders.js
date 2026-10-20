@@ -46,7 +46,7 @@ export async function queueMonthlyPaymentReminders(){
     remaining===0?'The fee is due today.':'The due date is approaching in '+remaining+' days.',
     'If you have already paid, please contact our Accounts Office with the payment reference for verification. Use only the official payment information provided by the institution.','',
     'Thank you for your understanding and continued support of your ward’s education.','',
-    'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)'].join('\\n');
+    'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)'].join('\n');
    await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':guardian',to:guardian.email,subject:'UPEC Reminder: Your Ward’s Monthly Lesson Fee — '+stage,text:guardianText});
    queued++;
   }
