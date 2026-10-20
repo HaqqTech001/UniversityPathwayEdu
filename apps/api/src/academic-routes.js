@@ -34,4 +34,26 @@ router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
  if(error)throw error;
  res.status(201).json({subject:data});
 }));
+const questionRoles=['super_admin','admin','teacher','cbt_manager'];
+router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
+ const subjectId=req.query.subjectId;
+ if(subjectId&&!uuid(subjectId))return res.status(400).json({error:'Invalid subject ID.'});
+ let query=db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,explanation,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(subjectId)query=query.eq('subject_id',subjectId);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data,error}=await query;
+ if(error)throw error;
+ res.json({questions:data||[]});
+}));
+router.post('/questions',grant(...questionRoles),wrap(async(req,res)=>{
+ const {subjectId,prompt,options,correctOption,explanation='',status='draft'}=req.body||{};
+ if(!uuid(subjectId)||typeof prompt!=='string'||prompt.trim().length<10||prompt.length>5000||
+ !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
+ !['A','B','C','D'].includes(correctOption)||typeof explanation!=='string'||explanation.length>5000||
+ !['draft','published'].includes(status))return res.status(400).json({error:'Check the question, options, answer and subject.'});
+ const {data,error}=await db.from('upec_teacher_questions').insert({subject_id:subjectId,author_account_id:req.actor.sub,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),status}).select('id,subject_id,prompt,status').single();
+ if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
+ if(error)throw error;
+ res.status(201).json({question:data});
+}));
 export default router;
