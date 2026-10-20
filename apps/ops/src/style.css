@@ -65,3 +65,9 @@
 .academic-question-form button{justify-self:start;background:#c62839;color:white;border:0;border-radius:10px;padding:13px 20px;font:inherit;font-weight:700;cursor:pointer}
 .academic-question-form button:disabled{opacity:.5;cursor:wait}
 @media(max-width:620px){.academic-option-grid{grid-template-columns:1fr}.academic-question-form{padding:16px}}
+
+.assessment-questions{min-width:0;border:1px solid #dce3ef;border-radius:12px;padding:16px;max-height:350px;overflow-y:auto}
+.assessment-questions legend{font-weight:750;color:#111a43;padding:0 6px}
+.assessment-question-row{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #edf1f7;line-height:1.5}
+.assessment-question-row input[type="checkbox"]{width:18px;min-width:18px;height:18px;margin-top:3px;accent-color:#c62839}
+.assessment-question-row span{min-width:0;overflow-wrap:anywhere;font-weight:500}
