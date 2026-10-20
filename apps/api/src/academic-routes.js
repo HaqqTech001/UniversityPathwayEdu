@@ -130,4 +130,23 @@ router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res
  if(error)throw error;
  res.json({title:exam.title,results:data||[]});
 }));
+// Limited, verified student directory for assessment assignment; no email or phone exposed.
+router.get('/students/search',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ const q=String(req.query.q||'').trim();
+ if(q.length<2||q.length>80)return res.status(400).json({error:'Enter at least two search characters.'});
+ const safe=q.replace(/[%_\\,()]/g,'');
+ if(safe.length<2)return res.status(400).json({error:'Enter a valid student name.'});
+ const {data,error}=await db.from('local_accounts').select('id,full_name').not('verified_at','is',null).ilike('full_name','%'+safe+'%').order('full_name').limit(20);
+ if(error)throw error;
+ res.json({students:data||[]});
+}));
+router.get('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const [exam,eligible]=await Promise.all([
+ db.from('upec_assessments').select('id,restricted,status').eq('id',req.params.id).maybeSingle(),
+ db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(100)]);
+ if(exam.error)throw exam.error;if(!exam.data)return res.status(404).json({error:'Assessment not found.'});
+ if(eligible.error)throw eligible.error;
+ res.json({restricted:exam.data.restricted,status:exam.data.status,studentIds:(eligible.data||[]).map(row=>row.student_account_id)});
+}));
 export default router;
