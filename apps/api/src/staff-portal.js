@@ -1,3 +1,4 @@
+import {studentLessonFeeChangeEmail} from './fee-email-templates.js';
 import {queueEmail} from './notification-worker.js';
 import academicRoutes from './academic-routes.js';
 import {Router} from 'express';
@@ -141,8 +142,10 @@ router.post('/finance/programme-rates',permit('finance.manage'),wrap(async(req,r
    if(accounts.error)throw accounts.error;
    for(const account of accounts.data||[]){
     if(!account.email||!account.verified_at)continue;
-    const body='Dear '+(account.full_name||'Student')+',\\n\\nUPEC wishes to notify you that the monthly lesson fee for '+data.programme_code+' is now ₦'+Number(data.monthly_amount_ngn).toLocaleString('en-NG')+' effective from '+data.effective_month+'. Previous bills are not automatically changed. Please review your student portal or contact UPEC Accounts for clarification.\\n\\nUniversity Pathway Educational Consult';
-    await queueEmail({key:'lesson-rate-student:'+data.id+':'+account.id,to:account.email,subject:'UPEC Monthly Lesson Fee Update — '+data.programme_code,text:body});
+    const previousRates=await db.from('upec_programme_fee_rates').select('monthly_amount_ngn').eq('programme_code',data.programme_code).lt('effective_month',data.effective_month).order('effective_month',{ascending:false}).limit(1);
+    if(previousRates.error)throw previousRates.error;
+    const letter=studentLessonFeeChangeEmail({name:account.full_name,studentName:account.full_name||'Student',programme:data.programme_code,oldAmount:previousRates.data?.[0]?.monthly_amount_ngn??null,newAmount:data.monthly_amount_ngn,effectiveMonth:data.effective_month});
+    await queueEmail({key:'lesson-rate-student:'+data.id+':'+account.id,to:account.email,...letter});
     queued++;
    }
   }
