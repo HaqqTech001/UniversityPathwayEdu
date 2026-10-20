@@ -1,4 +1,5 @@
 import LearningResources from './LearningResources';
+import LearningResources from './LearningResources';
 import AssessmentBuilder from './AssessmentBuilder';
 import TeacherQuestionBank from './TeacherQuestionBank';
 import AcademicCatalogue from './AcademicCatalogue';
@@ -77,6 +78,7 @@ export default function StaffDashboard({profile,onLogout}){
    {['admin','super_admin','teacher','cbt_manager','admissions_officer'].includes(profile.role)&&<AcademicCatalogue role={profile.role}/>}
    {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<TeacherQuestionBank role={profile.role}/>}
    {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<AssessmentBuilder role={profile.role}/>}
+   {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<LearningResources role={profile.role}/>}
    {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<LearningResources role={profile.role}/>}
    {canManageStaff&&<section className="staff-directory"><h2>Staff Directory</h2><p>Memberships are read-only until the secure Super Admin management workflow is completed.</p>{directoryLoading?<p>Loading staff records...</p>:members.length===0?<p>No staff memberships available.</p>:<div className="table-scroll"><table><thead><tr><th>Account ID</th><th>Role</th><th>Access</th></tr></thead><tbody>{members.map(m=><tr key={m.account_id}><td>{m.account_id}</td><td>{m.role?.replaceAll('_',' ')}</td><td>{m.active?'Active':'Disabled'}</td></tr>)}</tbody></table></div>}</section>}
   </section>
