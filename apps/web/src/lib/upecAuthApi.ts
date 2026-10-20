@@ -16,6 +16,10 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
 }
 
 export const upecAuthApi = {
+  studentAssessments:(token:string)=>authorized<{assessments:Array<{id:string;title:string;duration_minutes:number}>}>('/api/student/assessments',token),
+  startAssessment:(token:string,id:string)=>authorized<{attemptId:string}>('/api/student/assessments/'+encodeURIComponent(id)+'/start',token,'POST',{}),
+  assessmentAttempt:(token:string,id:string)=>authorized<{attempt:{id:string;expiresAt?:string;submittedAt?:string;score?:number;totalQuestions?:number};questions?:Array<{id:string;prompt:string;options:Record<string,string>}>}>('/api/student/assessments/attempts/'+encodeURIComponent(id),token),
+  submitAssessment:(token:string,id:string,answers:Record<string,string>)=>authorized<{result:{score:number;totalQuestions:number;submittedAt:string}}>('/api/student/assessments/attempts/'+encodeURIComponent(id)+'/submit',token,'POST',{answers}),
   utmePracticeQuestions: (token:string,subject:string,year:number,cursor?:string) => authorized<{provider:string;questions:any[];pagination:any}>('/api/student/practice/utme/questions?subject='+encodeURIComponent(subject)+'&year='+year+(cursor?'&cursor='+encodeURIComponent(cursor):''),token),
   utmeProviderStatus: (token:string) => authorized<{provider:string;configured:boolean;officialJambApi:boolean}>('/api/student/practice/utme/provider-status',token),
   correctApplication: (token:string,applicationId:string,formData:Record<string,unknown>) => authorized<{application:{id:string;status:string}}>('/api/student/applications/'+encodeURIComponent(applicationId)+'/correction',token,'PUT',{formData}),
