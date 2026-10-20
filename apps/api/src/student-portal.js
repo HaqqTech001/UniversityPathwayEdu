@@ -16,9 +16,9 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.use('/practice',utmeRoutes);
 // Published institutional assessments: never send answer keys or explanations.
 router.get('/assessments',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at,opens_at,closes_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
  if(error)throw error;
- res.json({assessments:data||[]});
+ const now=Date.now();res.json({assessments:(data||[]).filter(a=>(!a.opens_at||Date.parse(a.opens_at)<=now)&&(!a.closes_at||Date.parse(a.closes_at)>now))});
 }));
 const validUuid=value=>typeof value==='string'&&/^[0-9a-f-]{36}$/i.test(value);
 router.post('/assessments/:id/start',wrap(async(req,res)=>{
@@ -51,6 +51,11 @@ router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  if(error)throw error;
  const result=data?.[0];
  res.json({result:{attemptId:result.attempt_id,score:result.correct_count,totalQuestions:result.question_count,submittedAt:result.submitted_time}});
+}));
+router.get('/assessment-results',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,submitted_at,score,total_questions').eq('student_account_id',req.actor.sub).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
+ if(error)throw error;
+ res.json({results:data||[]});
 }));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
