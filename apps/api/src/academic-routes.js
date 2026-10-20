@@ -225,4 +225,18 @@ router.post('/resources/upload-init',grant(...questionRoles),wrap(async(req,res)
  if(signed.error){await db.from('upec_learning_resources').delete().eq('id',data.id);throw signed.error;}
  res.status(201).json({resourceId:data.id,uploadUrl:signed.data.signedUrl,maxBytes:8388608});
 }));
+router.post('/resources/:id/upload-verify',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ let query=db.from('upec_learning_resources').select('id,storage_path,status,author_account_id').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error}=await query.maybeSingle();
+ if(error)throw error;
+ if(!resource?.storage_path)return res.status(404).json({error:'Upload record not found.'});
+ const path=resource.storage_path,slash=path.lastIndexOf('/');
+ const {data:files,error:storageError}=await db.storage.from('upec-learning').list(path.slice(0,slash),{search:path.slice(slash+1),limit:100});
+ if(storageError)throw storageError;
+ const file=(files||[]).find(f=>f.name===path.slice(slash+1));
+ if(!file?.metadata||!(Number(file.metadata.size)>0))return res.status(409).json({error:'File upload is incomplete.'});
+ res.json({complete:true,resourceId:resource.id,size:Number(file.metadata.size)});
+}));
 export default router;
