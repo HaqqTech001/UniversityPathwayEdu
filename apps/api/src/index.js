@@ -26,7 +26,9 @@ app.post('/api/internal/notifications/process',async(req,res)=>{
  const token=req.headers.authorization;
  if(!expected||expected.length<32||token!=='Bearer '+expected)return res.status(403).json({error:'Forbidden'});
  try{
-  const reminders=await queueExamReminders();
+  let reminders={queued:0,skipped:false};
+  try{reminders=await queueExamReminders();}
+  catch(error){console.error('Exam reminder queue unavailable:',error);reminders={queued:0,skipped:true};}
   const delivery=await processEmailOutbox();
   res.json({reminders,delivery});
  }catch(error){console.error('Notification worker failed',error);res.status(503).json({error:'Notification worker unavailable'});}
