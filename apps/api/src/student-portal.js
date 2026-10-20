@@ -70,14 +70,7 @@ router.get('/learning/resources',wrap(async(req,res)=>{
  const {data,error}=await query;if(error)throw error;
  res.json({resources:data||[]});
 }));
-router.get('/learning/resources',wrap(async(req,res)=>{
- const subjectId=req.query.subjectId;
- if(subjectId&&(typeof subjectId!=='string'||!/^[0-9a-f-]{36}$/i.test(subjectId)))return res.status(400).json({error:'Invalid subject filter.'});
- let query=db.from('upec_learning_resources').select('id,subject_id,title,description,resource_url,resource_type,created_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
- if(subjectId)query=query.eq('subject_id',subjectId);
- const {data,error}=await query;if(error)throw error;
- res.json({resources:data||[]});
-}));
+
 router.get('/learning/notices',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_notices').select('id,title,body,audience,published_at').eq('status','published').order('published_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({notices:data||[]});
