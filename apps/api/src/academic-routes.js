@@ -96,4 +96,15 @@ router.patch('/assessments/:id/status',grant('super_admin','admin','cbt_manager'
  if(!data)return res.status(409).json({error:'Assessment changed. Refresh before updating.'});
  res.json({assessment:data});
 }));
+router.patch('/assessments/:id/schedule',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {opensAt,closesAt}=req.body||{};
+ const parse=v=>v===null?null:typeof v==='string'&&Number.isFinite(Date.parse(v))?new Date(v).toISOString():undefined;
+ const start=parse(opensAt),end=parse(closesAt);
+ if(start===undefined||end===undefined||(start&&end&&end<=start))return res.status(400).json({error:'Enter a valid opening and closing date.'});
+ const {data,error}=await db.from('upec_assessments').update({opens_at:start,closes_at:end}).eq('id',req.params.id).eq('status','draft').select('id,opens_at,closes_at').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Only draft assessments can be scheduled.'});
+ res.json({assessment:data});
+}));
 export default router;
