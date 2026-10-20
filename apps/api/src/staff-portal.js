@@ -165,4 +165,29 @@ router.post('/finance/registration-rates',permit('finance.manage'),wrap(async(re
  if(error?.code==='23505')return res.status(409).json({error:'Registration rate already exists for this programme and month.'});
  if(error)throw error;res.status(201).json({rate:data});
 }));
+router.post('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
+ const {studentId,programmeCode,billingMonth,dueOn}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(studentId||'')||typeof programmeCode!=='string'||!/^[0-9]{4}-(0[1-9]|1[0-2])-01$/.test(billingMonth||'')||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dueOn||''))return res.status(400).json({error:'Valid student, programme, billing month and due date required.'});
+ const enrolled=await db.from('local_student_applications').select('id').eq('account_id',studentId).eq('programme',programmeCode).eq('status','approved').limit(1);
+ if(enrolled.error)throw enrolled.error;
+ if(!enrolled.data?.length)return res.status(409).json({error:'Student is not approved for this programme.'});
+ const rate=await db.from('upec_programme_fee_rates').select('monthly_amount_ngn').eq('programme_code',programmeCode).lte('effective_month',billingMonth).order('effective_month',{ascending:false}).limit(1);
+ if(rate.error)throw rate.error;
+ if(!rate.data?.length)return res.status(409).json({error:'No approved monthly fee rate for this programme and month.'});
+ const result=await db.from('upec_student_monthly_fees').insert({student_account_id:studentId,programme_code:programmeCode,billing_month:billingMonth,due_on:dueOn,amount_due_ngn:rate.data[0].monthly_amount_ngn}).select('id,programme_code,billing_month,due_on,amount_due_ngn,status').single();
+ if(result.error?.code==='23505')return res.status(409).json({error:'Monthly invoice already exists for this student and programme.'});
+ if(result.error)throw result.error;
+ res.status(201).json({invoice:result.data});
+}));
+router.post('/finance/invoices/:id/payments',permit('finance.manage'),wrap(async(req,res)=>{
+ const {amountNgn,reference}=req.body||{};
+ if(typeof amountNgn!=='number'||!Number.isFinite(amountNgn)||amountNgn<=0||!Number.isInteger(Math.round(amountNgn*100))||typeof reference!=='string'||reference.trim().length<5||reference.length>120)return res.status(400).json({error:'Verified payment amount and reference required.'});
+ const {data,error}=await db.rpc('upec_record_fee_payment',{p_invoice:req.params.id,p_amount:amountNgn,p_reference:reference.trim(),p_staff:req.actor.sub});
+ if(error)throw error;
+ res.json({invoice:data});
+}));
+router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').order('billing_month',{ascending:false}).limit(100);
+ if(error)throw error;res.json({invoices:data||[]});
+}));
 export default router;
