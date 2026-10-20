@@ -95,29 +95,51 @@ router.get('/learning/resources/:id/open',wrap(async(req,res)=>{
  return res.json({url:data.resource_url});
 }));
 router.get('/notifications',wrap(async(req,res)=>{
- const [notices,applications,reads]=await Promise.all([
+ const [notices,applications,reads,exams,eligible]=await Promise.all([
   db.from('upec_notices').select('id,title,body,published_at').eq('status','published').order('published_at',{ascending:false}).limit(40),
-  db.from('local_student_applications').select('id,status,reference_number,submitted_at').eq('account_id',req.actor.sub).order('submitted_at',{ascending:false}).limit(20),
-  db.from('upec_notification_reads').select('notification_key').eq('account_id',req.actor.sub).limit(200)
+  db.from('local_student_applications').select('id,reference_number').eq('account_id',req.actor.sub).limit(50),
+  db.from('upec_notification_reads').select('notification_key').eq('account_id',req.actor.sub).limit(500),
+  db.from('upec_assessments').select('id,title,opens_at,closes_at,restricted').eq('status','published').not('opens_at','is',null).order('opens_at',{ascending:true}).limit(100),
+  db.from('upec_assessment_eligibility').select('assessment_id').eq('student_account_id',req.actor.sub).limit(100)
  ]);
- for(const result of [notices,applications,reads])if(result.error)throw result.error;
- const read=new Set((reads.data||[]).map(x=>x.notification_key));
+ for(const x of [notices,applications,reads,exams,eligible])if(x.error)throw x.error;
+ const ids=(applications.data||[]).map(a=>a.id);
+ const reviews=ids.length?await db.from('local_application_reviews').select('id,application_id,new_status,created_at').in('application_id',ids).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
+ if(reviews.error)throw reviews.error;
+ const appById=new Map((applications.data||[]).map(a=>[a.id,a]));
+ const assigned=new Set((eligible.data||[]).map(a=>a.assessment_id));
+ const read=new Set((reads.data||[]).map(a=>a.notification_key));
+ const now=Date.now();
  const events=[
   ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
-  ...(applications.data||[]).filter(a=>a.status&&a.status!=='submitted').map(a=>({key:'application:'+a.id+':'+a.status,title:'Application status: '+a.status.replaceAll('_',' '),body:'Reference '+a.reference_number+' has a status update. Open My Applications for details.',createdAt:a.submitted_at,type:'application'}))
+  ...(reviews.data||[]).map(v=>({key:'review:'+v.id,title:'Application status: '+v.new_status.replaceAll('_',' '),body:'Reference '+appById.get(v.application_id)?.reference_number+' has an update. View your application for details.',createdAt:v.created_at,type:'application'})),
+  ...(exams.data||[]).filter(e=>(!e.restricted||assigned.has(e.id))&&Date.parse(e.opens_at)>=now&&Date.parse(e.opens_at)<=now+48*3600000).map(e=>({key:'exam:'+e.id+':'+Date.parse(e.opens_at),title:'Upcoming assessment: '+e.title,body:'Scheduled to open '+new Date(e.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Check your CBT page for availability.',createdAt:e.opens_at,type:'examination'}))
  ];
  events.sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||''));
- res.json({notifications:events.slice(0,60).map(e=>({...e,read:read.has(e.key)}))});
+ res.json({notifications:events.slice(0,100).map(e=>({...e,read:read.has(e.key)}))});
 }));
 router.post('/notifications/read',wrap(async(req,res)=>{
  const key=req.body?.key;
- if(typeof key!=='string'||! /^(notice|application):[0-9a-f-]{36}(?::[a-z_]+)?$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
- const {data:accountEvents,error:e}=await db.from('local_student_applications').select('id,status').eq('account_id',req.actor.sub).limit(100);
- if(e)throw e;
- if(key.startsWith('application:')&&!accountEvents.some(a=>key==='application:'+a.id+':'+a.status))return res.status(404).json({error:'Notification unavailable.'});
- if(key.startsWith('notice:')){
-  const {data,error}=await db.from('upec_notices').select('id').eq('id',key.slice(7)).eq('status','published').maybeSingle();
-  if(error)throw error;if(!data)return res.status(404).json({error:'Notification unavailable.'});
+ if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14})$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
+ // Authorize against the same private feed; never allow arbitrary read markers.
+ const [type,id]=key.split(':');
+ if(type==='notice'){
+  const result=await db.from('upec_notices').select('id').eq('id',id).eq('status','published').maybeSingle();
+  if(result.error)throw result.error;if(!result.data)return res.status(404).json({error:'Notification unavailable.'});
+ }else if(type==='review'){
+  const review=await db.from('local_application_reviews').select('application_id').eq('id',id).maybeSingle();
+  if(review.error)throw review.error;
+  if(!review.data)return res.status(404).json({error:'Notification unavailable.'});
+  const app=await db.from('local_student_applications').select('id').eq('id',review.data.application_id).eq('account_id',req.actor.sub).maybeSingle();
+  if(app.error)throw app.error;if(!app.data)return res.status(404).json({error:'Notification unavailable.'});
+ }else{
+  const exam=await db.from('upec_assessments').select('id,opens_at,restricted').eq('id',id).eq('status','published').maybeSingle();
+  if(exam.error)throw exam.error;
+  if(!exam.data?.opens_at||Date.parse(exam.data.opens_at)!==Number(key.split(':')[2]))return res.status(404).json({error:'Notification unavailable.'});
+  if(exam.data.restricted){
+   const eligible=await db.from('upec_assessment_eligibility').select('assessment_id').eq('assessment_id',id).eq('student_account_id',req.actor.sub).maybeSingle();
+   if(eligible.error)throw eligible.error;if(!eligible.data)return res.status(404).json({error:'Notification unavailable.'});
+  }
  }
  const {error}=await db.from('upec_notification_reads').upsert({account_id:req.actor.sub,notification_key:key});
  if(error)throw error;res.json({read:true});
