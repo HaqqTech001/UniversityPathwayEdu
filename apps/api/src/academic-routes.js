@@ -114,12 +114,11 @@ router.put('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manag
  if(lookup)throw lookup;
  if(!exam)return res.status(404).json({error:'Assessment not found.'});
  if(exam.status!=='draft')return res.status(409).json({error:'Configure eligibility before publishing.'});
- const {error:deleteError}=await db.from('upec_assessment_eligibility').delete().eq('assessment_id',exam.id);
- if(deleteError)throw deleteError;
- if(studentIds.length){const {error:insertError}=await db.from('upec_assessment_eligibility').insert([...new Set(studentIds)].map(id=>({assessment_id:exam.id,student_account_id:id})));if(insertError)throw insertError;}
- const {error:updateError}=await db.from('upec_assessments').update({restricted}).eq('id',exam.id).eq('status','draft');
- if(updateError)throw updateError;
- res.json({restricted,assigned:studentIds.length});
+ const {data,error}=await db.rpc('upec_set_assessment_eligibility',{p_assessment:exam.id,p_restricted:restricted,p_students:studentIds});
+ if(error?.code==='22023')return res.status(409).json({error:error.message});
+ if(error?.code==='P0002')return res.status(404).json({error:'Assessment not found.'});
+ if(error)throw error;
+ res.json({restricted,assigned:data});
 }));
 router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
