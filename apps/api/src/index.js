@@ -1,3 +1,4 @@
+import {queueMonthlyPaymentReminders} from './payment-reminders.js';
 import educationNews from './education-news.js';
 import {queueExamReminders,processEmailOutbox} from './notification-worker.js';
 import publicBlog from './public-blog.js';
@@ -31,8 +32,11 @@ app.post('/api/internal/notifications/process',async(req,res)=>{
   let reminders={queued:0,skipped:false};
   try{reminders=await queueExamReminders();}
   catch(error){console.error('Exam reminder queue unavailable:',error);reminders={queued:0,skipped:true};}
+  let paymentReminders={queued:0,skipped:0};
+  try{paymentReminders=await queueMonthlyPaymentReminders();}
+  catch(error){console.error('Payment reminder queue unavailable:',error);paymentReminders={queued:0,skipped:true};}
   const delivery=await processEmailOutbox();
-  res.json({reminders,delivery});
+  res.json({reminders,paymentReminders,delivery});
  }catch(error){console.error('Notification worker failed',error);res.status(503).json({error:'Notification worker unavailable'});}
 });
 app.get('/health',(_req,res)=>res.json({status:'ok',service:'upec-api'}));
