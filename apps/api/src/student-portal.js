@@ -211,4 +211,9 @@ router.post('/applications',wrap(async(req,res)=>{
  if(error)throw error;
  res.status(201).json({application:data});
 }));
+router.get('/finance/monthly-fees',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_student_monthly_fees').select('id,programme_code,billing_month,amount_due_ngn,amount_paid_ngn,status').eq('student_account_id',req.actor.sub).order('billing_month',{ascending:false}).limit(60);
+ if(error)throw error;
+ res.json({fees:data||[]});
+}));
 export default router;
