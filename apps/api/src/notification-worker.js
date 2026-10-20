@@ -16,7 +16,8 @@ export async function processEmailOutbox(){
    if(updateError)throw updateError;results.sent++;
   }catch(err){
    const next=new Date(Date.now()+Math.min(24,2**item.attempts)*60000).toISOString();
-   await db.from('upec_email_outbox').update({status:item.attempts>=5?'failed':'pending',next_attempt_at:next,claimed_until:null,last_error:String(err?.message||err).slice(0,500)}).eq('id',item.id).eq('attempts',item.attempts);
+   const failureRecord=await db.from('upec_email_outbox').update({status:item.attempts>=5?'failed':'pending',next_attempt_at:next,claimed_until:null,last_error:String(err?.message||err).slice(0,500)}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
+   if(failureRecord.error)throw failureRecord.error;
    results.failed++;
   }
  }
