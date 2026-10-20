@@ -16,7 +16,7 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
 }
 
 export const upecAuthApi = {
-  utmePracticeQuestions: (token:string,subject:string,year:number) => authorized<{provider:string;questions:any[];pagination:any}>('/api/student/practice/utme/questions?subject='+encodeURIComponent(subject)+'&year='+year,token),
+  utmePracticeQuestions: (token:string,subject:string,year:number,cursor?:string) => authorized<{provider:string;questions:any[];pagination:any}>('/api/student/practice/utme/questions?subject='+encodeURIComponent(subject)+'&year='+year+(cursor?'&cursor='+encodeURIComponent(cursor):''),token),
   utmeProviderStatus: (token:string) => authorized<{provider:string;configured:boolean;officialJambApi:boolean}>('/api/student/practice/utme/provider-status',token),
   correctApplication: (token:string,applicationId:string,formData:Record<string,unknown>) => authorized<{application:{id:string;status:string}}>('/api/student/applications/'+encodeURIComponent(applicationId)+'/correction',token,'PUT',{formData}),
   applicationHistory: (token: string, applicationId: string) => authorized<{application:{id:string;status:string;reference_number:string};reviews:Array<{id:string;new_status:string;created_at:string}>}>('/api/student/applications/'+encodeURIComponent(applicationId)+'/history',token),
