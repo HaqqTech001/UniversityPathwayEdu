@@ -20,7 +20,10 @@ export async function queueMonthlyPaymentReminders(){
  for(const bill of bills.data||[]){
   const account=byId.get(bill.student_account_id);
   const outstanding=Number(bill.amount_due_ngn)-Number(bill.amount_paid_ngn);
-  if(!account?.verified_at||!account.email||outstanding<=0){skipped++;continue;}
+  if(outstanding<=0){skipped++;continue;}
+  const canEmailStudent=Boolean(account?.verified_at&&account.email);
+  const verifiedGuardian=guardianById.get(bill.student_account_id);
+  if(!canEmailStudent&&!verifiedGuardian?.email){skipped++;continue;}
   const remaining=[7,3,0].find(days=>relativeDate(today,days)===bill.due_on);
   if(remaining===undefined)continue;
   const stage=remaining===0?'due today':remaining===3?'due in three days':'due in one week';
@@ -34,9 +37,8 @@ export async function queueMonthlyPaymentReminders(){
    'For clarification, kindly contact the UPEC Admissions & Accounts Office through our official channels. Please use only officially confirmed payment instructions.','',
    'Thank you for your cooperation and continued commitment to your studies.','',
    'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)','23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State.'].join('\n');
-  await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':student',to:account.email,subject,text});
-  queued++;
-  const guardian=guardianById.get(bill.student_account_id);
+  if(canEmailStudent){await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':student',to:account.email,subject,text});queued++;}
+  const guardian=verifiedGuardian;
   if(guardian?.email&&guardian.verified_at){
    const guardianText=['Dear '+(guardian.guardian_name||'Parent/Guardian')+',','','MONTHLY LESSON FEE PAYMENT REMINDER','',
     'We hope this message finds you and your family well. University Pathway Educational Consult (UPEC) would like to respectfully remind you of the outstanding monthly lesson fee for your child/ward, '+(account.full_name||'our student')+'.','',
