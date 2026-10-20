@@ -169,4 +169,20 @@ router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),
  if(error)throw error;if(!data)return res.status(404).json({error:'Resource not found.'});
  res.json({resource:data});
 }));
+router.get('/notices',grant('super_admin','admin','content_editor'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_notices').select('id,title,body,audience,status,published_at,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({notices:data||[]});
+}));
+router.post('/notices',grant('super_admin','admin','content_editor'),wrap(async(req,res)=>{
+ const {title,body,audience='students'}=req.body||{};
+ if(typeof title!=='string'||title.trim().length<5||title.length>180||typeof body!=='string'||body.trim().length<10||body.length>6000||!['students','everyone'].includes(audience))return res.status(400).json({error:'Invalid notice details.'});
+ const {data,error}=await db.from('upec_notices').insert({title:title.trim(),body:body.trim(),audience,created_by:req.actor.sub,status:'draft'}).select('id,title,status').single();
+ if(error)throw error;res.status(201).json({notice:data});
+}));
+router.patch('/notices/:id/status',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid notice status.'});
+ const status=req.body.status;
+ const {data,error}=await db.from('upec_notices').update({status,published_at:status==='published'?new Date().toISOString():null}).eq('id',req.params.id).select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Notice not found.'});res.json({notice:data});
+}));
 export default router;
