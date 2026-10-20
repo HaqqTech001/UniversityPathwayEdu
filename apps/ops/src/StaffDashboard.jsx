@@ -1,3 +1,4 @@
+import AssessmentBuilder from './AssessmentBuilder';
 import TeacherQuestionBank from './TeacherQuestionBank';
 import AcademicCatalogue from './AcademicCatalogue';
 import React,{useEffect,useMemo,useState} from 'react';
@@ -74,6 +75,7 @@ export default function StaffDashboard({profile,onLogout}){
    {review&&<div className="review-backdrop" role="presentation"><section className="review-dialog" role="dialog" aria-modal="true" aria-labelledby="review-title"><h2 id="review-title">Confirm admissions decision</h2><p><strong>{review.reference_number}</strong> — {review.programme}</p><p>Change status to <strong>{review.status.replaceAll('_',' ')}</strong>?</p><label>Review note {['rejected','action_required'].includes(review.status)?'(required)':'(optional)'}<textarea maxLength={2000} rows={4} value={reviewNote} onChange={e=>setReviewNote(e.target.value)} placeholder="Explain the decision for the applicant and audit record"/></label>{error&&<p role="alert" className="form-error">{error}</p>}<div className="review-actions"><button type="button" className="secondary-button" disabled={Boolean(updating)} onClick={()=>{setReview(null);setError('');}}>Cancel</button><button type="button" disabled={Boolean(updating)} onClick={()=>void update()}>{updating?'Saving...':'Confirm decision'}</button></div></section></div>}
    {['admin','super_admin','teacher','cbt_manager','admissions_officer'].includes(profile.role)&&<AcademicCatalogue role={profile.role}/>}
    {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<TeacherQuestionBank role={profile.role}/>}
+   {['admin','super_admin','teacher','cbt_manager'].includes(profile.role)&&<AssessmentBuilder/>}
    {canManageStaff&&<section className="staff-directory"><h2>Staff Directory</h2><p>Memberships are read-only until the secure Super Admin management workflow is completed.</p>{directoryLoading?<p>Loading staff records...</p>:members.length===0?<p>No staff memberships available.</p>:<div className="table-scroll"><table><thead><tr><th>Account ID</th><th>Role</th><th>Access</th></tr></thead><tbody>{members.map(m=><tr key={m.account_id}><td>{m.account_id}</td><td>{m.role?.replaceAll('_',' ')}</td><td>{m.active?'Active':'Disabled'}</td></tr>)}</tbody></table></div>}</section>}
   </section>
  </main>;
