@@ -149,4 +149,24 @@ router.get('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manag
  if(eligible.error)throw eligible.error;
  res.json({restricted:exam.data.restricted,status:exam.data.status,studentIds:(eligible.data||[]).map(row=>row.student_account_id)});
 }));
+router.get('/resources',grant(...questionRoles),wrap(async(req,res)=>{
+ let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data,error}=await query;if(error)throw error;res.json({resources:data||[]});
+}));
+router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
+ const {subjectId,title,description='',resourceUrl,resourceType}=req.body||{};
+ let url;
+ try{url=new URL(resourceUrl);}catch{return res.status(400).json({error:'A valid HTTPS resource link is required.'});}
+ if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!['document','video','website','exercise'].includes(resourceType)||url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return res.status(400).json({error:'Invalid learning resource.'});
+ const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_url:url.href,resource_type:resourceType,status:'draft'}).select('id,title,status').single();
+ if(error?.code==='23503')return res.status(404).json({error:'Subject unavailable.'});
+ if(error)throw error;res.status(201).json({resource:data});
+}));
+router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid publication request.'});
+ const {data,error}=await db.from('upec_learning_resources').update({status:req.body.status}).eq('id',req.params.id).select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Resource not found.'});
+ res.json({resource:data});
+}));
 export default router;
