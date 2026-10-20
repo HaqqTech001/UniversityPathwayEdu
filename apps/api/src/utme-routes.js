@@ -17,16 +17,18 @@ const request=async(path)=>{
   return await response.json();
  }finally{clearTimeout(timer);}
 };
-router.get('/utme/format',(_req,res)=>res.json({exam:'UTME',subjectsPerExam:4,compulsorySubject:'Use of English',englishQuestions:60,otherSubjectQuestions:40,totalQuestions:180,durationMinutes:120,options:['A','B','C','D'],scoringMaximum:400,source:'JAMB examination manual 2024',simulation:true}));
+router.get('/utme/format',(_req,res)=>res.json({exam:'UTME',subjectsPerExam:4,compulsorySubject:'Use of English',englishQuestions:60,otherSubjectQuestions:40,totalQuestions:180,durationMinutes:120,options:['A','B','C','D'],scoringMaximum:400,source:'UTME simulation configuration; verify against latest JAMB guidance',simulation:true}));
 router.get('/utme/provider-status',(_req,res)=>res.json({provider:'ALOC Station',configured:Boolean(process.env.ALOC_API_KEY),source:'third-party',officialJambApi:false,solutionsEnabled:false}));
 router.get('/utme/questions',async(req,res,next)=>{
  const subject=String(req.query.subject||'').toLowerCase();
  const year=Number(req.query.year);
+ const cursor=typeof req.query.cursor==='string'?req.query.cursor:'';
+ if(cursor.length>512)return res.status(400).json({error:'Invalid pagination cursor.'});
  if(!subjects.has(subject)||!Number.isInteger(year)||year<1990||year>2030)return res.status(400).json({error:'Choose a valid subject and examination year.'});
  try{
-  const result=await request('/questions?subject='+encodeURIComponent(subject)+'&examType=jamb&year='+year+'&limit=10');
+  const result=await request('/questions?subject='+encodeURIComponent(subject)+'&examType=jamb&year='+year+'&limit=10'+(cursor?'&cursor='+encodeURIComponent(cursor):''));
   if(result.unconfigured)return res.status(503).json({error:'Past-question provider has not been configured.'});
   res.json({provider:'ALOC Station',mode:'practice',source:'third-party',officialJambApi:false,questions:result.data||[],pagination:result.pagination||null});
- }catch(error){next(error);}
+ }catch(error){res.status(error.name==='AbortError'?504:502).json({error:'The past-question service could not be reached. Please try again.'});}
 });
 export default router;
