@@ -700,7 +700,6 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             <CbtExamWizard />
             <JambPastQuestions />
             <InstitutionalAssessments />
-            <StudentLearningResources />
           </div>
         )}
 
