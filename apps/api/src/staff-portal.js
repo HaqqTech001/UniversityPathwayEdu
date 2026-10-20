@@ -98,7 +98,10 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
    if(account.error)throw account.error;
    if(account.data?.email){
     const plainStatus=status.replaceAll('_',' ');
-    await queueEmail({key:'review:'+req.params.id+':'+status+':'+data[0].id,to:account.data.email,subject:'UPEC application update — '+plainStatus,text:'Your University Pathway Educational Consult application ('+application.data.reference_number+') is now '+plainStatus+'. Sign in to your student portal to review the latest status and any required next steps.'});
+    const reviewEvent=await db.from('local_application_reviews').select('id').eq('application_id',req.params.id).eq('new_status',status).eq('reviewer_id',req.actor.sub).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(reviewEvent.error)throw reviewEvent.error;
+    if(!reviewEvent.data?.id)throw Error('Could not resolve review event for email notification');
+    await queueEmail({key:'review:'+reviewEvent.data.id,to:account.data.email,subject:'UPEC application update — '+plainStatus,text:'Your University Pathway Educational Consult application ('+application.data.reference_number+') is now '+plainStatus+'. Sign in to your student portal to review the latest status and any required next steps.'});
    }
   }
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
