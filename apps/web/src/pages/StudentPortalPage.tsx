@@ -1,3 +1,4 @@
+import StudentLearningResources from '../portal/StudentLearningResources';
 import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
 import {
@@ -698,6 +699,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             <CbtExamWizard />
             <JambPastQuestions />
             <InstitutionalAssessments />
+            <StudentLearningResources />
           </div>
         )}
 
