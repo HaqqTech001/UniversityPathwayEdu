@@ -1,7 +1,7 @@
 import {supabaseAdmin as db} from './db.js';
 import {queueEmail} from './notification-worker.js';
 const currency=n=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(Number(n));
-const isoDay=(date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Lagos',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+const isoDay=date=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);const get=type=>parts.find(p=>p.type===type)?.value;return [get('year'),get('month'),get('day')].join('-');};
 const relativeDate=(day,shift)=>{const date=new Date(day+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+shift);return date.toISOString().slice(0,10);};
 export async function queueMonthlyPaymentReminders(){
  const today=isoDay(new Date());
