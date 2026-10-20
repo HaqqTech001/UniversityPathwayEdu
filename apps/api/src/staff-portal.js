@@ -129,7 +129,25 @@ router.post('/finance/programme-rates',permit('finance.manage'),wrap(async(req,r
  !/^\d{4}-(0[1-9]|1[0-2])-01$/.test(effectiveMonth||''))return res.status(400).json({error:'Enter a programme, valid monthly fee and effective month.'});
  const {data,error}=await db.from('upec_programme_fee_rates').insert({programme_code:programmeCode.trim(),monthly_amount_ngn:monthlyAmountNgn,effective_month:effectiveMonth,created_by:req.actor.sub}).select('id,programme_code,monthly_amount_ngn,effective_month').single();
  if(error?.code==='23505')return res.status(409).json({error:'A fee rate for this programme and effective month already exists.'});
- if(error)throw error;res.status(201).json({rate:data});
+ if(error)throw error;
+ // Notify verified student email accounts for approved programme enrolments.
+ let queued=0,notificationError=null;
+ try{
+  const enrolled=await db.from('local_student_applications').select('account_id').eq('programme',data.programme_code).eq('status','approved').limit(500);
+  if(enrolled.error)throw enrolled.error;
+  const accountIds=[...new Set((enrolled.data||[]).map(x=>x.account_id))];
+  if(accountIds.length){
+   const accounts=await db.from('local_accounts').select('id,email,full_name,verified_at').in('id',accountIds);
+   if(accounts.error)throw accounts.error;
+   for(const account of accounts.data||[]){
+    if(!account.email||!account.verified_at)continue;
+    const body='Dear '+(account.full_name||'Student')+',\\n\\nUPEC wishes to notify you that the monthly lesson fee for '+data.programme_code+' is now ₦'+Number(data.monthly_amount_ngn).toLocaleString('en-NG')+' effective from '+data.effective_month+'. Previous bills are not automatically changed. Please review your student portal or contact UPEC Accounts for clarification.\\n\\nUniversity Pathway Educational Consult';
+    await queueEmail({key:'lesson-rate-student:'+data.id+':'+account.id,to:account.email,subject:'UPEC Monthly Lesson Fee Update — '+data.programme_code,text:body});
+    queued++;
+   }
+  }
+ }catch(notifyError){notificationError='Some student email notices could not be queued.';console.error('Student fee notice queue failed:',notifyError);}
+ res.status(201).json({rate:data,studentEmailsQueued:queued,notificationWarning:notificationError});
 }));
 router.get('/finance/registration-rates',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_registration_fee_rates').select('id,programme_code,amount_ngn,effective_month,created_at').order('effective_month',{ascending:false}).limit(200);
