@@ -75,6 +75,17 @@ router.get('/learning/notices',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_notices').select('id,title,body,audience,published_at').eq('status','published').order('published_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({notices:data||[]});
 }));
+router.get('/learning/resources/:id/open',wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ const {data,error}=await db.from('upec_learning_resources').select('resource_url,storage_path').eq('id',req.params.id).eq('status','published').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Resource unavailable.'});
+ if(data.storage_path){
+  const signed=await db.storage.from('upec-learning').createSignedUrl(data.storage_path,120);
+  if(signed.error)throw signed.error;
+  return res.json({url:signed.data.signedUrl,expiresIn:120});
+ }
+ return res.json({url:data.resource_url});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
