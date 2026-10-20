@@ -1,0 +1,32 @@
+import crypto from 'node:crypto';
+import {Router} from 'express';
+import {supabaseAdmin as db} from './db.js';
+import {queueEmail} from './notification-worker.js';
+import {requireRole} from './security.js';
+const router=Router(), wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
+const validEmail=s=>typeof s==='string'&&s.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+router.use(requireRole('student'));
+router.get('/',wrap(async(req,res)=>{const {data,error}=await db.from('upec_guardian_contacts').select('guardian_name,email,verified_at').eq('student_account_id',req.actor.sub).maybeSingle();if(error)throw error;res.json({guardian:data});}));
+router.post('/request-verification',wrap(async(req,res)=>{
+ const guardianName=String(req.body?.guardianName||'').trim(),email=String(req.body?.email||'').trim().toLowerCase();
+ if(guardianName.length<2||guardianName.length>120||!validEmail(email))return res.status(400).json({error:'Valid guardian name and email are required'});
+ const existing=await db.from('upec_guardian_contacts').select('updated_at,verified_at,email').eq('student_account_id',req.actor.sub).maybeSingle();
+ if(existing.error)throw existing.error;
+ if(existing.data?.email===email&&existing.data?.verified_at)return res.json({verified:true});
+ if(existing.data?.updated_at&&Date.now()-Date.parse(existing.data.updated_at)<60000)return res.status(429).json({error:'Please allow a minute between verification requests.'});
+ const code=crypto.randomInt(100000,1000000).toString(),hash=crypto.createHash('sha256').update(code).digest('hex');
+ const {error}=await db.from('upec_guardian_contacts').upsert({student_account_id:req.actor.sub,guardian_name:guardianName,email,verified_at:null,verification_hash:hash,verification_expires_at:new Date(Date.now()+15*60000).toISOString(),updated_at:new Date().toISOString()},{onConflict:'student_account_id'});
+ if(error)throw error;
+ await queueEmail({key:'guardian-verify:'+req.actor.sub+':'+hash,to:email,subject:'UPEC Guardian Email Verification',text:'Dear '+guardianName+',\n\nA student has provided this address as their parent/guardian contact for University Pathway Educational Consult (UPEC). If you consent to receiving notices about their programme and lesson fees, please confirm the six-digit code with the student.\n\nVerification code: '+code+'\n\nThis code expires after 15 minutes. If you do not recognize this request, please ignore the message and do not share the code.\n\nKind regards,\nAdmissions & Accounts Office\nUniversity Pathway Educational Consult'});
+ res.status(202).json({verificationSent:true});
+}));
+router.post('/verify',wrap(async(req,res)=>{
+ const code=req.body?.code;
+ if(typeof code!=='string'||!/^[0-9]{6}$/.test(code))return res.status(400).json({error:'Enter the six-digit code.'});
+ const hash=crypto.createHash('sha256').update(code).digest('hex');
+ const {data,error}=await db.from('upec_guardian_contacts').update({verified_at:new Date().toISOString(),verification_hash:null,verification_expires_at:null,updated_at:new Date().toISOString()}).eq('student_account_id',req.actor.sub).eq('verification_hash',hash).gt('verification_expires_at',new Date().toISOString()).select('guardian_name,email,verified_at').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(400).json({error:'Verification code invalid or expired.'});
+ res.json({guardian:data});
+}));
+export default router;
