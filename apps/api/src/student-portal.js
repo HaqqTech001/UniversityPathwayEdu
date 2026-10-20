@@ -39,6 +39,7 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
  if(error)throw error;
  if(!attempt)return res.status(404).json({error:'Attempt not found.'});
  if(attempt.submitted_at)return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:attempt.score,totalQuestions:attempt.total_questions}});
+ if(Date.now()>Date.parse(attempt.expires_at))return res.status(409).json({error:'This examination has expired. Answer review is unavailable after the deadline.',expiresAt:attempt.expires_at});
  const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',attempt.assessment_id).order('position').limit(100);
  if(linkError)throw linkError;
  const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options').in('id',(links||[]).map(l=>l.question_id));
