@@ -1,3 +1,4 @@
+import StudentNotifications from '../portal/StudentNotifications';
 import StudentNotices from '../portal/StudentNotices';
 import StudentLearningResources from '../portal/StudentLearningResources';
 import InstitutionalAssessments from '../portal/InstitutionalAssessments';
@@ -707,7 +708,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
-        {dashboardTab === 'notices' && <StudentNotices />}
+        {dashboardTab === 'notices' && <div className="space-y-6"><StudentNotifications/><StudentNotices/></div>}
 
         {/* Account settings */}
         {dashboardTab === 'settings' && (
