@@ -107,6 +107,17 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
  res.json({application:data[0]});
 }));
+router.get('/students/:id/edit-permissions',permit('staff.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_student_edit_grants').select('biodata_edit_allowed,programme_change_allowed,updated_at').eq('student_account_id',req.params.id).maybeSingle();
+ if(error)throw error;res.json({permissions:data||{biodata_edit_allowed:false,programme_change_allowed:false}});
+}));
+router.put('/students/:id/edit-permissions',permit('staff.manage'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid student ID'});
+ const {biodataEditAllowed,programmeChangeAllowed}=req.body||{};
+ if(typeof biodataEditAllowed!=='boolean'||typeof programmeChangeAllowed!=='boolean')return res.status(400).json({error:'Boolean permissions required'});
+ const {data,error}=await db.from('upec_student_edit_grants').upsert({student_account_id:req.params.id,biodata_edit_allowed:biodataEditAllowed,programme_change_allowed:programmeChangeAllowed,updated_by:req.actor.sub,updated_at:new Date().toISOString()}).select('biodata_edit_allowed,programme_change_allowed').single();
+ if(error)throw error;res.json({permissions:data});
+}));
 router.get('/finance/programme-rates',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_programme_fee_rates').select('id,programme_code,monthly_amount_ngn,effective_month,created_at').order('effective_month',{ascending:false}).limit(200);
  if(error)throw error;res.json({rates:data||[]});
