@@ -1,4 +1,5 @@
 import utmeRoutes from './utme-routes.js';
+import guardianRoutes from './guardian-routes.js';
 import {Router} from 'express';
 import {supabaseAdmin as db} from './db.js';
 import {requireRole} from './security.js';
@@ -14,6 +15,7 @@ router.use(async(req,res,next)=>{
 });
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.use('/practice',utmeRoutes);
+router.use('/guardian',guardianRoutes);
 // Published institutional assessments: never send answer keys or explanations.
 router.get('/assessments',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at,opens_at,closes_at,restricted').eq('status','published').order('created_at',{ascending:false}).limit(100);
