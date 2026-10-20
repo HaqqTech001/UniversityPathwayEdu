@@ -1,0 +1,14 @@
+import React,{useEffect,useState} from 'react';
+import {opsRequest} from './api';
+export default function BlogManager({role}){
+ const canPublish=['super_admin','admin'].includes(role);
+ const [posts,setPosts]=useState([]),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [form,setForm]=useState({title:'',slug:'',category:'Study Strategies',excerpt:'',body:''});
+ const load=async()=>{try{const r=await opsRequest('/academic/blog/posts');setPosts(r.posts||[]);}catch(e){setError(e.message);}};
+ useEffect(()=>{void load();},[]);
+ const save=async e=>{e.preventDefault();setError('');try{await opsRequest('/academic/blog/posts',{method:'POST',body:JSON.stringify({...form,sections:[{heading:form.title,body:form.body}],minutes:Math.max(1,Math.min(60,Math.ceil(form.body.split(/\\s+/).length/200)))})});setForm({title:'',slug:'',category:'Study Strategies',excerpt:'',body:''});await load();setMessage('Article saved as draft.');}catch(e){setError(e.message);}};
+ const publish=async p=>{try{await opsRequest('/academic/blog/posts/'+p.id+'/status',{method:'PATCH',body:JSON.stringify({status:p.status==='published'?'draft':'published'})});await load();}catch(e){setError(e.message);}};
+ return <section className="academic-catalogue"><span className="eyebrow">CONTENT MANAGEMENT</span><h2>Blog Articles</h2><p>Draft editorial articles and publish approved guidance to the public UPEC blog.</p>{error&&<p role="alert" className="form-error">{error}</p>}{message&&<p role="status" className="academic-success">{message}</p>}
+ <form className="academic-question-form" onSubmit={save}><label>Headline<input required minLength={5} maxLength={180} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>URL slug<input required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={form.slug} onChange={e=>setForm({...form,slug:e.target.value.toLowerCase()})}/></label><label>Category<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{['Study Strategies','Exam Preparation','Admissions Guidance'].map(c=><option key={c}>{c}</option>)}</select></label><label>Summary<textarea required minLength={20} maxLength={400} value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})}/></label><label>Article text<textarea required rows={9} value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label><button type="submit">Save article draft</button></form>
+ <div className="academic-programmes">{posts.map(p=><article key={p.id}><span className="academic-code">{p.status}</span><h3>{p.title}</h3><p>{p.excerpt}</p>{canPublish&&<button type="button" className="details-button" onClick={()=>void publish(p)}>{p.status==='published'?'Unpublish':'Approve & publish'}</button>}</article>)}</div></section>;
+}
