@@ -47,6 +47,8 @@ export interface StudentUser {
   phone: string;
   isEmailVerified: boolean;
   profileCompleted: boolean;
+  biodataEditAllowed: boolean;
+  programmeChangeAllowed: boolean;
   biodata: Biodata;
   application: ApplicationRecord | null;
 }
@@ -90,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [ready, setReady] = useState(false);
   const fromDashboard=(result:any):StudentUser=>{
     const a=result.user,b=result.biodata,app=result.application;
-    return {id:a.id,regNumber:'UPEC/'+a.id.slice(0,8).toUpperCase(),fullName:a.full_name,email:a.email,phone:a.phone,isEmailVerified:!!a.verified_at,profileCompleted:!!b?.completed_at,biodata:{...emptyBiodata(a.email,a.full_name,a.phone),...(b?.details||{})},application:mapApplication(app)};
+    return {id:a.id,regNumber:'UPEC/'+a.id.slice(0,8).toUpperCase(),fullName:a.full_name,email:a.email,phone:a.phone,isEmailVerified:!!a.verified_at,profileCompleted:!!b?.completed_at,biodataEditAllowed:!!result.editPermissions?.biodata,programmeChangeAllowed:!!result.editPermissions?.programme,biodata:{...emptyBiodata(a.email,a.full_name,a.phone),...(b?.details||{})},application:mapApplication(app)};
   };
   const refresh=async()=>{const token=getStudentToken();if(!token){setCurrentUser(null);return;}try{setCurrentUser(fromDashboard(await upecAuthApi.dashboard(token)));}catch{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);}};
   useEffect(()=>{void refresh().finally(()=>setReady(true));},[]);
