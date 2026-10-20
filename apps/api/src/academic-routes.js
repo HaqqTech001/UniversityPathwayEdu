@@ -107,4 +107,28 @@ router.patch('/assessments/:id/schedule',grant('super_admin','admin','cbt_manage
  if(!data)return res.status(409).json({error:'Only draft assessments can be scheduled.'});
  res.json({assessment:data});
 }));
+router.put('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ const {restricted,studentIds}=req.body||{};
+ if(!uuid(req.params.id)||typeof restricted!=='boolean'||!Array.isArray(studentIds)||studentIds.length>100||!studentIds.every(uuid))return res.status(400).json({error:'Invalid eligibility settings.'});
+ const {data:exam,error:lookup}=await db.from('upec_assessments').select('id,status').eq('id',req.params.id).maybeSingle();
+ if(lookup)throw lookup;
+ if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ if(exam.status!=='draft')return res.status(409).json({error:'Configure eligibility before publishing.'});
+ const {error:deleteError}=await db.from('upec_assessment_eligibility').delete().eq('assessment_id',exam.id);
+ if(deleteError)throw deleteError;
+ if(studentIds.length){const {error:insertError}=await db.from('upec_assessment_eligibility').insert([...new Set(studentIds)].map(id=>({assessment_id:exam.id,student_account_id:id})));if(insertError)throw insertError;}
+ const {error:updateError}=await db.from('upec_assessments').update({restricted}).eq('id',exam.id).eq('status','draft');
+ if(updateError)throw updateError;
+ res.json({restricted,assigned:studentIds.length});
+}));
+router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {data:exam,error:e}=await db.from('upec_assessments').select('id,created_by,title').eq('id',req.params.id).maybeSingle();
+ if(e)throw e;
+ if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ if(req.staff.role==='teacher'&&exam.created_by!==req.actor.sub)return res.status(403).json({error:'Results are restricted to the assessment author.'});
+ const {data,error}=await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',exam.id).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(200);
+ if(error)throw error;
+ res.json({title:exam.title,results:data||[]});
+}));
 export default router;
