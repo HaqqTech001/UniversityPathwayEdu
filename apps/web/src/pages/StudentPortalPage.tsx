@@ -1,5 +1,4 @@
 import StudentLearningResources from '../portal/StudentLearningResources';
-import StudentLearningResources from '../portal/StudentLearningResources';
 import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
 import {
