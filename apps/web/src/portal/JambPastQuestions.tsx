@@ -14,16 +14,30 @@ export default function JambPastQuestions(){
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState('');
  const [loaded,setLoaded]=useState(false);
+ const [nextCursor,setNextCursor]=useState<string|null>(null);
  const fetchQuestions=async(event:React.FormEvent)=>{
-  event.preventDefault();setLoading(true);setError('');setQuestions([]);setAnswers({});setRevealed({});setLoaded(false);
+  event.preventDefault();setLoading(true);setError('');setQuestions([]);setAnswers({});setRevealed({});setLoaded(false);setNextCursor(null);
   try{
    const token=getStudentToken();
    if(!token)throw new Error('Sign in again to access past questions.');
    const result=await upecAuthApi.utmePracticeQuestions(token,subject,year);
    if(!Array.isArray(result.questions))throw new Error('Unexpected response from the question provider.');
    setQuestions(result.questions);
+   setNextCursor(typeof result.pagination?.nextCursor==='string'?result.pagination.nextCursor:null);
    setLoaded(true);
   }catch(err){setError(err instanceof Error?err.message:'Unable to fetch questions.');}
+  finally{setLoading(false);}
+ };
+ const loadMore=async()=>{
+  const token=getStudentToken();
+  if(!token||!nextCursor)return;
+  setLoading(true);setError('');
+  try{
+   const result=await upecAuthApi.utmePracticeQuestions(token,subject,year,nextCursor);
+   if(!Array.isArray(result.questions))throw Error('Unexpected provider response.');
+   setQuestions(previous=>[...previous,...result.questions.filter((item:any)=>!previous.some(q=>q.id===item.id))]);
+   setNextCursor(typeof result.pagination?.nextCursor==='string'?result.pagination.nextCursor:null);
+  }catch(err){setError(err instanceof Error?err.message:'Unable to load more questions.');}
   finally{setLoading(false);}
  };
  return <section aria-labelledby="past-questions-title" className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
@@ -44,6 +58,7 @@ export default function JambPastQuestions(){
     {revealed[key]&&<p role="status" className={'mt-3 rounded-xl p-3 text-sm '+(selected.toLowerCase()===correct?'bg-emerald-50 text-emerald-800':'bg-amber-50 text-amber-900')}>{correct?'Correct option: '+correct.toUpperCase()+' — '+(selected.toLowerCase()===correct?'Well done.':'Review your selection.'):'Answer key unavailable from the provider.'} Detailed worked explanations require additional licensed provider access.</p>}
    </li>;
   })}</ol>
+  {nextCursor&&<div className="mt-5 text-center"><button type="button" onClick={()=>void loadMore()} disabled={loading} className="rounded-xl bg-[#111a43] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{loading?'Loading...':'Load more questions'}</button></div>}
   <p className="mt-6 text-xs text-slate-500">Questions supplied by a third-party educational API, not an official JAMB service. <a className="font-semibold text-[#c62839] underline" href="https://aloc.com.ng" target="_blank" rel="noopener noreferrer">Powered by ALOC API</a></p>
  </section>;
 }
