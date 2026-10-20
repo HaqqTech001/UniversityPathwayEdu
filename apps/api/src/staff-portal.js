@@ -12,8 +12,8 @@ const normalize=value=>String(value||'').trim().toLowerCase();
 const hashPassword=password=>new Promise((resolve,reject)=>crypto.scrypt(password,process.env.AUTH_PASSWORD_PEPPER,64,(err,key)=>err?reject(err):resolve(key.toString('hex'))));
 const sameHash=(left,right)=>{const a=Buffer.from(left||'','hex'),b=Buffer.from(right||'','hex');return a.length===b.length&&a.length===64&&crypto.timingSafeEqual(a,b);};
 const rolePermissions={
- super_admin:['applications.read','applications.review','staff.manage','content.manage','cbt.manage','finance.manage'],
- admin:['applications.read','applications.review','content.manage','finance.manage'],
+ super_admin:['applications.read','applications.review','staff.manage','content.manage','cbt.manage','finance.manage','students.manage'],
+ admin:['applications.read','applications.review','content.manage','finance.manage','students.manage'],
  admissions_officer:['applications.read','applications.review'],
  teacher:[],cbt_manager:['cbt.manage'],content_editor:['content.manage']
 };
@@ -107,11 +107,11 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
  res.json({application:data[0]});
 }));
-router.get('/students/:id/edit-permissions',permit('staff.manage'),wrap(async(req,res)=>{
+router.get('/students/:id/edit-permissions',permit('students.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_edit_grants').select('biodata_edit_allowed,programme_change_allowed,updated_at').eq('student_account_id',req.params.id).maybeSingle();
  if(error)throw error;res.json({permissions:data||{biodata_edit_allowed:false,programme_change_allowed:false}});
 }));
-router.put('/students/:id/edit-permissions',permit('staff.manage'),wrap(async(req,res)=>{
+router.put('/students/:id/edit-permissions',permit('students.manage'),wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid student ID'});
  const {biodataEditAllowed,programmeChangeAllowed}=req.body||{};
  if(typeof biodataEditAllowed!=='boolean'||typeof programmeChangeAllowed!=='boolean')return res.status(400).json({error:'Boolean permissions required'});
