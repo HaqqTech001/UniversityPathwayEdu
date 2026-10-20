@@ -1,3 +1,4 @@
+import {sendEmail} from './mail.js';
 import academicRoutes from './academic-routes.js';
 import {Router} from 'express';
 import crypto from 'node:crypto';
@@ -88,6 +89,19 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
   throw error;
  }
  if(!data?.length)return res.status(409).json({error:'Review could not be completed.'});
+ // Email is best-effort; a mail transport failure must not undo a committed review.
+ try{
+  const application=await db.from('local_student_applications').select('account_id,reference_number').eq('id',req.params.id).maybeSingle();
+  if(application.error)throw application.error;
+  if(application.data){
+   const account=await db.from('local_accounts').select('email').eq('id',application.data.account_id).maybeSingle();
+   if(account.error)throw account.error;
+   if(account.data?.email){
+    const plainStatus=status.replaceAll('_',' ');
+    await sendEmail({to:account.data.email,subject:'UPEC application update — '+plainStatus,text:'Your University Pathway Educational Consult application ('+application.data.reference_number+') is now '+plainStatus+'. Sign in to your student portal to review the latest status and any required next steps.'});
+   }
+  }
+ }catch(mailError){console.error('Application status notification email failed:',mailError);}
  res.json({application:data[0]});
 }));
 export default router;
