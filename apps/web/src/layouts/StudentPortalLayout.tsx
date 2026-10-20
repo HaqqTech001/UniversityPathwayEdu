@@ -58,8 +58,9 @@ export default function StudentPortalLayout({
   useEffect(() => {
     let mounted=true;
     const refresh=async()=>{const token=getStudentToken();if(!token)return;try{const data=await upecAuthApi.studentNotifications(token);if(mounted)setUnreadCount(data.notifications.filter(n=>!n.read).length);}catch{ /* notification access must never block portal navigation */ }};
-    void refresh();const timer=window.setInterval(()=>void refresh(),60000);
-    return()=>{mounted=false;window.clearInterval(timer);};
+    void refresh();const timer=window.setInterval(()=>void refresh(),30000);
+    window.addEventListener('upec-notifications-changed',refresh);
+    return()=>{mounted=false;window.clearInterval(timer);window.removeEventListener('upec-notifications-changed',refresh);};
   },[activeTab]);
 
   // Keyboard Escape listener & body scroll lock for mobile drawer
