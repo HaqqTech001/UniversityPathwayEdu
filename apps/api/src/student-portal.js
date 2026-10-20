@@ -14,6 +14,12 @@ router.use(async(req,res,next)=>{
 });
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 router.use('/practice',utmeRoutes);
+// Published institutional assessments: never send answer keys or explanations.
+router.get('/assessments',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;
+ res.json({assessments:data||[]});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
