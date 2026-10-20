@@ -62,6 +62,14 @@ router.get('/assessment-results',wrap(async(req,res)=>{
  if(error)throw error;
  res.json({results:data||[]});
 }));
+router.get('/learning/resources',wrap(async(req,res)=>{
+ const subjectId=req.query.subjectId;
+ if(subjectId&& !/^[0-9a-f-]{36}$/i.test(String(subjectId)))return res.status(400).json({error:'Invalid subject ID.'});
+ let query=db.from('upec_learning_resources').select('id,subject_id,title,description,resource_url,resource_type,created_at').eq('status','published').order('created_at',{ascending:false}).limit(100);
+ if(subjectId)query=query.eq('subject_id',subjectId);
+ const {data,error}=await query;if(error)throw error;
+ res.json({resources:data||[]});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
