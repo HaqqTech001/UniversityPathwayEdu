@@ -1,3 +1,4 @@
+import EducationNews from '../components/EducationNews';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, Clock3, Copy, Search, X } from 'lucide-react';
 
