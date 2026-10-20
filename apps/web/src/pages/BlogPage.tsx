@@ -49,7 +49,7 @@ export default function BlogPage({ onNavigate }: PageProps) {
   const [remotePosts,setRemotePosts]=useState<Article[]>([]);
   useEffect(()=>{
     const controller=new AbortController();
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/blog/posts',{signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/blog/posts',{signal:controller.signal})
       .then(r=>r.ok?r.json():Promise.reject(new Error('Blog unavailable')))
       .then(data=>{if(Array.isArray(data.posts))setRemotePosts(data.posts);})
       .catch(()=>{});
