@@ -32,6 +32,7 @@ import {
   Award,
 } from 'lucide-react';
 import CbtExamWizard from '../portal/CbtExamWizard';
+import JambPastQuestions from '../portal/JambPastQuestions';
 import StudentBiodataForm from '../components/StudentBiodataForm';
 import { useAuth, getStudentToken } from '../context/AuthContext';
 import { upecAuthApi } from '../lib/upecAuthApi';
@@ -685,15 +686,16 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   Computer-Based Test (CBT) Practice Simulator
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Authentic UTME question bank, subject selector, and timed practice test engine.
+                  UTME-style practice simulator, plus a separate licensed historical question browser when configured.
                 </p>
               </div>
               <span className="px-3 py-1 rounded-full bg-red-50 text-[#c62839] border border-red-200 text-xs font-bold self-start sm:self-auto">
-                Official Candidate Simulator
+                UTME-style Practice Simulator
               </span>
             </div>
 
             <CbtExamWizard />
+            <JambPastQuestions />
           </div>
         )}
 
