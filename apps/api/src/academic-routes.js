@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import {Router} from 'express';
 import {supabaseAdmin as db} from './db.js';
 
@@ -201,5 +202,17 @@ router.patch('/blog/posts/:id/status',grant('super_admin','admin'),wrap(async(re
  const status=req.body.status;
  const {data,error}=await db.from('upec_blog_posts').update({status,published_at:status==='published'?new Date().toISOString():null}).eq('id',req.params.id).select('id,status').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Article not found.'});res.json({post:data});
+}));
+const allowedUploadTypes=new Set(['application/pdf','image/png','image/jpeg','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.presentationml.presentation']);
+router.post('/resources/upload-init',grant(...questionRoles),wrap(async(req,res)=>{
+ const {subjectId,title,description='',mimeType}=req.body||{};
+ if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!allowedUploadTypes.has(mimeType))return res.status(400).json({error:'Invalid resource or file type.'});
+ const ext=({'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx'})[mimeType];
+ const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+ext;
+ const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_type:'document',storage_path:path,status:'draft'}).select('id').single();
+ if(error)throw error;
+ const signed=await db.storage.from('upec-learning').createSignedUploadUrl(path);
+ if(signed.error){await db.from('upec_learning_resources').delete().eq('id',data.id);throw signed.error;}
+ res.status(201).json({resourceId:data.id,uploadUrl:signed.data.signedUrl,maxBytes:8388608});
 }));
 export default router;
