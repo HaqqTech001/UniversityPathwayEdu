@@ -131,4 +131,17 @@ router.post('/finance/programme-rates',permit('finance.manage'),wrap(async(req,r
  if(error?.code==='23505')return res.status(409).json({error:'A fee rate for this programme and effective month already exists.'});
  if(error)throw error;res.status(201).json({rate:data});
 }));
+router.get('/finance/registration-rates',permit('finance.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_registration_fee_rates').select('id,programme_code,amount_ngn,effective_month,created_at').order('effective_month',{ascending:false}).limit(200);
+ if(error)throw error;res.json({rates:data||[]});
+}));
+router.post('/finance/registration-rates',permit('finance.manage'),wrap(async(req,res)=>{
+ const {programmeCode,amountNgn,effectiveMonth}=req.body||{};
+ if(typeof programmeCode!=='string'||programmeCode.trim().length<2||programmeCode.length>100||
+ typeof amountNgn!=='number'||!Number.isFinite(amountNgn)||amountNgn<0||
+ !/^\d{4}-(0[1-9]|1[0-2])-01$/.test(effectiveMonth||''))return res.status(400).json({error:'Valid programme, amount and effective month required.'});
+ const {data,error}=await db.from('upec_registration_fee_rates').insert({programme_code:programmeCode.trim(),amount_ngn:amountNgn,effective_month:effectiveMonth,created_by:req.actor.sub}).select('id,programme_code,amount_ngn,effective_month').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Registration rate already exists for this programme and month.'});
+ if(error)throw error;res.status(201).json({rate:data});
+}));
 export default router;
