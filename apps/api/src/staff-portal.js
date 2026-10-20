@@ -12,8 +12,8 @@ const normalize=value=>String(value||'').trim().toLowerCase();
 const hashPassword=password=>new Promise((resolve,reject)=>crypto.scrypt(password,process.env.AUTH_PASSWORD_PEPPER,64,(err,key)=>err?reject(err):resolve(key.toString('hex'))));
 const sameHash=(left,right)=>{const a=Buffer.from(left||'','hex'),b=Buffer.from(right||'','hex');return a.length===b.length&&a.length===64&&crypto.timingSafeEqual(a,b);};
 const rolePermissions={
- super_admin:['applications.read','applications.review','staff.manage','content.manage','cbt.manage'],
- admin:['applications.read','applications.review','content.manage'],
+ super_admin:['applications.read','applications.review','staff.manage','content.manage','cbt.manage','finance.manage'],
+ admin:['applications.read','applications.review','content.manage','finance.manage'],
  admissions_officer:['applications.read','applications.review'],
  teacher:[],cbt_manager:['cbt.manage'],content_editor:['content.manage']
 };
@@ -107,11 +107,11 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
  res.json({application:data[0]});
 }));
-router.get('/finance/programme-rates',permit('staff.manage'),wrap(async(req,res)=>{
+router.get('/finance/programme-rates',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_programme_fee_rates').select('id,programme_code,monthly_amount_ngn,effective_month,created_at').order('effective_month',{ascending:false}).limit(200);
  if(error)throw error;res.json({rates:data||[]});
 }));
-router.post('/finance/programme-rates',permit('staff.manage'),wrap(async(req,res)=>{
+router.post('/finance/programme-rates',permit('finance.manage'),wrap(async(req,res)=>{
  const {programmeCode,monthlyAmountNgn,effectiveMonth}=req.body||{};
  if(typeof programmeCode!=='string'||programmeCode.trim().length<2||programmeCode.length>100||
  typeof monthlyAmountNgn!=='number'||!Number.isFinite(monthlyAmountNgn)||monthlyAmountNgn<0||
