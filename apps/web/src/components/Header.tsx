@@ -68,6 +68,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
       ],
     },
     { label: 'Blog', path: '/blog' },
+    { label: 'News', path: '/news' },
     { label: 'Contact', path: '/contact' },
   ];
 
