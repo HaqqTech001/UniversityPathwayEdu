@@ -151,7 +151,7 @@ router.get('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manag
  res.json({restricted:exam.data.restricted,status:exam.data.status,studentIds:(eligible.data||[]).map(row=>row.student_account_id)});
 }));
 router.get('/resources',grant(...questionRoles),wrap(async(req,res)=>{
- let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
+ let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,storage_path,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
  const {data,error}=await query;if(error)throw error;res.json({resources:data||[]});
 }));
