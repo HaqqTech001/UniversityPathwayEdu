@@ -136,6 +136,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   }
 
   const startEditing = () => {
+    if (!currentUser.biodataEditAllowed) return;
     setEditForm({
       surname: currentUser.biodata.surname,
       firstName: currentUser.biodata.firstName,
@@ -243,10 +244,12 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             <button
               type="button"
               onClick={startEditing}
+              disabled={!currentUser.biodataEditAllowed}
+              title={!currentUser.biodataEditAllowed ? 'Contact administration to request biodata editing permission' : 'Edit biodata'}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-[#0b1a42] transition-colors cursor-pointer"
             >
               <Edit3 size={13} />
-              <span>Edit Biodata</span>
+              <span>{currentUser.biodataEditAllowed ? 'Edit Biodata' : 'Biodata Locked'}</span>
             </button>
             <button
               type="button"
