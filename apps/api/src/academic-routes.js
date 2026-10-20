@@ -169,28 +169,4 @@ router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),
  if(error)throw error;if(!data)return res.status(404).json({error:'Resource not found.'});
  res.json({resource:data});
 }));
-router.get('/resources',grant(...questionRoles),wrap(async(req,res)=>{
- let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
- if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
- const {data,error}=await query;if(error)throw error;
- res.json({resources:data||[]});
-}));
-router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
- const {subjectId,title,description='',url,type}=req.body||{};
- let parsed;
- try{parsed=new URL(url);}catch{return res.status(400).json({error:'Enter a valid HTTPS resource link.'});}
- if(!uuid(subjectId)||!name(title)||title.trim().length<5||title.length>180||
- typeof description!=='string'||description.length>2000||parsed.protocol!=='https:'||
- !['document','video','website','exercise'].includes(type)||url.length>2048||
- parsed.username||parsed.password)return res.status(400).json({error:'Invalid learning resource details.'});
- const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_url:url,resource_type:type,status:'draft'}).select('id,title,status').single();
- if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
- if(error)throw error;res.status(201).json({resource:data});
-}));
-router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
- if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid resource status.'});
- const {data,error}=await db.from('upec_learning_resources').update({status:req.body.status}).eq('id',req.params.id).select('id,status').maybeSingle();
- if(error)throw error;if(!data)return res.status(404).json({error:'Resource not found.'});
- res.json({resource:data});
-}));
 export default router;
