@@ -4,6 +4,7 @@ export default function AssessmentBuilder({role}){
  const canPublish=['super_admin','admin','cbt_manager'].includes(role);
  const [subjects,setSubjects]=useState([]),[questions,setQuestions]=useState([]),[assessments,setAssessments]=useState([]);
  const [subjectId,setSubjectId]=useState(''),[title,setTitle]=useState(''),[duration,setDuration]=useState(60),[selected,setSelected]=useState([]);
+ const [schedule,setSchedule]=useState({});
  const [saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const reload=async()=>{try{const [catalogue,bank,exams]=await Promise.all([opsRequest('/academic/catalogue'),opsRequest('/academic/questions'),opsRequest('/academic/assessments')]);setSubjects(catalogue.subjects||[]);setQuestions(bank.questions||[]);setAssessments(exams.assessments||[]);}catch(e){setError(e.message);}};
  useEffect(()=>{void reload();},[]);
@@ -13,6 +14,7 @@ export default function AssessmentBuilder({role}){
  setTitle('');setSelected([]);await reload();setMessage('Assessment saved as a draft.');
  }catch(e){setError(e.message);}finally{setSaving(false);}};
  const changeStatus=async(a,status)=>{setError('');setMessage('');try{await opsRequest('/academic/assessments/'+encodeURIComponent(a.id)+'/status',{method:'PATCH',body:JSON.stringify({status})});await reload();setMessage('Assessment status updated.');}catch(e){setError(e.message);}};
+ const saveSchedule=async a=>{setError('');setMessage('');try{const values=schedule[a.id]||{};await opsRequest('/academic/assessments/'+encodeURIComponent(a.id)+'/schedule',{method:'PATCH',body:JSON.stringify({opensAt:values.open?new Date(values.open).toISOString():null,closesAt:values.close?new Date(values.close).toISOString():null})});await reload();setMessage('Assessment schedule saved.');}catch(e){setError(e.message);}};
  return <section className="academic-catalogue"><span className="eyebrow">INSTITUTIONAL CBT</span><h2>Assessment Builder</h2><p>Create draft tests using approved UPEC questions. Drafts are not visible to students.</p>
  {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="academic-success" role="status">{message}</p>}
  <form onSubmit={submit} className="academic-question-form">
@@ -21,6 +23,6 @@ export default function AssessmentBuilder({role}){
  <label>Duration (minutes)<input required type="number" min={5} max={240} value={duration} onChange={e=>setDuration(Number(e.target.value))}/></label>
  <fieldset className="assessment-questions"><legend>Choose approved questions ({selected.length} selected)</legend>{subjectId&&!eligible.length&&<p>No approved questions are available for this subject.</p>}{eligible.map(q=><label key={q.id} className="assessment-question-row"><input type="checkbox" checked={selected.includes(q.id)} onChange={e=>setSelected(a=>e.target.checked?[...a,q.id]:a.filter(id=>id!==q.id))}/><span>{q.prompt}</span></label>)}</fieldset>
  <button type="submit" disabled={saving||!selected.length}>{saving?'Saving...':'Create assessment draft'}</button></form>
- <h3>Recent assessments</h3>{!assessments.length?<p>No assessments created yet.</p>:<div className="academic-programmes">{assessments.map(a=><article key={a.id}><strong>{a.title}</strong><p>{a.duration_minutes} minutes · {a.status}</p>{canPublish&&<div className="assessment-actions">{a.status==='draft'&&<button type="button" onClick={()=>void changeStatus(a,'published')}>Publish assessment</button>}{a.status==='published'&&<button type="button" onClick={()=>void changeStatus(a,'closed')}>Close assessment</button>}</div>}</article>)}</div>}
+ <h3>Recent assessments</h3>{!assessments.length?<p>No assessments created yet.</p>:<div className="academic-programmes">{assessments.map(a=><article key={a.id}><strong>{a.title}</strong><p>{a.duration_minutes} minutes · {a.status}</p>{canPublish&&<div className="assessment-actions">{a.status==='draft'&&<><div className="academic-option-grid"><label>Opens at<input type="datetime-local" value={schedule[a.id]?.open||''} onChange={e=>setSchedule(v=>({...v,[a.id]:{...v[a.id],open:e.target.value}}))}/></label><label>Closes at<input type="datetime-local" value={schedule[a.id]?.close||''} onChange={e=>setSchedule(v=>({...v,[a.id]:{...v[a.id],close:e.target.value}}))}/></label></div><button type="button" onClick={()=>void saveSchedule(a)}>Save schedule</button><button type="button" onClick={()=>void changeStatus(a,'published')}>Publish assessment</button></>}{a.status==='published'&&<button type="button" onClick={()=>void changeStatus(a,'closed')}>Close assessment</button>}</div>}</article>)}</div>}
  </section>;
 }
