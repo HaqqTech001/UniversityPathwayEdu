@@ -94,6 +94,34 @@ router.get('/learning/resources/:id/open',wrap(async(req,res)=>{
  }
  return res.json({url:data.resource_url});
 }));
+router.get('/notifications',wrap(async(req,res)=>{
+ const [notices,applications,reads]=await Promise.all([
+  db.from('upec_notices').select('id,title,body,published_at').eq('status','published').order('published_at',{ascending:false}).limit(40),
+  db.from('local_student_applications').select('id,status,reference_number,submitted_at').eq('account_id',req.actor.sub).order('submitted_at',{ascending:false}).limit(20),
+  db.from('upec_notification_reads').select('notification_key').eq('account_id',req.actor.sub).limit(200)
+ ]);
+ for(const result of [notices,applications,reads])if(result.error)throw result.error;
+ const read=new Set((reads.data||[]).map(x=>x.notification_key));
+ const events=[
+  ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
+  ...(applications.data||[]).filter(a=>a.status&&a.status!=='submitted').map(a=>({key:'application:'+a.id+':'+a.status,title:'Application status: '+a.status.replaceAll('_',' '),body:'Reference '+a.reference_number+' has a status update. Open My Applications for details.',createdAt:a.submitted_at,type:'application'}))
+ ];
+ events.sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||''));
+ res.json({notifications:events.slice(0,60).map(e=>({...e,read:read.has(e.key)}))});
+}));
+router.post('/notifications/read',wrap(async(req,res)=>{
+ const key=req.body?.key;
+ if(typeof key!=='string'||! /^(notice|application):[0-9a-f-]{36}(?::[a-z_]+)?$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
+ const {data:accountEvents,error:e}=await db.from('local_student_applications').select('id,status').eq('account_id',req.actor.sub).limit(100);
+ if(e)throw e;
+ if(key.startsWith('application:')&&!accountEvents.some(a=>key==='application:'+a.id+':'+a.status))return res.status(404).json({error:'Notification unavailable.'});
+ if(key.startsWith('notice:')){
+  const {data,error}=await db.from('upec_notices').select('id').eq('id',key.slice(7)).eq('status','published').maybeSingle();
+  if(error)throw error;if(!data)return res.status(404).json({error:'Notification unavailable.'});
+ }
+ const {error}=await db.from('upec_notification_reads').upsert({account_id:req.actor.sub,notification_key:key});
+ if(error)throw error;res.json({read:true});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
