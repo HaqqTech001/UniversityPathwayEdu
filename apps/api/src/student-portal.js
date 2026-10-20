@@ -149,15 +149,16 @@ router.post('/notifications/read',wrap(async(req,res)=>{
 }));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
- const [account,biodata,application]=await Promise.all([
+ const [account,biodata,application,grant]=await Promise.all([
   db.from('local_accounts').select('id,email,full_name,phone,verified_at').eq('id',id).maybeSingle(),
   db.from('local_student_biodata').select('details,completed_at').eq('account_id',id).maybeSingle(),
-  db.from('local_student_applications').select('*').eq('account_id',id).order('created_at',{ascending:false}).limit(1).maybeSingle()
+  db.from('local_student_applications').select('*').eq('account_id',id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+  db.from('upec_student_edit_grants').select('biodata_edit_allowed,programme_change_allowed').eq('student_account_id',id).maybeSingle()
  ]);
- const err=account.error||biodata.error||application.error;
+ const err=account.error||biodata.error||application.error||grant.error;
  if(err)throw err;
  if(!account.data?.verified_at)return res.status(401).json({error:'Unauthorized'});
- res.json({user:account.data,biodata:biodata.data,application:application.data});
+ res.json({user:account.data,biodata:biodata.data,application:application.data,editPermissions:{biodata:!biodata.data?.completed_at||!!grant.data?.biodata_edit_allowed,programme:!!grant.data?.programme_change_allowed}});
 }));
 router.get('/applications/:id/history',wrap(async(req,res)=>{
  const id=req.params.id;
