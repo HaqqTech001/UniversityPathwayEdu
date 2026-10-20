@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
+import {getStudentToken} from '../context/AuthContext';
+import {upecAuthApi} from '../lib/upecAuthApi';
 
 export interface PortalNavItem {
   id: string;
@@ -52,6 +54,13 @@ export default function StudentPortalLayout({
   const { currentUser, logout } = useAuth();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    let mounted=true;
+    const refresh=async()=>{const token=getStudentToken();if(!token)return;try{const data=await upecAuthApi.studentNotifications(token);if(mounted)setUnreadCount(data.notifications.filter(n=>!n.read).length);}catch{ /* notification access must never block portal navigation */ }};
+    void refresh();const timer=window.setInterval(()=>void refresh(),60000);
+    return()=>{mounted=false;window.clearInterval(timer);};
+  },[activeTab]);
 
   // Keyboard Escape listener & body scroll lock for mobile drawer
   useEffect(() => {
@@ -136,7 +145,7 @@ export default function StudentPortalLayout({
               title="Notifications"
             >
               <Bell size={18} />
-
+              {unreadCount>0&&<span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[#c62839] px-1 py-0.5 text-[10px] font-bold text-white" aria-label={`${unreadCount} unread notifications`}>{unreadCount>99?'99+':unreadCount}</span>}
             </button>
 
             {/* Student Identity Pill */}
