@@ -78,6 +78,10 @@ router.get('/learning/resources',wrap(async(req,res)=>{
  const {data,error}=await query;if(error)throw error;
  res.json({resources:data||[]});
 }));
+router.get('/learning/notices',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_notices').select('id,title,body,audience,published_at').eq('status','published').order('published_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({notices:data||[]});
+}));
 router.get('/dashboard',wrap(async(req,res)=>{
  const id=req.actor.sub;
  const [account,biodata,application]=await Promise.all([
