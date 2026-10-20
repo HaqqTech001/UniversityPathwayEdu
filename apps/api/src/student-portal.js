@@ -186,6 +186,9 @@ router.put('/applications/:id/correction',wrap(async(req,res)=>{
 router.put('/biodata',wrap(async(req,res)=>{
  const details=req.body?.details;
  if(!details||typeof details!=='object'||Array.isArray(details)||JSON.stringify(details).length>12000)return res.status(400).json({error:'Invalid biodata'});
+ const previous=await db.from('local_student_biodata').select('completed_at').eq('account_id',req.actor.sub).maybeSingle();
+ if(previous.error)throw previous.error;
+ if(previous.data?.completed_at){const grant=await db.from('upec_student_edit_grants').select('biodata_edit_allowed').eq('student_account_id',req.actor.sub).maybeSingle();if(grant.error)throw grant.error;if(!grant.data?.biodata_edit_allowed)return res.status(403).json({error:'Admin permission required to edit completed biodata.'});}
  const completed=!!(details.surname&&details.firstName&&details.guardianName&&details.guardianPhone);
  const {data,error}=await db.from('local_student_biodata').upsert({account_id:req.actor.sub,details,completed_at:completed?new Date().toISOString():null,updated_at:new Date().toISOString()}).select('details,completed_at').single();
  if(error)throw error;
