@@ -1,3 +1,4 @@
+import publicBlog from './public-blog.js';
 import 'dotenv/config';
 import express from 'express';
 import localAuth from './local-auth.js';
@@ -15,6 +16,7 @@ const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'32kb'}));
 app.use((req,res,next)=>{const allowed=(process.env.WEB_ORIGINS||'http://localhost:5173,http://localhost:3000').split(',').map(s=>s.trim());const origin=req.headers.origin;if(origin&&allowed.includes(origin)){res.set('Access-Control-Allow-Origin',origin);res.set('Vary','Origin');res.set('Access-Control-Allow-Headers','Content-Type, Authorization');res.set('Access-Control-Allow-Methods','GET,POST,PUT,OPTIONS');}if(req.method==='OPTIONS')return res.sendStatus(origin&&allowed.includes(origin)?204:403);next();});
+app.use('/api/blog',publicBlog);
 app.use('/api/auth',localAuth);
 app.use('/api/student',studentPortal);
 app.use('/api/staff',staffPortal);
