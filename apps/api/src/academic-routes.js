@@ -63,4 +63,16 @@ router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),
  if(!data)return res.status(404).json({error:'Question not found.'});
  res.json({question:data});
 }));
+router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
+ let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at').order('created_at',{ascending:false}).limit(100);
+ if(req.staff.role==='teacher')query=query.eq('created_by',req.actor.sub);
+ const {data,error}=await query;if(error)throw error;res.json({assessments:data||[]});
+}));
+router.post('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
+ const {subjectId,title,durationMinutes,questionIds}=req.body||{};
+ if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>160||!Number.isInteger(durationMinutes)||durationMinutes<5||durationMinutes>240||!Array.isArray(questionIds)||questionIds.length<1||questionIds.length>100||!questionIds.every(uuid))return res.status(400).json({error:'Enter a valid assessment and select approved questions.'});
+ const {data,error}=await db.rpc('upec_create_assessment',{p_author:req.actor.sub,p_subject:subjectId,p_title:title,p_duration:durationMinutes,p_questions:questionIds});
+ if(error?.code==='23514'||error?.code==='22023')return res.status(409).json({error:error.message});
+ if(error)throw error;res.status(201).json({assessmentId:data});
+}));
 export default router;
