@@ -1,4 +1,5 @@
 import StudentLearningResources from '../portal/StudentLearningResources';
+import StudentLearningResources from '../portal/StudentLearningResources';
 import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
 import {
@@ -547,6 +548,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'documents' && (
           <div className="space-y-6">
+            <StudentLearningResources />
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="font-serif text-lg font-bold text-[#0b1a42]">
