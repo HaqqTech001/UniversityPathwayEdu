@@ -107,4 +107,17 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
  res.json({application:data[0]});
 }));
+router.get('/finance/programme-rates',permit('staff.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_programme_fee_rates').select('id,programme_code,monthly_amount_ngn,effective_month,created_at').order('effective_month',{ascending:false}).limit(200);
+ if(error)throw error;res.json({rates:data||[]});
+}));
+router.post('/finance/programme-rates',permit('staff.manage'),wrap(async(req,res)=>{
+ const {programmeCode,monthlyAmountNgn,effectiveMonth}=req.body||{};
+ if(typeof programmeCode!=='string'||programmeCode.trim().length<2||programmeCode.length>100||
+ typeof monthlyAmountNgn!=='number'||!Number.isFinite(monthlyAmountNgn)||monthlyAmountNgn<0||
+ !/^\d{4}-(0[1-9]|1[0-2])-01$/.test(effectiveMonth||''))return res.status(400).json({error:'Enter a programme, valid monthly fee and effective month.'});
+ const {data,error}=await db.from('upec_programme_fee_rates').insert({programme_code:programmeCode.trim(),monthly_amount_ngn:monthlyAmountNgn,effective_month:effectiveMonth,created_by:req.actor.sub}).select('id,programme_code,monthly_amount_ngn,effective_month').single();
+ if(error?.code==='23505')return res.status(409).json({error:'A fee rate for this programme and effective month already exists.'});
+ if(error)throw error;res.status(201).json({rate:data});
+}));
 export default router;
