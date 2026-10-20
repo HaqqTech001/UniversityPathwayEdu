@@ -1,3 +1,4 @@
+import {queueExamReminders,processEmailOutbox} from './notification-worker.js';
 import publicBlog from './public-blog.js';
 import 'dotenv/config';
 import express from 'express';
@@ -20,6 +21,16 @@ app.use('/api/blog',publicBlog);
 app.use('/api/auth',localAuth);
 app.use('/api/student',studentPortal);
 app.use('/api/staff',staffPortal);
+app.post('/api/internal/notifications/process',async(req,res)=>{
+ const expected=process.env.NOTIFICATION_WORKER_SECRET;
+ const token=req.headers.authorization;
+ if(!expected||expected.length<32||token!=='Bearer '+expected)return res.status(403).json({error:'Forbidden'});
+ try{
+  const reminders=await queueExamReminders();
+  const delivery=await processEmailOutbox();
+  res.json({reminders,delivery});
+ }catch(error){console.error('Notification worker failed',error);res.status(503).json({error:'Notification worker unavailable'});}
+});
 app.get('/health',(_req,res)=>res.json({status:'ok',service:'upec-api'}));
 if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'){
   app.post('/api/dev/token',(req,res)=>{
