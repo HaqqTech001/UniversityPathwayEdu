@@ -141,7 +141,7 @@ router.get('/notifications',wrap(async(req,res)=>{
 }));
 router.post('/notifications/read',wrap(async(req,res)=>{
  const key=req.body?.key;
- if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14}|fee:[0-9a-f-]{36})$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
+ if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14}|fee:[0-9a-f-]{36}|payment:[0-9a-f-]{36}:(0|3|7))$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
  // Authorize against the same private feed; never allow arbitrary read markers.
  const [type,id]=key.split(':');
  if(type==='notice'){
@@ -153,6 +153,15 @@ router.post('/notifications/read',wrap(async(req,res)=>{
   if(!review.data)return res.status(404).json({error:'Notification unavailable.'});
   const app=await db.from('local_student_applications').select('id').eq('id',review.data.application_id).eq('account_id',req.actor.sub).maybeSingle();
   if(app.error)throw app.error;if(!app.data)return res.status(404).json({error:'Notification unavailable.'});
+ }else if(type==='payment'){
+  const invoice=await db.from('upec_student_monthly_fees').select('id,due_on,status,amount_due_ngn,amount_paid_ngn').eq('id',id).eq('student_account_id',req.actor.sub).maybeSingle();
+  if(invoice.error)throw invoice.error;
+  if(!invoice.data?.due_on||!['unpaid','partial'].includes(invoice.data.status)||Number(invoice.data.amount_due_ngn)<=Number(invoice.data.amount_paid_ngn))return res.status(404).json({error:'Reminder is no longer active.'});
+  const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const day=t=>p.find(v=>v.type===t)?.value;
+  const local=[day('year'),day('month'),day('day')].join('-');
+  const date=new Date(local+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+Number(key.split(':')[2]));
+  if(date.toISOString().slice(0,10)!==invoice.data.due_on)return res.status(404).json({error:'Reminder is not active.'});
  }else if(type==='fee'){
   const rate=await db.from('upec_programme_fee_rates').select('programme_code').eq('id',id).maybeSingle();
   if(rate.error)throw rate.error;if(!rate.data)return res.status(404).json({error:'Notification unavailable.'});
