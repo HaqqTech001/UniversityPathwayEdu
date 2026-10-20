@@ -38,6 +38,11 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
  const {data:attempt,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,expires_at,submitted_at,score,total_questions,answers').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
  if(error)throw error;
  if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ if(!attempt.submitted_at&&Date.now()>Date.parse(attempt.expires_at)+30000){
+  const {error:expiryError}=await db.rpc('upec_finalize_expired_attempts',{p_student:req.actor.sub});
+  if(expiryError)throw expiryError;
+  return res.status(409).json({error:'Time expired. This attempt was finalized with unanswered questions.'});
+ }
  if(attempt.submitted_at)return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:attempt.score,totalQuestions:attempt.total_questions}});
  if(Date.now()>Date.parse(attempt.expires_at))return res.status(409).json({error:'This examination has expired. Answer review is unavailable after the deadline.',expiresAt:attempt.expires_at});
  const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',attempt.assessment_id).order('position').limit(100);
@@ -59,6 +64,8 @@ router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  res.json({result:{attemptId:result.attempt_id,score:result.correct_count,totalQuestions:result.question_count,submittedAt:result.submitted_time}});
 }));
 router.get('/assessment-results',wrap(async(req,res)=>{
+ const {error:expiryError}=await db.rpc('upec_finalize_expired_attempts',{p_student:req.actor.sub});
+ if(expiryError)throw expiryError;
  const {data,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,submitted_at,score,total_questions').eq('student_account_id',req.actor.sub).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
  res.json({results:data||[]});
