@@ -118,8 +118,19 @@ router.get('/notifications',wrap(async(req,res)=>{
  const assigned=new Set((eligible.data||[]).map(a=>a.assessment_id));
  const read=new Set((reads.data||[]).map(a=>a.notification_key));
  const now=Date.now();
+ const pendingFees=await db.from('upec_student_monthly_fees').select('id,programme_code,due_on,amount_due_ngn,amount_paid_ngn').eq('student_account_id',req.actor.sub).in('status',['unpaid','partial']).not('due_on','is',null).limit(100);
+ if(pendingFees.error)throw pendingFees.error;
+ const todayParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date());
+ const datePart=t=>todayParts.find(p=>p.type===t)?.value;
+ const today=[datePart('year'),datePart('month'),datePart('day')].join('-');
+ const dayShift=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+ const dueEvents=(pendingFees.data||[]).filter(f=>Number(f.amount_due_ngn)>Number(f.amount_paid_ngn)).flatMap(f=>{
+  const days=[7,3,0].filter(n=>f.due_on===dayShift(today,n));
+  return days.map(n=>({key:'payment:'+f.id+':'+n,title:n===0?'Lesson fee due today':'Lesson fee due in '+n+' days',body:'Programme: '+f.programme_code+'. Outstanding balance: ₦'+(Number(f.amount_due_ngn)-Number(f.amount_paid_ngn)).toLocaleString('en-NG')+'. Due date: '+f.due_on+'. If you have paid, contact Accounts to verify your record.',createdAt:new Date().toISOString(),type:'fees'}));
+ });
  const feeEvents=(feeRates.data||[]).map(rate=>({key:'fee:'+rate.id,title:'Monthly lesson fee update — '+rate.programme_code,body:'New monthly rate: ₦'+Number(rate.monthly_amount_ngn).toLocaleString('en-NG')+'. Effective from '+rate.effective_month+'. Contact UPEC Accounts for details. Existing bills are unchanged.',createdAt:rate.created_at,type:'fees'}));
  const events=[
+  ...dueEvents,
   ...feeEvents,
   ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
   ...(reviews.data||[]).map(v=>({key:'review:'+v.id,title:'Application status: '+v.new_status.replaceAll('_',' '),body:'Reference '+appById.get(v.application_id)?.reference_number+' has an update. View your application for details.',createdAt:v.created_at,type:'application'})),
