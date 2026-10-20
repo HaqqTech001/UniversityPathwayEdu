@@ -107,13 +107,20 @@ router.get('/notifications',wrap(async(req,res)=>{
  const noExamTables=Boolean(exams.error||eligible.error);
  if(noExamTables)console.warn('Exam reminders unavailable until academic migrations are deployed');
  const ids=(applications.data||[]).map(a=>a.id);
+ const enrolments=await db.from('local_student_applications').select('programme').eq('account_id',req.actor.sub).eq('status','approved');
+ if(enrolments.error)throw enrolments.error;
+ const programmeCodes=[...new Set((enrolments.data||[]).map(a=>a.programme))];
+ const feeRates=programmeCodes.length?await db.from('upec_programme_fee_rates').select('id,programme_code,monthly_amount_ngn,effective_month,created_at').in('programme_code',programmeCodes).order('created_at',{ascending:false}).limit(80):{data:[],error:null};
+ if(feeRates.error)throw feeRates.error;
  const reviews=ids.length?await db.from('local_application_reviews').select('id,application_id,new_status,created_at').in('application_id',ids).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
  if(reviews.error)throw reviews.error;
  const appById=new Map((applications.data||[]).map(a=>[a.id,a]));
  const assigned=new Set((eligible.data||[]).map(a=>a.assessment_id));
  const read=new Set((reads.data||[]).map(a=>a.notification_key));
  const now=Date.now();
+ const feeEvents=(feeRates.data||[]).map(rate=>({key:'fee:'+rate.id,title:'Monthly lesson fee update — '+rate.programme_code,body:'New monthly rate: ₦'+Number(rate.monthly_amount_ngn).toLocaleString('en-NG')+'. Effective from '+rate.effective_month+'. Contact UPEC Accounts for details. Existing bills are unchanged.',createdAt:rate.created_at,type:'fees'}));
  const events=[
+  ...feeEvents,
   ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
   ...(reviews.data||[]).map(v=>({key:'review:'+v.id,title:'Application status: '+v.new_status.replaceAll('_',' '),body:'Reference '+appById.get(v.application_id)?.reference_number+' has an update. View your application for details.',createdAt:v.created_at,type:'application'})),
   ...(noExamTables?[]:(exams.data||[])).filter(e=>(!e.restricted||assigned.has(e.id))&&Date.parse(e.opens_at)>=now&&Date.parse(e.opens_at)<=now+48*3600000).map(e=>({key:'exam:'+e.id+':'+Date.parse(e.opens_at),title:'Upcoming assessment: '+e.title,body:'Scheduled to open '+new Date(e.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Check your CBT page for availability.',createdAt:e.opens_at,type:'examination'}))
@@ -123,7 +130,7 @@ router.get('/notifications',wrap(async(req,res)=>{
 }));
 router.post('/notifications/read',wrap(async(req,res)=>{
  const key=req.body?.key;
- if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14})$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
+ if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14}|fee:[0-9a-f-]{36})$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
  // Authorize against the same private feed; never allow arbitrary read markers.
  const [type,id]=key.split(':');
  if(type==='notice'){
@@ -135,6 +142,11 @@ router.post('/notifications/read',wrap(async(req,res)=>{
   if(!review.data)return res.status(404).json({error:'Notification unavailable.'});
   const app=await db.from('local_student_applications').select('id').eq('id',review.data.application_id).eq('account_id',req.actor.sub).maybeSingle();
   if(app.error)throw app.error;if(!app.data)return res.status(404).json({error:'Notification unavailable.'});
+ }else if(type==='fee'){
+  const rate=await db.from('upec_programme_fee_rates').select('programme_code').eq('id',id).maybeSingle();
+  if(rate.error)throw rate.error;if(!rate.data)return res.status(404).json({error:'Notification unavailable.'});
+  const enrolled=await db.from('local_student_applications').select('id').eq('account_id',req.actor.sub).eq('programme',rate.data.programme_code).eq('status','approved').limit(1);
+  if(enrolled.error)throw enrolled.error;if(!enrolled.data?.length)return res.status(404).json({error:'Notification unavailable.'});
  }else{
   const exam=await db.from('upec_assessments').select('id,opens_at,restricted').eq('id',id).eq('status','published').maybeSingle();
   if(exam.error)throw exam.error;
