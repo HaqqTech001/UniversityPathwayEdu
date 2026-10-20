@@ -185,4 +185,21 @@ router.patch('/notices/:id/status',grant('super_admin','admin'),wrap(async(req,r
  const {data,error}=await db.from('upec_notices').update({status,published_at:status==='published'?new Date().toISOString():null}).eq('id',req.params.id).select('id,status').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Notice not found.'});res.json({notice:data});
 }));
+router.get('/blog/posts',grant('super_admin','admin','content_editor'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_blog_posts').select('id,slug,title,category,excerpt,sections,minutes,status,published_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({posts:data||[]});
+}));
+router.post('/blog/posts',grant('super_admin','admin','content_editor'),wrap(async(req,res)=>{
+ const {slug,title,category,excerpt,sections,minutes}=req.body||{};
+ if(typeof slug!=='string'||slug.length>120||! /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)||typeof title!=='string'||title.trim().length<5||title.length>180||!['Study Strategies','Exam Preparation','Admissions Guidance'].includes(category)||typeof excerpt!=='string'||excerpt.trim().length<20||excerpt.length>400||!Array.isArray(sections)||sections.length<1||sections.length>20||!sections.every(s=>typeof s?.heading==='string'&&s.heading.length<=180&&typeof s?.body==='string'&&s.body.trim().length>=20&&s.body.length<=10000)||!Number.isInteger(minutes)||minutes<1||minutes>60)return res.status(400).json({error:'Check the article content and metadata.'});
+ const {data,error}=await db.from('upec_blog_posts').insert({slug,title:title.trim(),category,excerpt:excerpt.trim(),sections,minutes,created_by:req.actor.sub,status:'draft'}).select('id,slug,title,status').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Article slug already exists.'});
+ if(error)throw error;res.status(201).json({post:data});
+}));
+router.patch('/blog/posts/:id/status',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid article status.'});
+ const status=req.body.status;
+ const {data,error}=await db.from('upec_blog_posts').update({status,published_at:status==='published'?new Date().toISOString():null}).eq('id',req.params.id).select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Article not found.'});res.json({post:data});
+}));
 export default router;
