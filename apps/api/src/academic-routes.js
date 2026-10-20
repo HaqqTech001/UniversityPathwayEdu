@@ -75,4 +75,25 @@ router.post('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
  if(error?.code==='23514'||error?.code==='22023')return res.status(409).json({error:error.message});
  if(error)throw error;res.status(201).json({assessmentId:data});
 }));
+// Publication is reserved for assessment managers. Re-check every linked
+// question at publication time, as approval may change after draft creation.
+router.patch('/assessments/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ const id=req.params.id,status=req.body?.status;
+ if(!uuid(id)||!['draft','published','closed'].includes(status))return res.status(400).json({error:'Invalid assessment status request.'});
+ const {data:assessment,error:lookupError}=await db.from('upec_assessments').select('id,subject_id,status').eq('id',id).maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!assessment)return res.status(404).json({error:'Assessment not found.'});
+ if(status==='published'){
+  const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id').eq('assessment_id',id).limit(101);
+  if(linkError)throw linkError;
+  if(!links?.length)return res.status(409).json({error:'An assessment requires approved questions before publication.'});
+  const {data:approved,error:questionError}=await db.from('upec_teacher_questions').select('id').in('id',links.map(link=>link.question_id)).eq('subject_id',assessment.subject_id).eq('status','published');
+  if(questionError)throw questionError;
+  if((approved||[]).length!==links.length)return res.status(409).json({error:'Some questions are no longer approved or match another subject.'});
+ }
+ const {data,error}=await db.from('upec_assessments').update({status}).eq('id',id).eq('status',assessment.status).select('id,title,status').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Assessment changed. Refresh before updating.'});
+ res.json({assessment:data});
+}));
 export default router;
