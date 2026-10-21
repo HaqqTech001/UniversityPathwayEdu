@@ -162,7 +162,7 @@ export default function UniversityPathwayLogo({
           onError={() => setImgError(true)}
           className={`w-auto object-contain ${
             isFooter
-              ? 'h-12 sm:h-14 md:h-16 max-h-[64px]'
+              ? 'block h-auto max-h-[84px] max-w-full object-contain object-left'
               : 'h-9 xs:h-10 sm:h-12 md:h-14 max-h-[56px]'
           }`}
         />
