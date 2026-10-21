@@ -1,5 +1,6 @@
 import StudentNotifications from '../portal/StudentNotifications';
 import StudentApplicationRegister from '../portal/StudentApplicationRegister';
+import CommonApplicationForm from '../portal/CommonApplicationForm';
 import ConductAcknowledgement from '../portal/ConductAcknowledgement';
 import StudentMonthlyFees from '../portal/StudentMonthlyFees';
 import GuardianContact from '../portal/GuardianContact';
@@ -447,6 +448,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'applications' && (
           <div className="space-y-6">
             <StudentApplicationRegister/>
+            <CommonApplicationForm/>
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div>
