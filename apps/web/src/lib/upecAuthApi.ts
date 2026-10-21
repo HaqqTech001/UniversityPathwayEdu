@@ -4,15 +4,23 @@ const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replac
 type AuthUser = { id: string; email: string; fullName: string; phone: string; isEmailVerified: boolean };
 type LoginResult = { token: string; user: AuthUser };
 
+function requestFailure(error:unknown):Error {
+ if(error instanceof DOMException&&(error.name==='TimeoutError'||error.name==='AbortError'))return new Error('The server is taking too long to respond. Please check your connection and try again.');
+ if(error instanceof TypeError)return new Error('Cannot connect to UPEC right now. Check your internet connection and try again.');
+ return error instanceof Error?error:new Error('Something went wrong. Please try again.');
+}
 async function post<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  try {
   const response = await fetch(baseUrl + '/api/auth' + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(path==='/register'?25000:18000),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || 'Unable to complete request');
   return result as T;
+  } catch(error) { throw requestFailure(error); }
 }
 
 export const upecAuthApi = {
@@ -48,8 +56,10 @@ export const upecAuthApi = {
 };
 
 async function authorized<T>(path:string,token:string,method='GET',body?:unknown):Promise<T>{
- const response=await fetch(baseUrl+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ try {
+ const response=await fetch(baseUrl+path,{signal:AbortSignal.timeout(20000),method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
  const data=await response.json().catch(()=>({}));
  if(!response.ok)throw Error(data.error||'Request failed');
  return data as T;
+ }catch(error){throw requestFailure(error);}
 }
