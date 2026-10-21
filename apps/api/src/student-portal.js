@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import utmeRoutes from './utme-routes.js';
 import guardianRoutes from './guardian-routes.js';
 import {Router} from 'express';
@@ -394,5 +395,30 @@ router.get('/profile/photo',wrap(async(req,res)=>{
  if(error)throw error;if(!data)return res.json({url:null});
  const url=await db.storage.from('upec-student-photos').createSignedUrl(data.storage_path,300);
  if(url.error)throw url.error;res.json({url:url.data.signedUrl});
+}));
+router.get('/applications/:id/documents',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_application_documents').select('id,document_type,original_filename,review_status,review_note,created_at').eq('student_account_id',req.actor.sub).eq('application_id',req.params.id).order('created_at',{ascending:false});
+ if(error)throw error;res.json({documents:data||[]});
+}));
+router.post('/applications/:id/documents/upload-url',wrap(async(req,res)=>{
+ const {mimeType,sizeBytes}=req.body||{};
+ const app=await db.from('local_student_applications').select('id').eq('id',req.params.id).eq('account_id',req.actor.sub).maybeSingle();
+ if(app.error)throw app.error;if(!app.data)return res.status(404).json({error:'Application not found.'});
+ if(!['application/pdf','image/jpeg','image/png'].includes(mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>5242880)return res.status(400).json({error:'Choose a PDF, JPG or PNG up to 5 MB.'});
+ const suffix=mimeType==='application/pdf'?'pdf':mimeType==='image/png'?'png':'jpg';
+ const path=req.actor.sub+'/'+req.params.id+'/'+crypto.randomUUID()+'.'+suffix;
+ const {data,error}=await db.storage.from('upec-application-documents').createSignedUploadUrl(path);
+ if(error)throw error;res.json({signedUrl:data.signedUrl,path});
+}));
+router.post('/applications/:id/documents/confirm',wrap(async(req,res)=>{
+ const {path,mimeType,documentType,filename}=req.body||{};
+ if(typeof path!=='string'||!path.startsWith(req.actor.sub+'/'+req.params.id+'/')||!['application/pdf','image/jpeg','image/png'].includes(mimeType)||!['academic_result','certificate','identification','other'].includes(documentType)||typeof filename!=='string'||!filename.trim()||filename.length>180)return res.status(400).json({error:'Invalid document metadata.'});
+ const app=await db.from('local_student_applications').select('id').eq('id',req.params.id).eq('account_id',req.actor.sub).maybeSingle();
+ if(app.error)throw app.error;if(!app.data)return res.status(404).json({error:'Application not found.'});
+ const parts=path.split('/');const {data:files,error:storageError}=await db.storage.from('upec-application-documents').list(parts.slice(0,-1).join('/'),{search:parts.at(-1),limit:10});
+ if(storageError)throw storageError;const file=(files||[]).find(x=>x.name===parts.at(-1)),size=Number(file?.metadata?.size);
+ if(!Number.isInteger(size)||size<1||size>5242880)return res.status(409).json({error:'Upload incomplete or oversized.'});
+ const {data,error}=await db.from('upec_application_documents').insert({application_id:req.params.id,student_account_id:req.actor.sub,document_type:documentType,storage_path:path,original_filename:filename.trim(),mime_type:mimeType,file_size_bytes:size}).select('id,review_status').single();
+ if(error)throw error;res.status(201).json({document:data});
 }));
 export default router;
