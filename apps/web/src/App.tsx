@@ -11,7 +11,6 @@ import ProgrammesPage from './pages/ProgrammesPage';
 import AdmissionsPage from './pages/AdmissionsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import BlogPage from './pages/BlogPage';
-import NewsPage from './pages/NewsPage';
 import ContactPage from './pages/ContactPage';
 import StudentCodeOfConduct from './components/StudentCodeOfConduct';
 import ApplyPage from './pages/ApplyPage';
@@ -125,7 +124,7 @@ export default function App() {
         return <BlogPage onNavigate={navigate} />;
 
       case '/news':
-        return <NewsPage onNavigate={navigate} />;
+        return <BlogPage onNavigate={navigate} initialSection="news" />;
 
       case '/code-of-conduct':
         return <StudentCodeOfConduct />;
