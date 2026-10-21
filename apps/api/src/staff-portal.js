@@ -282,4 +282,19 @@ router.patch('/documents/:id/review',permit('applications.review'),wrap(async(re
  const {data,error}=await db.from('upec_application_documents').update({review_status:status,review_note:note.trim(),reviewed_by:req.actor.sub,reviewed_at:new Date().toISOString()}).eq('id',req.params.id).select('id,review_status').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Document not found.'});res.json({document:data});
 }));
+router.get('/support/conversations',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_support_messages').select('student_account_id,body,created_at,author_role').order('created_at',{ascending:false}).limit(500);
+ if(error)throw error;
+ const seen=new Set();res.json({conversations:(data||[]).filter(m=>{if(seen.has(m.student_account_id))return false;seen.add(m.student_account_id);return true;}).slice(0,100)});
+}));
+router.get('/support/conversations/:studentId',wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId))return res.status(400).json({error:'Invalid student ID.'});
+ const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.params.studentId).order('created_at',{ascending:true}).limit(200);
+ if(error)throw error;res.json({messages:data||[]});
+}));
+router.post('/support/conversations/:studentId',wrap(async(req,res)=>{
+ const body=req.body?.body;if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.trim().length<1||body.length>3000)return res.status(400).json({error:'Invalid message.'});
+ const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()}).select('id,author_role,body,created_at').single();
+ if(error)throw error;res.status(201).json({message:data});
+}));
 export default router;
