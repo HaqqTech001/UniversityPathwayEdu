@@ -421,4 +421,14 @@ router.post('/applications/:id/documents/confirm',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_application_documents').insert({application_id:req.params.id,student_account_id:req.actor.sub,document_type:documentType,storage_path:path,original_filename:filename.trim(),mime_type:mimeType,file_size_bytes:size}).select('id,review_status').single();
  if(error)throw error;res.status(201).json({document:data});
 }));
+router.get('/support/messages',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:true}).limit(200);
+ if(error)throw error;res.json({messages:data||[]});
+}));
+router.post('/support/messages',wrap(async(req,res)=>{
+ const body=req.body?.body;
+ if(typeof body!=='string'||body.trim().length<1||body.length>3000)return res.status(400).json({error:'Enter a message up to 3000 characters.'});
+ const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.actor.sub,author_account_id:req.actor.sub,author_role:'student',body:body.trim()}).select('id,author_role,body,created_at').single();
+ if(error)throw error;res.status(201).json({message:data});
+}));
 export default router;
