@@ -12,6 +12,7 @@ import AdmissionsPage from './pages/AdmissionsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import BlogPage from './pages/BlogPage';
 import ContactPage from './pages/ContactPage';
+import StatePage from './components/StatePage';
 import StudentCodeOfConduct from './components/StudentCodeOfConduct';
 import ApplyPage from './pages/ApplyPage';
 import StudentPortalPage from './pages/StudentPortalPage';
@@ -136,8 +137,9 @@ export default function App() {
         return <ApplyPage onNavigate={navigate} />;
 
       case '/':
-      default:
         return <HomePage onNavigate={navigate} />;
+      default:
+        return <StatePage kind="404" onHome={()=>navigate('/')} />;
     }
   };
 
