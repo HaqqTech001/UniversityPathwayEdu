@@ -264,6 +264,7 @@ router.post('/applications',wrap(async(req,res)=>{
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
  const programme=String(formData.programmeCategory||'').trim(),academic_session=String(formData.preferredSession||'').trim();
  if(!programme||!academic_session)return res.status(400).json({error:'Programme and session are required'});
+ if(!['physical','online'].includes(formData.coachingMode))return res.status(400).json({error:'Choose online or physical coaching before submitting your application.'});
  const {data:profile,error:profileError}=await db.from('local_student_biodata').select('completed_at').eq('account_id',req.actor.sub).maybeSingle();
  if(profileError)throw profileError;
  if(!profile?.completed_at)return res.status(409).json({error:'Complete your student biodata before submitting an application.'});
