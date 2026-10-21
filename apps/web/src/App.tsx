@@ -13,6 +13,7 @@ import ResourcesPage from './pages/ResourcesPage';
 import BlogPage from './pages/BlogPage';
 import NewsPage from './pages/NewsPage';
 import ContactPage from './pages/ContactPage';
+import StudentCodeOfConduct from './components/StudentCodeOfConduct';
 import ApplyPage from './pages/ApplyPage';
 import StudentPortalPage from './pages/StudentPortalPage';
 import AuthPage from './pages/AuthPage';
@@ -125,6 +126,9 @@ export default function App() {
 
       case '/news':
         return <NewsPage onNavigate={navigate} />;
+
+      case '/code-of-conduct':
+        return <StudentCodeOfConduct />;
 
       case '/contact':
         return <ContactPage onNavigate={navigate} />;
