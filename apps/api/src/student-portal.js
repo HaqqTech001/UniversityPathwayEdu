@@ -262,6 +262,8 @@ router.post('/applications',wrap(async(req,res)=>{
  if(!['yes','no'].includes(formData.hostelInterest))return res.status(400).json({error:'Please indicate whether hostel accommodation is required.'});
  if(!Array.isArray(formData.educationHistory)||formData.educationHistory.length<1||formData.educationHistory.length>8||formData.educationHistory.some(x=>!x||typeof x.school!=='string'||!x.school.trim()||typeof x.qualification!=='string'||!x.qualification.trim()))return res.status(400).json({error:'At least one valid education history record is required.'});
  if(formData.declarationAccepted!==true)return res.status(400).json({error:'You must confirm the accuracy of your application before submission.'});
+ if(!Array.isArray(formData.universityPreferences)||formData.universityPreferences.length<1||formData.universityPreferences.length>3||formData.universityPreferences.some(x=>typeof x?.institution!=='string'||x.institution.trim().length<2||typeof x?.course!=='string'||x.course.trim().length<2))return res.status(400).json({error:'Provide at least one valid institution and intended course.'});
+ if(!Array.isArray(formData.selectedSubjects)||formData.selectedSubjects.length<1||formData.selectedSubjects.length>8||formData.selectedSubjects.some(x=>typeof x!=='string'||!x.trim()||x.length>100))return res.status(400).json({error:'Select valid subject preferences.'});
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
