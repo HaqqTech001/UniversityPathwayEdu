@@ -235,4 +235,27 @@ router.patch('/hostel/requests/:id',permit('applications.review'),wrap(async(req
  const {data,error}=await db.from('upec_hostel_requests').update({status,staff_note:note.trim(),accommodation_detail:accommodationDetail.trim(),reviewed_by:req.actor.sub,reviewed_at:new Date().toISOString()}).eq('id',req.params.id).select('id,status').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Hostel request not found.'});res.json({request:data});
 }));
+router.get('/hostel/beds',permit('applications.read'),wrap(async(req,res)=>{
+ const [beds,allocations]=await Promise.all([
+  db.from('upec_hostel_beds').select('id,hostel_name,room_code,bed_code,active').order('hostel_name').limit(300),
+  db.from('upec_hostel_allocations').select('id,bed_id,request_id,assigned_at').is('released_at',null).limit(300)
+ ]);
+ if(beds.error)throw beds.error;if(allocations.error)throw allocations.error;
+ res.json({beds:beds.data||[],allocations:allocations.data||[]});
+}));
+router.post('/hostel/beds',permit('applications.review'),wrap(async(req,res)=>{
+ const {hostelName,roomCode,bedCode}=req.body||{};
+ if([hostelName,roomCode,bedCode].some(x=>typeof x!=='string'||!x.trim()||x.length>120))return res.status(400).json({error:'Hostel, room and bed identifiers are required.'});
+ const {data,error}=await db.from('upec_hostel_beds').insert({hostel_name:hostelName.trim(),room_code:roomCode.trim(),bed_code:bedCode.trim()}).select('id').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Bed already exists.'});if(error)throw error;res.status(201).json({bed:data});
+}));
+router.post('/hostel/allocate',permit('applications.review'),wrap(async(req,res)=>{
+ const {requestId,bedId}=req.body||{};
+ if(![requestId,bedId].every(x=>typeof x==='string'&&/^[0-9a-f-]{36}$/i.test(x)))return res.status(400).json({error:'Valid request and bed required.'});
+ const [request,bed]=await Promise.all([db.from('upec_hostel_requests').select('id,status').eq('id',requestId).maybeSingle(),db.from('upec_hostel_beds').select('id,active').eq('id',bedId).maybeSingle()]);
+ if(request.error)throw request.error;if(bed.error)throw bed.error;
+ if(!request.data||!['offered','reviewing'].includes(request.data.status)||!bed.data?.active)return res.status(409).json({error:'Request must be reviewed and bed must be active.'});
+ const {data,error}=await db.from('upec_hostel_allocations').insert({request_id:requestId,bed_id:bedId,assigned_by:req.actor.sub}).select('id,request_id,bed_id,assigned_at').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Bed or request already has an active allocation.'});if(error)throw error;res.status(201).json({allocation:data});
+}));
 export default router;
