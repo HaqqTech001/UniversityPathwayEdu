@@ -51,7 +51,7 @@ router.post('/register',wrap(async(req,res)=>{
   if(!emailPattern.test(email))return respond(res,400,'Enter a valid email address.');
   if(String(fullName||'').trim().length<2)return respond(res,400,'Enter your full name.');
   if(String(phone||'').trim().length<5)return respond(res,400,'Enter a valid phone number.');
-  if(typeof password!=='string'||password.length<10||password.length>128)return respond(res,400,'Password must contain between 10 and 128 characters.');
+  if(typeof password!=='string'||password.length<10||password.length>128)return respond(res,400,'Password must have at least 10 characters.');
   const password_hash=await hashPassword(password);
   const {data,error}=await db.from('local_accounts').insert({email,full_name:fullName.trim(),phone:phone.trim(),password_hash}).select('id,email').single();
   if(error){if(error.code==='23505')return respond(res,409,'Email already registered');throw error;}
