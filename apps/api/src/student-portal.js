@@ -254,9 +254,13 @@ router.post('/applications',wrap(async(req,res)=>{
  if(conduct.error)throw conduct.error;
  if(!conduct.data)return res.status(409).json({error:'Please acknowledge the Students’ Code of Conduct before submitting an application.'});
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
- const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at').single();
+ const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
  res.status(201).json({application:data});
+}));
+router.get('/applications/list',wrap(async(req,res)=>{
+ const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,student_registration_number,submitted_at').eq('account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({applications:data||[]});
 }));
 router.get('/finance/monthly-fees',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').eq('student_account_id',req.actor.sub).order('billing_month',{ascending:false}).limit(60);
