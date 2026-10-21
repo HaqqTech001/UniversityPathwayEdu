@@ -251,6 +251,13 @@ router.get('/admissions/subjects',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_academic_subjects').select('code,name').eq('programme_id',prog.data.id).eq('active',true).order('name');
  if(error)throw error;res.json({subjects:data||[]});
 }));
+router.get('/admissions/combinations',wrap(async(req,res)=>{
+ const programme=String(req.query.programme||'').trim();
+ const p=await db.from('upec_academic_programmes').select('id').eq('code',programme).eq('active',true).maybeSingle();
+ if(p.error)throw p.error;if(!p.data)return res.status(404).json({error:'Programme not found'});
+ const {data,error}=await db.from('upec_subject_combinations').select('id,name,subject_codes').eq('programme_id',p.data.id).eq('active',true).order('name');
+ if(error)throw error;res.json({combinations:data||[]});
+}));
 router.post('/applications',wrap(async(req,res)=>{
  const {formData}=req.body||{};
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
@@ -282,6 +289,9 @@ router.post('/applications',wrap(async(req,res)=>{
  const available=new Set((subjectRecords.data||[]).map(x=>x.code));
  if(available.size===0&&(!canDeferSubjects||formData.selectedSubjects.length>0))return res.status(409).json({error:'Subject choices for this programme have not been configured by UPEC.'});
  if(formData.selectedSubjects.some(code=>!available.has(code))||new Set(formData.selectedSubjects).size!==formData.selectedSubjects.length)return res.status(400).json({error:'Choose distinct subjects approved for the selected programme.'});
+ const combos=await db.from('upec_subject_combinations').select('subject_codes').eq('programme_id',programmeRecord.data.id).eq('active',true);
+ if(combos.error)throw combos.error;
+ if(formData.selectedSubjects.length>0&&(combos.data||[]).length>0&&!combos.data.some(row=>row.subject_codes.length===formData.selectedSubjects.length&&row.subject_codes.every(x=>formData.selectedSubjects.includes(x))))return res.status(400).json({error:'Select an approved subject combination for this programme.'});
  const subjects=formData.selectedSubjects;
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
