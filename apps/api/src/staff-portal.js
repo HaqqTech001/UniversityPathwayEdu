@@ -225,4 +225,14 @@ router.patch('/services/requests/:id/schedule',permit('applications.review'),wra
  const {data,error}=await db.from('upec_service_requests').update({scheduled_at:start.toISOString(),scheduled_end_at:end.toISOString(),session_location:location.trim(),assigned_staff_id:staffAccountId||null,status:'confirmed',updated_at:new Date().toISOString()}).eq('id',req.params.id).in('status',['pending','reviewing','confirmed']).select('id,status,scheduled_at,scheduled_end_at,session_location').maybeSingle();
  if(error)throw error;if(!data)return res.status(409).json({error:'Request unavailable for scheduling.'});res.json({request:data});
 }));
+router.get('/hostel/requests',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_hostel_requests').select('id,application_id,student_account_id,status,staff_note,accommodation_detail,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({requests:data||[]});
+}));
+router.patch('/hostel/requests/:id',permit('applications.review'),wrap(async(req,res)=>{
+ const {status,note,accommodationDetail}=req.body||{};
+ if(!['reviewing','waitlisted','offered','declined'].includes(status)||typeof note!=='string'||note.length>1000||typeof accommodationDetail!=='string'||accommodationDetail.length>500)return res.status(400).json({error:'Invalid accommodation review.'});
+ const {data,error}=await db.from('upec_hostel_requests').update({status,staff_note:note.trim(),accommodation_detail:accommodationDetail.trim(),reviewed_by:req.actor.sub,reviewed_at:new Date().toISOString()}).eq('id',req.params.id).select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Hostel request not found.'});res.json({request:data});
+}));
 export default router;
