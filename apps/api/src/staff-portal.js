@@ -266,4 +266,20 @@ router.post('/hostel/allocations/:id/release',permit('applications.review'),wrap
  if(!data)return res.status(404).json({error:'Active allocation not found'});
  res.json({released:true});
 }));
+router.get('/applications/:id/documents',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_application_documents').select('id,document_type,original_filename,review_status,review_note,created_at').eq('application_id',req.params.id).order('created_at',{ascending:false});
+ if(error)throw error;res.json({documents:data||[]});
+}));
+router.get('/documents/:id/view',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_application_documents').select('storage_path').eq('id',req.params.id).maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Document not found.'});
+ const url=await db.storage.from('upec-application-documents').createSignedUrl(data.storage_path,120);
+ if(url.error)throw url.error;res.json({url:url.data.signedUrl});
+}));
+router.patch('/documents/:id/review',permit('applications.review'),wrap(async(req,res)=>{
+ const {status,note}=req.body||{};
+ if(!['verified','rejected'].includes(status)||typeof note!=='string'||note.length>1000||(status==='rejected'&&note.trim().length<5))return res.status(400).json({error:'Valid review decision and rejection reason required.'});
+ const {data,error}=await db.from('upec_application_documents').update({review_status:status,review_note:note.trim(),reviewed_by:req.actor.sub,reviewed_at:new Date().toISOString()}).eq('id',req.params.id).select('id,review_status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Document not found.'});res.json({document:data});
+}));
 export default router;
