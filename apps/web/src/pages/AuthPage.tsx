@@ -122,7 +122,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     }
 
     if (regPassword.length < 10 || regPassword.length > 128) {
-      setAuthError('Choose a password between 10 and 128 characters.');
+      setAuthError('Your password must have at least 10 characters.');
       return;
     }
 
