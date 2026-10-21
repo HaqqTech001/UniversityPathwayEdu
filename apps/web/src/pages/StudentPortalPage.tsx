@@ -235,7 +235,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
                 <span>
-                  Reg No: <strong className="text-[#0b1a42]">{currentUser.regNumber}</strong>
+                  Application ID: <strong className="text-[#0b1a42]">{currentUser.application?.referenceNumber || 'Not issued'}</strong>
                 </span>
                 <span>•</span>
                 <span>
@@ -354,7 +354,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                   Candidate Biodata Record
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Registration Number: <strong className="text-[#0b1a42]">{currentUser.regNumber}</strong>
+                  Application ID: <strong className="text-[#0b1a42]">{currentUser.application?.referenceNumber || 'Not issued'}</strong>
                 </p>
               </div>
               <button
