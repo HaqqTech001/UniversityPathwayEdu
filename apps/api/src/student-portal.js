@@ -281,7 +281,7 @@ router.get('/services',wrap(async(req,res)=>{
  if(error)throw error;res.json({services:data||[]});
 }));
 router.get('/services/requests',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_requests').select('id,service_code,delivery_mode,requested_subject,preferred_schedule,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('upec_service_requests').select('id,service_code,delivery_mode,requested_subject,preferred_schedule,status,scheduled_at,scheduled_end_at,session_location,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({requests:data||[]});
 }));
 router.post('/services/requests',wrap(async(req,res)=>{
