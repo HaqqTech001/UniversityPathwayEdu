@@ -197,4 +197,14 @@ router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').order('billing_month',{ascending:false}).limit(100);
  if(error)throw error;res.json({invoices:data||[]});
 }));
+router.get('/services/requests',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_service_requests').select('id,student_account_id,service_code,delivery_mode,requested_subject,preferred_schedule,status,staff_notes,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({requests:data||[]});
+}));
+router.patch('/services/requests/:id',permit('applications.review'),wrap(async(req,res)=>{
+ const {status,notes}=req.body||{};
+ if(!['reviewing','confirmed','completed','declined'].includes(status)||typeof notes!=='string'||notes.length>1000)return res.status(400).json({error:'Valid service request status and notes are required.'});
+ const {data,error}=await db.from('upec_service_requests').update({status,staff_notes:notes,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Request not found.'});res.json({request:data});
+}));
 export default router;
