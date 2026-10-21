@@ -1,16 +1,48 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Camera,UploadCloud,UserRound,ShieldCheck,CheckCircle2,AlertCircle,X} from 'lucide-react';
+import {Camera,ImagePlus,UserRound,Check,X,RotateCcw} from 'lucide-react';
 import {getStudentToken} from '../context/AuthContext';
 const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
 export default function StudentPhotoUpload(){
- const input=useRef<HTMLInputElement>(null);
- const [preview,setPreview]=useState<string|null>(null);
- const [photo,setPhoto]=useState<string|null>(null),[file,setFile]=useState<File|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- useEffect(()=>{if(!file){setPreview(null);return;}const url=URL.createObjectURL(file);setPreview(url);return ()=>URL.revokeObjectURL(url);},[file]);
-
- const api=async(path:string,body?:object)=>{const token=getStudentToken();if(!token)throw Error('Please sign in.');const r=await fetch(base+'/api/student/profile/photo'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();if(!r.ok)throw Error(d.error||'Photograph operation failed');return d;};
+ const camera=useRef<HTMLInputElement>(null),gallery=useRef<HTMLInputElement>(null);
+ const [file,setFile]=useState<File|null>(null),[photo,setPhoto]=useState<string|null>(null),[preview,setPreview]=useState<string|null>(null);
+ const [chooser,setChooser]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const api=async(path:string,body?:object)=>{
+  const token=getStudentToken();if(!token)throw Error('Please sign in again.');
+  const res=await fetch(base+'/api/student/profile/photo'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  const data=await res.json();if(!res.ok)throw Error(data.error||'Photo request failed.');return data;
+ };
  useEffect(()=>{void api('').then(r=>setPhoto(r.url)).catch(e=>setError(e.message));},[]);
- const select=(f?:File)=>{setError('');setNotice('');if(!f)return;if(!['image/jpeg','image/png'].includes(f.type)||f.size>5242880||f.size===0){setError('Choose a JPG or PNG image, maximum 5 MB.');return;}setFile(f);};
- const upload=async()=>{if(!file)return;setLoading(true);setError('');try{const data=await api('/upload-url',{mimeType:file.type,sizeBytes:file.size});const result=await fetch(data.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});if(!result.ok)throw Error('Upload failed. Try again.');await api('/confirm',{path:data.path,mimeType:file.type});const saved=await api('');setPhoto(saved.url);setFile(null);if(input.current)input.current.value='';setNotice('Recent photograph saved securely.');}catch(e){setError(e instanceof Error?e.message:'Unable to upload photograph');}finally{setLoading(false);}};
- return <section className="min-w-0 overflow-hidden rounded-[24px] border border-[#dce3ef] bg-white shadow-[0_12px_36px_rgba(17,26,67,.07)]" aria-label="Recent student photograph"><header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9edf5] bg-gradient-to-r from-[#f4f7ff] to-[#fff8f8] p-5 sm:p-7"><div><p className="text-[11px] font-extrabold uppercase tracking-[.15em] text-[#c62839]">Student identity</p><h3 className="mt-1 text-xl font-extrabold text-[#111A43]">Recent Student Photograph</h3><p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Upload a recent, clear photograph with your full face visible, good lighting and no excessive filters.</p></div><span className="inline-flex items-center gap-2 rounded-full border border-[#dae4f0] bg-white px-3 py-2 text-xs font-bold text-[#111A43]"><ShieldCheck size={15} className="text-emerald-600"/>Private student record</span></header><div className="grid gap-6 p-5 sm:grid-cols-[160px_minmax(0,1fr)] sm:p-7"><div className="flex aspect-[4/5] w-40 max-w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-[#dce4f0] bg-[#f5f7fc] text-[#8393b0] shadow-inner">{preview||photo?<img src={preview||photo||''} alt={preview?'Selected photograph preview':'Your current student photograph'} className="h-full w-full object-cover"/>:<UserRound size={58} strokeWidth={1.3}/>}</div><div className="min-w-0"><div role="button" tabIndex={0} aria-label="Choose or drop a recent student photograph" onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.current?.click();}}} onClick={()=>input.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();select(e.dataTransfer.files[0]);}} className="group cursor-pointer rounded-2xl border-2 border-dashed border-[#abbcd8] bg-[#f8faff] p-5 text-center outline-none transition-all duration-300 hover:border-[#c62839] hover:bg-[#fff8f8] focus-visible:ring-4 focus-visible:ring-[#d5a75b]/40"><span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-white text-[#c62839] shadow-sm transition-transform group-hover:-translate-y-1"><Camera size={23}/></span><p className="mt-3 text-sm font-extrabold text-[#111A43]">Drop a photo or choose from your device</p><p className="mt-1 text-xs text-slate-500">JPG / PNG · Maximum 5 MB · Camera or gallery supported where available</p><input ref={input} className="sr-only" aria-label="Choose recent student photograph" accept="image/jpeg,image/png" type="file" onChange={e=>select(e.target.files?.[0])}/></div>{file&&<div className="mt-3 flex items-center gap-3 rounded-xl border border-[#dce4f0] bg-white p-3"><p className="min-w-0 flex-1 truncate text-xs font-semibold text-[#111A43]">{file.name}</p><button type="button" aria-label="Remove selected photo" onClick={()=>{setFile(null);if(input.current)input.current.value='';}} className="rounded-lg p-2 text-slate-600 transition hover:bg-[#fff0f2] hover:text-[#c62839]"><X size={16}/></button></div>}<button type="button" onClick={()=>void upload()} disabled={!file||loading} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c62839] px-5 py-3 font-bold text-white shadow-lg shadow-[#c62839]/20 transition duration-200 hover:-translate-y-0.5 hover:bg-[#aa1f2e] disabled:opacity-50"><UploadCloud size={18}/>{loading?'Uploading securely…':photo?'Update photograph':'Save photograph'}</button>{error&&<p role="alert" className="mt-3 flex gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-800"><AlertCircle size={17}/>{error}</p>}{notice&&<p role="status" className="mt-3 flex gap-2 rounded-xl bg-green-50 p-3 text-sm text-green-800"><CheckCircle2 size={17}/>{notice}</p>}</div></div></section>;
+ useEffect(()=>{if(!file){setPreview(null);return;}const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url);},[file]);
+ const select=(next?:File)=>{setError('');if(!next)return;if(!['image/png','image/jpeg'].includes(next.type)||next.size===0||next.size>5242880){setError('Select a JPG or PNG photo smaller than 5 MB.');return;}setFile(next);setChooser(false);};
+ const save=async()=>{if(!file)return;setSaving(true);setError('');try{
+  const signed=await api('/upload-url',{mimeType:file.type,sizeBytes:file.size});
+  const uploaded=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});if(!uploaded.ok)throw Error('Photo transfer failed. Please retry.');
+  await api('/confirm',{path:signed.path,mimeType:file.type});const updated=await api('');
+  setPhoto(updated.url);setFile(null);setNotice('Profile photograph updated.');
+ }catch(e){setError(e instanceof Error?e.message:'Unable to save photo.');}finally{setSaving(false);}};
+ return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="passport-heading">
+  <h3 id="passport-heading" className="text-lg font-bold text-[#111A43]">Passport photograph</h3>
+  <p className="mt-1 text-sm text-slate-500">Tap your photograph to take a picture or select one from your gallery.</p>
+  <div className="mt-5 flex flex-wrap items-center gap-5">
+   <button type="button" aria-label="Change passport photograph" onClick={()=>setChooser(v=>!v)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();select(e.dataTransfer.files[0]);}} className="group relative flex h-40 w-32 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-[#c3cee2] bg-slate-50 outline-none transition duration-300 hover:border-[#c62839] focus-visible:ring-4 focus-visible:ring-red-200">
+    {preview||photo?<img src={preview||photo||''} alt="Passport photograph" className="h-full w-full object-cover"/>:<UserRound size={46} className="text-slate-400"/>}
+    <span className="absolute bottom-2 right-2 rounded-full bg-[#c62839] p-2 text-white shadow"><Camera size={15}/></span>
+   </button>
+   <div className="min-w-0 flex-1">
+    {chooser&&<div className="flex flex-wrap gap-3">
+      <button type="button" onClick={()=>camera.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-[#111A43] hover:bg-slate-50"><Camera size={18}/>Take photo</button>
+      <button type="button" onClick={()=>gallery.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-[#111A43] hover:bg-slate-50"><ImagePlus size={18}/>Choose from gallery</button>
+    </div>}
+    {file&&<div className="space-y-3"><p className="text-sm font-semibold text-[#111A43]">Preview your selected photo before saving.</p><div className="flex flex-wrap gap-2">
+      <button type="button" disabled={saving} onClick={()=>void save()} className="inline-flex items-center gap-2 rounded-xl bg-[#c62839] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Check size={16}/>{saving?'Saving...':'Use this photo'}</button>
+      <button type="button" onClick={()=>{setFile(null);setChooser(true);}} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold"><RotateCcw size={16}/>Retake / change</button>
+      <button type="button" aria-label="Cancel photo change" onClick={()=>{setFile(null);setChooser(false);}} className="rounded-xl p-2 text-slate-500"><X size={18}/></button>
+    </div></div>}
+    {!file&&!chooser&&<button type="button" onClick={()=>setChooser(true)} className="text-sm font-bold text-[#c62839] underline">Change passport photograph</button>}
+   </div>
+  </div>
+  <input ref={camera} type="file" capture="user" accept="image/png,image/jpeg" className="sr-only" onChange={e=>select(e.target.files?.[0])}/>
+  <input ref={gallery} type="file" accept="image/png,image/jpeg" className="sr-only" onChange={e=>select(e.target.files?.[0])}/>
+  {error&&<p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}{notice&&<p className="mt-4 text-sm text-emerald-700" role="status">{notice}</p>}
+ </section>;
 }
