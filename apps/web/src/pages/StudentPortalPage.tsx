@@ -1,6 +1,7 @@
 import StudentNotifications from '../portal/StudentNotifications';
 import AdditionalServices from '../portal/AdditionalServices';
 import StudentApplicationRegister from '../portal/StudentApplicationRegister';
+import StudentHostelRequests from '../portal/StudentHostelRequests';
 import ExtraServices from '../portal/ExtraServices';
 import CommonApplicationForm from '../portal/CommonApplicationForm';
 import ConductAcknowledgement from '../portal/ConductAcknowledgement';
@@ -450,6 +451,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'applications' && (
           <div className="space-y-6">
             <StudentApplicationRegister/>
+            <StudentHostelRequests/>
             <AdditionalServices/>
             <ExtraServices/>
             <CommonApplicationForm/>
