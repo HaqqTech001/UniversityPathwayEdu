@@ -135,4 +135,4 @@ h1, h2, h3, h4, p {
 .upec-utility-ticker__group{display:flex;align-items:center;flex:none;gap:2rem;padding-right:2rem}
 @keyframes upec-utility-scroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 .upec-utility-ticker:hover{animation-play-state:paused}
-@media(prefers-reduced-motion:reduce){.upec-utility-ticker{animation:none;max-width:100%;overflow-x:auto}}
+@media(prefers-reduced-motion:reduce){.upec-utility-ticker{animation:none;max-width:100%;overflow:hidden}}
