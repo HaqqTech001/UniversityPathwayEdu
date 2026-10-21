@@ -276,4 +276,21 @@ router.get('/finance/monthly-fees',wrap(async(req,res)=>{
  if(error)throw error;
  res.json({fees:data||[]});
 }));
+router.get('/services',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn').eq('active',true).order('name');
+ if(error)throw error;res.json({services:data||[]});
+}));
+router.get('/services/requests',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_service_requests').select('id,service_code,delivery_mode,requested_subject,preferred_schedule,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({requests:data||[]});
+}));
+router.post('/services/requests',wrap(async(req,res)=>{
+ const {serviceCode,deliveryMode,requestedSubject,preferredSchedule}=req.body||{};
+ if(!['extramural_lessons','educational_consultation'].includes(serviceCode)||!['online','physical'].includes(deliveryMode)||typeof requestedSubject!=='string'||requestedSubject.trim().length<3||requestedSubject.length>500||typeof preferredSchedule!=='string'||preferredSchedule.length>500)return res.status(400).json({error:'Enter a service, mode, request description and preferred schedule.'});
+ const available=await db.from('upec_service_catalogue').select('active,allow_online,allow_physical').eq('code',serviceCode).maybeSingle();
+ if(available.error)throw available.error;
+ if(!available.data?.active||!(deliveryMode==='online'?available.data.allow_online:available.data.allow_physical))return res.status(409).json({error:'This service or delivery mode is currently unavailable.'});
+ const {data,error}=await db.from('upec_service_requests').insert({student_account_id:req.actor.sub,service_code:serviceCode,delivery_mode:deliveryMode,requested_subject:requestedSubject.trim(),preferred_schedule:preferredSchedule.trim()}).select('id,status,created_at').single();
+ if(error)throw error;res.status(201).json({request:data});
+}));
 export default router;
