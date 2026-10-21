@@ -137,6 +137,11 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       setAuthMode('email-verify');
       setResendSeconds(60);
       setAuthSuccess('Account registered. Check your email for your six-digit verification code.');
+    } else if (res.error?.includes('Account created but email delivery failed')) {
+      setVerificationEmail(regEmail);
+      setAuthMode('email-verify');
+      setResendSeconds(60);
+      setAuthError('Your account was created, but the verification email could not be sent. Wait one minute, then select Resend verification code. Do not create another account.');
     } else {
       setAuthError(res.error || 'Failed to create student account. Please review fields.');
     }
