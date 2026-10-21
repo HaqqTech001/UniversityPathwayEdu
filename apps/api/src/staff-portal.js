@@ -203,18 +203,26 @@ router.get('/services/requests',permit('applications.read'),wrap(async(req,res)=
 }));
 router.patch('/services/requests/:id',permit('applications.review'),wrap(async(req,res)=>{
  const {status,notes}=req.body||{};
- if(!['reviewing','confirmed','completed','declined'].includes(status)||typeof notes!=='string'||notes.length>1000)return res.status(400).json({error:'Valid service request status and notes are required.'});
- const {data,error}=await db.from('upec_service_requests').update({status,staff_notes:notes,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('id,status').maybeSingle();
- if(error)throw error;if(!data)return res.status(404).json({error:'Request not found.'});res.json({request:data});
-}));
-router.get('/services/requests',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_requests').select('id,student_account_id,service_code,delivery_mode,requested_subject,preferred_schedule,status,staff_notes,created_at').order('created_at',{ascending:false}).limit(100);
- if(error)throw error;res.json({requests:data||[]});
-}));
-router.patch('/services/requests/:id',permit('applications.review'),wrap(async(req,res)=>{
- const {status,notes}=req.body||{};
  if(!['reviewing','confirmed','completed','declined'].includes(status)||typeof notes!=='string'||notes.length>1000)return res.status(400).json({error:'Invalid service review.'});
  const {data,error}=await db.from('upec_service_requests').update({status,staff_notes:notes.trim(),updated_at:new Date().toISOString()}).eq('id',req.params.id).select('id,status,staff_notes').maybeSingle();
  if(error)throw error;if(!data)return res.status(404).json({error:'Request not found.'});res.json({request:data});
+}));
+router.get('/services/fees',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_service_fee_rates').select('service_code,delivery_mode,amount_ngn,effective_from').order('effective_from',{ascending:false}).limit(100);
+ if(error)throw error;res.json({rates:data||[]});
+}));
+router.post('/services/fees',permit('finance.manage'),wrap(async(req,res)=>{
+ const {serviceCode,deliveryMode,amountNgn,effectiveFrom}=req.body||{};
+ if(!['extramural_lessons','educational_consultation'].includes(serviceCode)||!['online','physical'].includes(deliveryMode)||typeof amountNgn!=='number'||!Number.isFinite(amountNgn)||amountNgn<0||!Number.isInteger(amountNgn*100)||typeof effectiveFrom!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom))return res.status(400).json({error:'Valid service, delivery method, fee and effective date required.'});
+ const {data,error}=await db.from('upec_service_fee_rates').insert({service_code:serviceCode,delivery_mode:deliveryMode,amount_ngn:amountNgn,effective_from:effectiveFrom,created_by:req.actor.sub}).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'A fee already exists for that service and effective date.'});
+ if(error)throw error;res.status(201).json({rate:data});
+}));
+router.patch('/services/requests/:id/schedule',permit('applications.review'),wrap(async(req,res)=>{
+ const {startAt,endAt,location,staffAccountId}=req.body||{};
+ const start=new Date(startAt),end=new Date(endAt);
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start.getTime()>=end.getTime()||typeof location!=='string'||location.trim().length<3||location.length>500||(staffAccountId!==null&&staffAccountId!==undefined&&!/^[0-9a-f-]{36}$/i.test(staffAccountId)))return res.status(400).json({error:'Valid appointment start, end and meeting details required.'});
+ const {data,error}=await db.from('upec_service_requests').update({scheduled_at:start.toISOString(),scheduled_end_at:end.toISOString(),session_location:location.trim(),assigned_staff_id:staffAccountId||null,status:'confirmed',updated_at:new Date().toISOString()}).eq('id',req.params.id).in('status',['pending','reviewing','confirmed']).select('id,status,scheduled_at,scheduled_end_at,session_location').maybeSingle();
+ if(error)throw error;if(!data)return res.status(409).json({error:'Request unavailable for scheduling.'});res.json({request:data});
 }));
 export default router;
