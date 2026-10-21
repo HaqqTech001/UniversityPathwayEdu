@@ -317,4 +317,8 @@ router.post('/services/requests',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_service_requests').insert({student_account_id:req.actor.sub,service_code:serviceCode,delivery_mode:deliveryMode,requested_subject:requestedSubject.trim(),preferred_schedule:preferredSchedule.trim()}).select('id,status').single();
  if(error)throw error;res.status(201).json({request:data});
 }));
+router.get('/hostel/requests',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_hostel_requests').select('id,application_id,status,staff_note,accommodation_detail,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(50);
+ if(error)throw error;res.json({requests:data||[]});
+}));
 export default router;
