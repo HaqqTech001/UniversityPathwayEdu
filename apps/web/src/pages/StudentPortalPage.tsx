@@ -568,133 +568,21 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'documents' && (
           <div className="space-y-6">
             <StudentLearningResources />
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="font-serif text-lg font-bold text-[#0b1a42]">
-                  Official Documents &amp; Clearance Slips
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Download or print your institutional registration verification slip for classroom and CBT lab admission.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
-              >
-                <Printer size={15} />
-                <span>Print Registration Slip</span>
-              </button>
-            </div>
-
-            {/* Official Registration Slip Preview */}
-            <div className="bg-white rounded-3xl border-2 border-slate-200 p-8 shadow-md print:shadow-none print:border-none print:p-0">
-              {/* Slip Header */}
-              <div className="border-b-2 border-[#0b1a42] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-[#0b1a42] text-white flex items-center justify-center font-bold shrink-0">
-                    <GraduationCap size={28} className="text-[#f0bb5b]" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#c62839] block">
-                      OFFICIAL ADMISSION CLEARANCE SLIP
-                    </span>
-                    <h3 className="font-serif text-xl sm:text-2xl font-black text-[#0b1a42]">
-                      University Pathway Educational Consult
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State • 09133903600
-                    </p>
-                  </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="application-slip-heading">
+              <h2 id="application-slip-heading" className="font-serif text-xl font-bold text-[#111A43]">Application Documents</h2>
+              <p className="mt-2 text-sm text-slate-600">Documents are linked to your actual application ID. Unverified registration or clearance slips are not issued.</p>
+              {currentUser.application?.id ? (
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-xs font-bold uppercase text-slate-500">Application ID</p>
+                  <p className="mt-1 break-all font-mono text-sm font-bold text-[#111A43]">{currentUser.application.referenceNumber || currentUser.application.id}</p>
+                  <p className="mt-3 text-sm text-slate-700">Programme: {currentUser.application.programme}</p>
+                  <p className="mt-1 text-sm text-slate-700">Status: {currentUser.application.status.replaceAll('_',' ')}</p>
+                  <p className="mt-3 text-sm text-amber-800">An official registration or clearance slip becomes available only when application requirements, payment evidence and institutional verification are complete. No clearance has been issued yet.</p>
                 </div>
-
-                <div className="text-right sm:border-l border-slate-200 sm:pl-6 text-xs">
-                  <p className="font-mono text-slate-400 text-[10px]">SLIP REFERENCE</p>
-                  <p className="font-mono font-bold text-sm text-[#0b1a42]">
-                    {currentUser.regNumber}
-                  </p>
-                  <span className="inline-block mt-1 px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    VALID 2024/2025
-                  </span>
-                </div>
-              </div>
-
-              {/* Slip Body Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-slate-200">
-                <div className="md:col-span-2 space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Full Name</span>
-                      <p className="font-bold text-[#0b1a42] text-sm">{currentUser.fullName}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Registration Number</span>
-                      <p className="font-mono font-bold text-[#0b1a42]">{currentUser.regNumber}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Enrolled Programme</span>
-                      <p className="font-bold text-[#0b1a42]">JAMB (UTME) Intensive Coaching</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Study Cohort</span>
-                      <p className="font-bold text-[#0b1a42]">Batch A — Morning Sessions</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Study Centre</span>
-                      <p className="font-bold text-[#0b1a42]">Sawmill Main Campus, Hall A</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Primary Contact</span>
-                      <p className="font-bold text-[#0b1a42]">{currentUser.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
-                      Registered Examination Subjects
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {['Use of English', 'Biology', 'Chemistry', 'Physics'].map((subj) => (
-                        <span
-                          key={subj}
-                          className="px-3 py-1 rounded-lg bg-slate-100 font-bold text-[#0b1a42] text-xs"
-                        >
-                          {subj}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Candidate Photo / Verification box */}
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50/50">
-                  <div className="w-24 h-24 rounded-2xl bg-[#0b1a42] text-white flex items-center justify-center font-serif text-3xl font-black mb-3 shadow-md">
-                    {currentUser.biodata.firstName[0]}
-                    {currentUser.biodata.surname[0]}
-                  </div>
-                  <p className="text-xs font-bold text-[#0b1a42]">{currentUser.fullName}</p>
-                  <p className="text-[10px] font-mono text-slate-500 mt-0.5">{currentUser.regNumber}</p>
-                  <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-emerald-700">
-                    <ShieldCheck size={14} />
-                    <span>Clearance Verified</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slip Notice & Instructions */}
-              <div className="pt-6 text-[11px] text-slate-500 space-y-2">
-                <p className="font-bold text-[#0b1a42] uppercase text-[10px]">
-                  Institutional Regulations &amp; Attendance Notice:
-                </p>
-                <p>
-                  1. Candidates must present this signed slip alongside valid identification when accessing lecture halls and Saturday computerized mock examinations.
-                </p>
-                <p>
-                  2. Attendance is checked electronically at the entrance; 80% minimum attendance is required for institution-backed mock certification.
-                </p>
-              </div>
-            </div>
+              ) : (
+                <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Complete and submit your application to obtain an Application ID before requesting an official document.</p>
+              )}
+            </section>
           </div>
         )}
 
