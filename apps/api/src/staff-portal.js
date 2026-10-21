@@ -298,4 +298,25 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
  const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()}).select('id,author_role,body,created_at').single();
  if(error)throw error;res.status(201).json({message:data});
 }));
+
+// External examination records are entered by authorized staff only after official registration.
+router.get('/exam-registrations',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_exam_registrations').select('id,student_account_id,exam_body,exam_year,registration_number,examination_number,centre_name,exam_date,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({registrations:data||[]});
+}));
+router.post('/exam-registrations',permit('applications.review'),wrap(async(req,res)=>{
+ const {studentAccountId,examBody,examYear,registrationNumber,examinationNumber,centreName,examDate}=req.body||{};
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(studentAccountId||'')||!['JAMB','WAEC','IJMB'].includes(examBody)||!Number.isInteger(examYear)||examYear<2020||examYear>2100||typeof registrationNumber!=='string'||registrationNumber.trim().length<4||registrationNumber.length>100)return res.status(400).json({error:'Invalid external examination registration details.'});
+ if(examDate&& !/^\\d{4}-\\d{2}-\\d{2}$/.test(examDate))return res.status(400).json({error:'Invalid exam date.'});
+ const {data:account,error:accountError}=await db.from('local_accounts').select('id').eq('id',studentAccountId).maybeSingle();
+ if(accountError)throw accountError;if(!account)return res.status(404).json({error:'Student account not found.'});
+ const {data,error}=await db.from('upec_exam_registrations').insert({student_account_id:studentAccountId,exam_body:examBody,exam_year:examYear,registration_number:registrationNumber.trim(),examination_number:String(examinationNumber||'').trim()||null,centre_name:String(centreName||'').trim()||null,exam_date:examDate||null,recorded_by:req.actor.sub}).select('id,status').single();
+ if(error?.code==='23505')return res.status(409).json({error:'This exam registration number is already recorded for that examination and year.'});
+ if(error)throw error;res.status(201).json({registration:data});
+}));
+router.patch('/exam-registrations/:id/verify',permit('applications.review'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+ const {data,error}=await db.from('upec_exam_registrations').update({status:'verified',verified_by:req.actor.sub,verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',req.params.id).eq('status','pending_verification').select('id,status').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Pending record not found.'});res.json({registration:data});
+}));
 export default router;
