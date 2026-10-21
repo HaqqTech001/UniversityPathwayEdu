@@ -231,12 +231,14 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         @keyframes upecPromoSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
         @keyframes upecFormSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
         @keyframes upecFormSwitchRight { from { transform: translateX(-72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
+        .auth-stage { animation: upecStageAppear 1000ms cubic-bezier(.22,1,.36,1) both; }
+        @keyframes upecStageAppear { from { opacity: 0; transform: translateY(20px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @media (min-width: 768px) {
-          .auth-promo-panel { animation: upecPromoEnter 650ms cubic-bezier(.22,1,.36,1) both; }
-          .auth-form-panel { animation: upecFormEnter 650ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-promo-panel { animation: upecPromoSwitchRight 650ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-form-panel { animation: upecFormSwitchLeft 650ms cubic-bezier(.22,1,.36,1) both; }
+          .auth-promo-panel { animation: upecPromoEnter 1000ms cubic-bezier(.22,1,.36,1) both; }
+          .auth-form-panel { animation: upecFormEnter 1000ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-promo-panel { animation: upecPromoSwitchRight 1000ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-form-panel { animation: upecFormSwitchLeft 1000ms cubic-bezier(.22,1,.36,1) both; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .auth-promo-panel, .auth-form-panel { animation: none !important; transition: none !important; }
+          .auth-stage, .auth-promo-panel, .auth-form-panel { animation: none !important; transition: none !important; }
         }
       `}</style>
       {/* Main Authentication Composition Matching Approved Mockup */}
