@@ -5,8 +5,9 @@ const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/
 export default function StudentPhotoUpload(){
  const input=useRef<HTMLInputElement>(null);
  const [preview,setPreview]=useState<string|null>(null);
- useEffect(()=>{if(!file){setPreview(null);return;}const url=URL.createObjectURL(file);setPreview(url);return ()=>URL.revokeObjectURL(url);},[file]);
  const [photo,setPhoto]=useState<string|null>(null),[file,setFile]=useState<File|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ useEffect(()=>{if(!file){setPreview(null);return;}const url=URL.createObjectURL(file);setPreview(url);return ()=>URL.revokeObjectURL(url);},[file]);
+
  const api=async(path:string,body?:object)=>{const token=getStudentToken();if(!token)throw Error('Please sign in.');const r=await fetch(base+'/api/student/profile/photo'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();if(!r.ok)throw Error(d.error||'Photograph operation failed');return d;};
  useEffect(()=>{void api('').then(r=>setPhoto(r.url)).catch(e=>setError(e.message));},[]);
  const select=(f?:File)=>{setError('');setNotice('');if(!f)return;if(!['image/jpeg','image/png'].includes(f.type)||f.size>5242880||f.size===0){setError('Choose a JPG or PNG image, maximum 5 MB.');return;}setFile(f);};
