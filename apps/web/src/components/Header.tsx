@@ -213,9 +213,12 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               handleLinkClick('/');
             }}
-            className="shrink-0 transition-opacity hover:opacity-95"
+            className="shrink-0 transition-opacity hover:opacity-95 w-65 "
           >
-            <UniversityPathwayLogo variant="header" />
+            {/* <UniversityPathwayLogo variant="header" /> */}
+            <img src="./images/pathway-logos/pathway-header.png" alt="" width="100%" height="100%" />
+
+            
           </a>
 
           {/* Desktop Navigation Links */}
@@ -320,7 +323,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
           LEFT-SIDE NAVIGATION DRAWER & BACKDROP OVERLAY
           ========================================================================= */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+        <div className="fixed inset-0 z-50  flex lg:hidden" role="dialog" aria-modal="true" aria-label="Mobile navigation">
           {/* Dark Semi-Transparent Backdrop */}
           <div
             className="fixed inset-0 bg-[#060f26]/70 backdrop-blur-xs transition-opacity animate-backdrop-fade-in"
