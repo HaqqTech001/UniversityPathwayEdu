@@ -531,6 +531,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   <UserPlus size={16} />
                   <span>{authLoading ? 'Creating Account...' : 'Create Account'}</span>
                 </button>
+                {authLoading&&<p role="status" className="rounded-xl border border-[#dce4ef] bg-[#f7f9ff] p-3 text-xs leading-6 text-[#111A43]">Contacting UPEC securely… This may take a moment. If the server does not respond, we’ll stop waiting and show you how to retry. Please avoid submitting twice.</p>}
               </form>
             )}
 
