@@ -55,7 +55,7 @@ router.post('/register',wrap(async(req,res)=>{
   const password_hash=await hashPassword(password);
   const {data,error}=await db.from('local_accounts').insert({email,full_name:fullName.trim(),phone:phone.trim(),password_hash}).select('id,email').single();
   if(error){if(error.code==='23505')return respond(res,409,'Email already registered');throw error;}
-  try{await issueCode(data,'signup');}catch(err){console.error('Registration email delivery failed',err);return respond(res,503,'Account created but email delivery failed. Try resending later.');}
+  try{await issueCode(data,'signup');}catch(err){console.error('Registration email delivery failed',err);return res.status(202).json({message:'Account created. Verification email could not be delivered yet; please request another code from the verification screen.',emailPending:true});}
   res.status(201).json({message:'Verification code sent'});
 }));
 router.post('/resend',wrap(async(req,res)=>{
