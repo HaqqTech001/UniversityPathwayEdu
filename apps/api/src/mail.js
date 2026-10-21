@@ -1,13 +1,16 @@
 import nodemailer from 'nodemailer';
 
+const transportTimeouts={connectionTimeout:8000,greetingTimeout:8000,socketTimeout:12000};
 const providers = {
   gmail: () => ({
+    ...transportTimeouts,
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
     auth: { user: required('GMAIL_USER'), pass: required('GMAIL_APP_PASSWORD') },
   }),
   smtp: () => ({
+    ...transportTimeouts,
     host: required('SMTP_HOST'),
     port: Number(process.env.SMTP_PORT || 465),
     secure: process.env.SMTP_SECURE !== 'false',
