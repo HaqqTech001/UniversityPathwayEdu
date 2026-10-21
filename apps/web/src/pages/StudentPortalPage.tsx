@@ -1,5 +1,5 @@
 import StudentNotifications from '../portal/StudentNotifications';
-import StudentCodeOfConduct from '../components/StudentCodeOfConduct';
+import ConductAcknowledgement from '../portal/ConductAcknowledgement';
 import StudentMonthlyFees from '../portal/StudentMonthlyFees';
 import GuardianContact from '../portal/GuardianContact';
 import StudentNotices from '../portal/StudentNotices';
@@ -714,7 +714,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
-        {dashboardTab === 'profile' && <><GuardianContact/><StudentMonthlyFees/><StudentCodeOfConduct/></>}
+        {dashboardTab === 'profile' && <><GuardianContact/><StudentMonthlyFees/><ConductAcknowledgement/></>}
         {dashboardTab === 'notices' && <div className="space-y-6"><StudentNotifications/><StudentNotices/></div>}
 
         {/* Account settings */}
