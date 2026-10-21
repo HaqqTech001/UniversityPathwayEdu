@@ -271,14 +271,16 @@ router.post('/applications',wrap(async(req,res)=>{
  if(!Array.isArray(formData.educationHistory)||formData.educationHistory.length<1||formData.educationHistory.length>8||formData.educationHistory.some(x=>!x||typeof x.school!=='string'||!x.school.trim()||typeof x.qualification!=='string'||!x.qualification.trim()))return res.status(400).json({error:'At least one valid education history record is required.'});
  if(formData.declarationAccepted!==true)return res.status(400).json({error:'You must confirm the accuracy of your application before submission.'});
  if(!Array.isArray(formData.universityPreferences)||formData.universityPreferences.length<1||formData.universityPreferences.length>3||formData.universityPreferences.some(x=>typeof x?.institution!=='string'||x.institution.trim().length<2||typeof x?.course!=='string'||x.course.trim().length<2))return res.status(400).json({error:'Provide at least one valid institution and intended course.'});
- if(!Array.isArray(formData.selectedSubjects)||formData.selectedSubjects.length<1||formData.selectedSubjects.length>8||formData.selectedSubjects.some(x=>typeof x!=='string'||!x.trim()||x.length>100))return res.status(400).json({error:'Select valid subject preferences.'});
+ if(!Array.isArray(formData.selectedSubjects)||formData.selectedSubjects.length<0||formData.selectedSubjects.length>8||formData.selectedSubjects.some(x=>typeof x!=='string'||!x.trim()||x.length>100))return res.status(400).json({error:'Select valid subject preferences.'});
+ const canDeferSubjects=['IJMB','WAEC'].includes(programme.toUpperCase());
+ if(!canDeferSubjects&&formData.selectedSubjects.length===0)return res.status(400).json({error:'Select your programme subjects.'});
  const programmeRecord=await db.from('upec_academic_programmes').select('id').eq('code',programme).eq('active',true).maybeSingle();
  if(programmeRecord.error)throw programmeRecord.error;
  if(!programmeRecord.data)return res.status(409).json({error:'Programme is not currently available.'});
  const subjectRecords=await db.from('upec_academic_subjects').select('code').eq('programme_id',programmeRecord.data.id).eq('active',true);
  if(subjectRecords.error)throw subjectRecords.error;
  const available=new Set((subjectRecords.data||[]).map(x=>x.code));
- if(available.size===0)return res.status(409).json({error:'Subject choices for this programme have not been configured by UPEC.'});
+ if(available.size===0&&(!canDeferSubjects||formData.selectedSubjects.length>0))return res.status(409).json({error:'Subject choices for this programme have not been configured by UPEC.'});
  if(formData.selectedSubjects.some(code=>!available.has(code))||new Set(formData.selectedSubjects).size!==formData.selectedSubjects.length)return res.status(400).json({error:'Choose distinct subjects approved for the selected programme.'});
  const subjects=formData.selectedSubjects;
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
@@ -292,8 +294,24 @@ router.post('/applications',wrap(async(req,res)=>{
  }
  res.status(201).json({application:data});
 }));
+router.patch('/applications/:id/subjects',wrap(async(req,res)=>{
+ const {selectedSubjects}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!Array.isArray(selectedSubjects)||selectedSubjects.length<1||selectedSubjects.length>8||selectedSubjects.some(x=>typeof x!=='string'||!x.trim()))return res.status(400).json({error:'Choose valid subjects.'});
+ const existing=await db.from('local_student_applications').select('id,programme,status,form_data,subjects').eq('id',req.params.id).eq('account_id',req.actor.sub).maybeSingle();
+ if(existing.error)throw existing.error;
+ if(!existing.data)return res.status(404).json({error:'Application not found.'});
+ if(!['IJMB','WAEC'].includes(existing.data.programme.toUpperCase())||['rejected'].includes(existing.data.status))return res.status(409).json({error:'Subject selection cannot be updated for this application.'});
+ if(Array.isArray(existing.data.subjects)&&existing.data.subjects.length)return res.status(409).json({error:'Subjects already selected; contact admissions to request a change.'});
+ const programmeRecord=await db.from('upec_academic_programmes').select('id').eq('code',existing.data.programme).maybeSingle();
+ if(programmeRecord.error)throw programmeRecord.error;if(!programmeRecord.data)return res.status(409).json({error:'Programme not configured.'});
+ const available=await db.from('upec_academic_subjects').select('code').eq('programme_id',programmeRecord.data.id).eq('active',true);
+ if(available.error)throw available.error;const codes=new Set((available.data||[]).map(x=>x.code));
+ if(new Set(selectedSubjects).size!==selectedSubjects.length||selectedSubjects.some(x=>!codes.has(x)))return res.status(400).json({error:'Choose distinct approved subjects.'});
+ const {data,error}=await db.from('local_student_applications').update({subjects:selectedSubjects,form_data:{...existing.data.form_data,selectedSubjects}}).eq('id',req.params.id).eq('account_id',req.actor.sub).select('id,subjects').single();
+ if(error)throw error;res.json({application:data});
+}));
 router.get('/applications/list',wrap(async(req,res)=>{
- const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,student_registration_number,submitted_at').eq('account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,student_registration_number,submitted_at,subjects').eq('account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({applications:data||[]});
 }));
 router.get('/finance/monthly-fees',wrap(async(req,res)=>{
