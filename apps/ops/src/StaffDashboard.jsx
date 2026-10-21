@@ -2,6 +2,7 @@ import BlogManager from './BlogManager';
 import ServiceRequests from './ServiceRequests';
 import ServiceFees from './ServiceFees';
 import HostelRequests from './HostelRequests';
+import HostelBeds from './HostelBeds';
 import ProgrammeFees from './ProgrammeFees';
 import FeeBilling from './FeeBilling';
 import StudentEditPermissions from './StudentEditPermissions';
@@ -92,6 +93,7 @@ export default function StaffDashboard({profile,onLogout}){
    {profile.permissions?.includes('finance.manage')&&<><ProgrammeFees/><FeeBilling/></>}
    {canRead&&<ServiceRequests/>}
    {canRead&&<HostelRequests/>}
+   {canReview&&<HostelBeds/>}
    {profile.permissions?.includes('finance.manage')&&<ServiceFees/>}
    {canManageStaff&&<section className="staff-directory"><h2>Staff Directory</h2><p>Memberships are read-only until the secure Super Admin management workflow is completed.</p>{directoryLoading?<p>Loading staff records...</p>:members.length===0?<p>No staff memberships available.</p>:<div className="table-scroll"><table><thead><tr><th>Account ID</th><th>Role</th><th>Access</th></tr></thead><tbody>{members.map(m=><tr key={m.account_id}><td>{m.account_id}</td><td>{m.role?.replaceAll('_',' ')}</td><td>{m.active?'Active':'Disabled'}</td></tr>)}</tbody></table></div>}</section>}
   </section>
