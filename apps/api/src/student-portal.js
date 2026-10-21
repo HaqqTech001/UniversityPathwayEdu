@@ -229,6 +229,16 @@ router.put('/biodata',wrap(async(req,res)=>{
  if(error)throw error;
  res.json({biodata:data});
 }));
+const CONDUCT_VERSION='upec-student-code-2026-10-poster-v1';
+router.get('/conduct/acceptance',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_student_conduct_acceptances').select('accepted_at').eq('student_account_id',req.actor.sub).eq('policy_version',CONDUCT_VERSION).maybeSingle();
+ if(error)throw error;res.json({version:CONDUCT_VERSION,accepted:!!data,acceptedAt:data?.accepted_at||null});
+}));
+router.post('/conduct/acceptance',wrap(async(req,res)=>{
+ if(req.body?.version!==CONDUCT_VERSION||req.body?.accepted!==true)return res.status(400).json({error:'Review and accept the current Code of Conduct.'});
+ const {data,error}=await db.from('upec_student_conduct_acceptances').upsert({student_account_id:req.actor.sub,policy_version:CONDUCT_VERSION},{onConflict:'student_account_id,policy_version',ignoreDuplicates:true}).select('accepted_at').maybeSingle();
+ if(error)throw error;res.json({accepted:true,version:CONDUCT_VERSION,acceptedAt:data?.accepted_at||null});
+}));
 router.post('/applications',wrap(async(req,res)=>{
  const {formData}=req.body||{};
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
@@ -240,6 +250,9 @@ router.post('/applications',wrap(async(req,res)=>{
  const {data:existing,error:existingError}=await db.from('local_student_applications').select('id,status').eq('account_id',req.actor.sub).eq('programme',programme).eq('academic_session',academic_session).limit(1);
  if(existingError)throw existingError;
  if(existing?.length)return res.status(409).json({error:'You have already submitted an application for this programme and session. Check your application status in the student portal.'});
+ const conduct=await db.from('upec_student_conduct_acceptances').select('accepted_at').eq('student_account_id',req.actor.sub).eq('policy_version',CONDUCT_VERSION).maybeSingle();
+ if(conduct.error)throw conduct.error;
+ if(!conduct.data)return res.status(409).json({error:'Please acknowledge the Students’ Code of Conduct before submitting an application.'});
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at').single();
  if(error)throw error;
