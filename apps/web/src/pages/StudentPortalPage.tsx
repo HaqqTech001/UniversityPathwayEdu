@@ -1,3 +1,4 @@
+import StudentSupportChat from '../portal/StudentSupportChat';
 import StudentNotifications from '../portal/StudentNotifications';
 import StudentPhotoUpload from '../portal/StudentPhotoUpload';
 import AdditionalServices from '../portal/AdditionalServices';
@@ -615,7 +616,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
         {dashboardTab === 'profile' && <><GuardianContact/><StudentMonthlyFees/><ConductAcknowledgement/></>}
-        {dashboardTab === 'notices' && <div className="space-y-6"><StudentNotifications/><StudentNotices/></div>}
+        {dashboardTab === 'notices' && <div className="space-y-6"><StudentNotifications/><StudentNotices/><StudentSupportChat/></div>}
 
         {/* Account settings */}
         {dashboardTab === 'settings' && (
