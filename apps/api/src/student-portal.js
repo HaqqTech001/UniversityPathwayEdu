@@ -259,11 +259,37 @@ router.get('/admissions/combinations',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_subject_combinations').select('id,name,subject_codes').eq('programme_id',p.data.id).eq('active',true).order('name');
  if(error)throw error;res.json({combinations:data||[]});
 }));
+// Payment evidence is uploaded before application submission; receipt does not imply approval.
+router.post('/application-payment/upload-url',wrap(async(req,res)=>{
+ const {mimeType,sizeBytes}=req.body||{};
+ if(!['application/pdf','image/png','image/jpeg'].includes(mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>5242880)return res.status(400).json({error:'Choose a PDF, PNG or JPG receipt under 5 MB.'});
+ const ext=mimeType==='application/pdf'?'pdf':mimeType==='image/png'?'png':'jpg';
+ const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+ext;
+ const {data,error}=await db.storage.from('upec-application-payment').createSignedUploadUrl(path);
+ if(error)throw error;res.json({path,signedUrl:data.signedUrl});
+}));
+router.post('/application-payment/confirm',wrap(async(req,res)=>{
+ const {path,mimeType}=req.body||{};
+ if(typeof path!=='string'||!path.startsWith(req.actor.sub+'/')||!['application/pdf','image/png','image/jpeg'].includes(mimeType))return res.status(400).json({error:'Invalid receipt.'});
+ const parts=path.split('/');
+ if(parts.length!==2)return res.status(400).json({error:'Invalid receipt path.'});
+ const {data:files,error:storageError}=await db.storage.from('upec-application-payment').list(parts[0],{search:parts[1],limit:10});
+ if(storageError)throw storageError;
+ const size=Number((files||[]).find(f=>f.name===parts[1])?.metadata?.size);
+ if(!Number.isInteger(size)||size<1||size>5242880)return res.status(409).json({error:'Receipt upload incomplete.'});
+ const {data,error}=await db.from('upec_application_payment_evidence').insert({student_account_id:req.actor.sub,storage_path:path,mime_type:mimeType,file_size_bytes:size,review_status:'pending'}).select('id,review_status').single();
+ if(error)throw error;res.status(201).json({receipt:data});
+}));
 router.post('/applications',wrap(async(req,res)=>{
  const {formData}=req.body||{};
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
  const programme=String(formData.programmeCategory||'').trim(),academic_session=String(formData.preferredSession||'').trim();
  if(!programme||!academic_session)return res.status(400).json({error:'Programme and session are required'});
+ const evidenceId=req.body?.paymentEvidenceId;
+ if(typeof evidenceId!=='string'||! /^[0-9a-f-]{36}$/i.test(evidenceId))return res.status(409).json({error:'Upload your application payment receipt before final submission.'});
+ const evidence=await db.from('upec_application_payment_evidence').select('id,application_id').eq('id',evidenceId).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(evidence.error)throw evidence.error;
+ if(!evidence.data||evidence.data.application_id)return res.status(409).json({error:'A valid, unused payment receipt is required.'});
  if(!['physical','online'].includes(formData.coachingMode))return res.status(400).json({error:'Choose online or physical coaching before submitting your application.'});
  const {data:profile,error:profileError}=await db.from('local_student_biodata').select('completed_at').eq('account_id',req.actor.sub).maybeSingle();
  if(profileError)throw profileError;
@@ -297,6 +323,8 @@ router.post('/applications',wrap(async(req,res)=>{
  const subjects=formData.selectedSubjects;
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
+ const linked=await db.from('upec_application_payment_evidence').update({application_id:data.id}).eq('id',evidenceId).eq('student_account_id',req.actor.sub).is('application_id',null).select('id').maybeSingle();
+ if(linked.error||!linked.data){console.error('Payment evidence link failed',linked.error);return res.status(503).json({error:'Application saved, but receipt linking needs staff review. Keep your Application ID.',applicationId:data.id});}
  if(formData.hostelInterest==='yes'){
   const request=await db.from('upec_hostel_requests').insert({application_id:data.id,student_account_id:req.actor.sub});
   if(request.error){
