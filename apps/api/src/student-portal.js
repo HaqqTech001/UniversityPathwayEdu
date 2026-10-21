@@ -239,6 +239,10 @@ router.post('/conduct/acceptance',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_conduct_acceptances').upsert({student_account_id:req.actor.sub,policy_version:CONDUCT_VERSION},{onConflict:'student_account_id,policy_version',ignoreDuplicates:true}).select('accepted_at').maybeSingle();
  if(error)throw error;res.json({accepted:true,version:CONDUCT_VERSION,acceptedAt:data?.accepted_at||null});
 }));
+router.get('/admissions/programmes',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_academic_programmes').select('code,name,description').eq('active',true).order('name').limit(100);
+ if(error)throw error;res.json({programmes:data||[]});
+}));
 router.post('/applications',wrap(async(req,res)=>{
  const {formData}=req.body||{};
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
