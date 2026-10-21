@@ -25,8 +25,8 @@ export default function UniversityPathwayLogo({
 
   // Determine image asset path based on variant
   const imagePath = isFooter
-    ? '/images/upec_official_horizontal_white.png'
-    : '/images/upec_official_horizontal_dark.png';
+    ? '/images/pathway-logos/pathway-footer.png'
+    : '/images/pathway-logos/pathway-header.png';
 
   // 1. Watermark Variant
   if (isWatermark) {
