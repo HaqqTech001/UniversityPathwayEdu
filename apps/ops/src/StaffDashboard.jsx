@@ -1,3 +1,4 @@
+import SupportInbox from './SupportInbox';
 import BlogManager from './BlogManager';
 import ServiceRequests from './ServiceRequests';
 import ServiceFees from './ServiceFees';
@@ -98,6 +99,7 @@ export default function StaffDashboard({profile,onLogout}){
    {canRead&&<HostelRequests/>}
    {canReview&&<HostelBeds/>}
    {profile.permissions?.includes('finance.manage')&&<ServiceFees/>}
+   {['super_admin','admin','admissions_officer','teacher','content_editor'].includes(profile.role)&&<SupportInbox/>}
    {canManageStaff&&<section className="staff-directory"><h2>Staff Directory</h2><p>Memberships are read-only until the secure Super Admin management workflow is completed.</p>{directoryLoading?<p>Loading staff records...</p>:members.length===0?<p>No staff memberships available.</p>:<div className="table-scroll"><table><thead><tr><th>Account ID</th><th>Role</th><th>Access</th></tr></thead><tbody>{members.map(m=><tr key={m.account_id}><td>{m.account_id}</td><td>{m.role?.replaceAll('_',' ')}</td><td>{m.active?'Active':'Disabled'}</td></tr>)}</tbody></table></div>}</section>}
   </section>
  </main>;
