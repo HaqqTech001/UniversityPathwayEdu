@@ -370,4 +370,29 @@ router.get('/hostel/requests',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_hostel_requests').select('id,application_id,status,staff_note,accommodation_detail,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(50);
  if(error)throw error;res.json({requests:data||[]});
 }));
+router.post('/profile/photo/upload-url',wrap(async(req,res)=>{
+ const {mimeType,sizeBytes}=req.body||{};
+ if(!['image/jpeg','image/png'].includes(mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<=0||sizeBytes>5242880)return res.status(400).json({error:'Upload a JPG or PNG photograph no larger than 5 MB.'});
+ const ext=mimeType==='image/png'?'png':'jpg';
+ const path=req.actor.sub+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+ const {data,error}=await db.storage.from('upec-student-photos').createSignedUploadUrl(path);
+ if(error)throw error;res.json({path,signedUrl:data.signedUrl,mimeType});
+}));
+router.post('/profile/photo/confirm',wrap(async(req,res)=>{
+ const {path,mimeType}=req.body||{};
+ if(typeof path!=='string'||!path.startsWith(req.actor.sub+'/')||!['image/jpeg','image/png'].includes(mimeType))return res.status(400).json({error:'Invalid photograph upload.'});
+ const objectName=path.split('/').pop();
+ const {data:list,error:listError}=await db.storage.from('upec-student-photos').list(req.actor.sub,{search:objectName,limit:20});
+ if(listError)throw listError;
+ const file=(list||[]).find(x=>x.name===objectName);
+ if(!file||Number(file.metadata?.size)<=0||Number(file.metadata?.size)>5242880)return res.status(409).json({error:'Photograph was not uploaded successfully.'});
+ const {error}=await db.from('upec_student_photos').upsert({student_account_id:req.actor.sub,storage_path:path,mime_type:mimeType,uploaded_at:new Date().toISOString()});
+ if(error)throw error;res.json({saved:true});
+}));
+router.get('/profile/photo',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_student_photos').select('storage_path').eq('student_account_id',req.actor.sub).maybeSingle();
+ if(error)throw error;if(!data)return res.json({url:null});
+ const url=await db.storage.from('upec-student-photos').createSignedUrl(data.storage_path,300);
+ if(url.error)throw url.error;res.json({url:url.data.signedUrl});
+}));
 export default router;
