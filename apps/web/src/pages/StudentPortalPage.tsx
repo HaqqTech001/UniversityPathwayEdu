@@ -1,3 +1,4 @@
+import StudentExamRegistrations from '../portal/StudentExamRegistrations';
 import StudentSupportChat from '../portal/StudentSupportChat';
 import StudentNotifications from '../portal/StudentNotifications';
 import StudentPhotoUpload from '../portal/StudentPhotoUpload';
@@ -569,6 +570,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'documents' && (
           <div className="space-y-6">
             <StudentLearningResources />
+            <StudentExamRegistrations />
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="application-slip-heading">
               <h2 id="application-slip-heading" className="font-serif text-xl font-bold text-[#111A43]">Application Documents</h2>
               <p className="mt-2 text-sm text-slate-600">Documents are linked to your actual application ID. Unverified registration or clearance slips are not issued.</p>
