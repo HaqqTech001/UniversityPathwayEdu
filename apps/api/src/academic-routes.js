@@ -239,4 +239,17 @@ router.post('/resources/:id/upload-verify',grant(...questionRoles),wrap(async(re
  if(!file?.metadata||!(Number(file.metadata.size)>0))return res.status(409).json({error:'File upload is incomplete.'});
  res.json({complete:true,resourceId:resource.id,size:Number(file.metadata.size)});
 }));
+router.get('/subject-combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_subject_combinations').select('id,programme_id,name,subject_codes,active').order('name').limit(500);
+ if(error)throw error;res.json({combinations:data||[]});
+}));
+router.post('/subject-combinations',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const {programmeId,combinationName,subjectCodes}=req.body||{};
+ if(!uuid(programmeId)||!name(combinationName)||!Array.isArray(subjectCodes)||subjectCodes.length<1||subjectCodes.length>8||subjectCodes.some(x=>!code(x))||new Set(subjectCodes).size!==subjectCodes.length)return res.status(400).json({error:'Valid programme, combination name and distinct subjects required.'});
+ const {data:subjects,error:subjectError}=await db.from('upec_academic_subjects').select('code').eq('programme_id',programmeId).eq('active',true);
+ if(subjectError)throw subjectError;const allowed=new Set((subjects||[]).map(x=>x.code));
+ if(subjectCodes.some(x=>!allowed.has(x)))return res.status(400).json({error:'All subjects must be active within the chosen programme.'});
+ const {data,error}=await db.from('upec_subject_combinations').insert({programme_id:programmeId,name:combinationName.trim(),subject_codes:subjectCodes}).select('id,name').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Combination name already exists for this programme.'});if(error)throw error;res.status(201).json({combination:data});
+}));
 export default router;
