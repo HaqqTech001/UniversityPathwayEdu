@@ -132,54 +132,14 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
           ========================================================================= */}
       <div className="bg-[#081436] text-white py-1.5 px-3 sm:px-6 md:px-8 border-b border-[#0f2150] h-9 flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between text-[11px] sm:text-[12px] text-slate-200">
-          {/* Left contact info: marquee on mobile, static row on desktop */}
-          <div className="flex-1 overflow-hidden relative mr-4">
-            <div className="sm:hidden overflow-hidden whitespace-nowrap">
-              <div className="animate-marquee text-slate-200 font-medium inline-flex">
-                <span className="inline-flex items-center gap-6 pr-6">
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={12} className="text-[#e5b05c] shrink-0" />
-                    23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Phone size={12} className="text-[#e5b05c] shrink-0" />
-                    09133903600 | 09166664266
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Mail size={12} className="text-[#e5b05c] shrink-0" />
-                    unipathway2020@gmail.com
-                  </span>
-                </span>
-                <span className="inline-flex items-center gap-6 pr-6">
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={12} className="text-[#e5b05c] shrink-0" />
-                    23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Phone size={12} className="text-[#e5b05c] shrink-0" />
-                    09133903600 | 09166664266
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Mail size={12} className="text-[#e5b05c] shrink-0" />
-                    unipathway2020@gmail.com
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div className="hidden sm:flex flex-wrap items-center gap-x-6 font-medium truncate">
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <MapPin size={13} className="text-[#e5b05c] shrink-0" />
-                <span className="truncate">23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <Phone size={13} className="text-[#e5b05c] shrink-0" />
-                <a href="tel:09133903600">09133903600</a> | <a href="tel:09166664266">09166664266</a>
-              </span>
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <Mail size={13} className="text-[#e5b05c] shrink-0" />
-                <a href="mailto:unipathway2020@gmail.com">unipathway2020@gmail.com</a>
-              </span>
+          {/* News-style utility ticker with two seamless copies */}
+          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="UPEC address, phone and email">
+            <div className="upec-utility-ticker">
+              {[0,1].map(copy => <div key={copy} className="upec-utility-ticker__group" aria-hidden={copy===1}>
+                <span className="inline-flex shrink-0 items-center gap-1.5"><MapPin size={13} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
+                <span className="inline-flex shrink-0 items-center gap-1.5"><Phone size={13} className="text-[#e5b05c]"/>09133903600 | 09166664266</span>
+                <span className="inline-flex shrink-0 items-center gap-1.5"><Mail size={13} className="text-[#e5b05c]"/>unipathway2020@gmail.com</span>
+              </div>)}
             </div>
           </div>
 
