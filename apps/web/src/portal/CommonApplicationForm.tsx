@@ -6,6 +6,7 @@ export default function CommonApplicationForm(){
  const [programmes,setProgrammes]=useState<{code:string;name:string}[]>([]);
  const canDeferSubjects=['IJMB','WAEC'].includes(programme.toUpperCase());
  const [availableSubjects,setAvailableSubjects]=useState<{code:string;name:string}[]>([]);
+ const [combinations,setCombinations]=useState<{id:string;name:string;subject_codes:string[]}[]>([]);
  const [guardianName,setGuardianName]=useState(''),[guardianPhone,setGuardianPhone]=useState('');
  const [emergencyContactName,setEmergencyContactName]=useState(''),[emergencyContactPhone,setEmergencyContactPhone]=useState('');
  const [sponsorName,setSponsorName]=useState(''),[sponsorPhone,setSponsorPhone]=useState('');
@@ -13,7 +14,7 @@ export default function CommonApplicationForm(){
  useEffect(()=>{const token=getStudentToken();if(!token)return;void fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/programmes',{headers:{Authorization:'Bearer '+token}}).then(async r=>{if(!r.ok)throw Error('Could not load available programmes');return r.json();}).then(d=>setProgrammes(d.programmes||[])).catch(e=>setError(e.message));},[]);
  const [universityPreferences,setUniversityPreferences]=useState([{institution:'',course:''}]);
  const [selectedSubjects,setSelectedSubjects]=useState(['']);
- useEffect(()=>{setAvailableSubjects([]);setSelectedSubjects(['']);if(!programme)return;const token=getStudentToken();if(!token)return;void fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/subjects?programme='+encodeURIComponent(programme),{headers:{Authorization:'Bearer '+token}}).then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error||'Unable to load subjects');setAvailableSubjects(data.subjects||[]);}).catch(e=>setError(e.message));},[programme]);
+ useEffect(()=>{setAvailableSubjects([]);setCombinations([]);setSelectedSubjects(['']);if(!programme)return;const token=getStudentToken();if(!token)return;void fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/subjects?programme='+encodeURIComponent(programme),{headers:{Authorization:'Bearer '+token}}).then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error||'Unable to load subjects');setAvailableSubjects(data.subjects||[]);void fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/combinations?programme='+encodeURIComponent(programme),{headers:{Authorization:'Bearer '+token}}).then(async r=>{if(!r.ok)throw Error('Unable to load combinations');return r.json();}).then(d=>setCombinations(d.combinations||[])).catch(e=>setError(e.message));}).catch(e=>setError(e.message));},[programme]);
  const [hostelInterest,setHostelInterest]=useState(''),[declarationAccepted,setDeclarationAccepted]=useState(false);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[reference,setReference]=useState('');
  const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError('');
