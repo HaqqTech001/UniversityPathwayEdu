@@ -317,6 +317,9 @@ router.patch('/applications/:id/subjects',wrap(async(req,res)=>{
  const available=await db.from('upec_academic_subjects').select('code').eq('programme_id',programmeRecord.data.id).eq('active',true);
  if(available.error)throw available.error;const codes=new Set((available.data||[]).map(x=>x.code));
  if(new Set(selectedSubjects).size!==selectedSubjects.length||selectedSubjects.some(x=>!codes.has(x)))return res.status(400).json({error:'Choose distinct approved subjects.'});
+ const combinations=await db.from('upec_subject_combinations').select('subject_codes').eq('programme_id',programmeRecord.data.id).eq('active',true);
+ if(combinations.error)throw combinations.error;
+ if((combinations.data||[]).length>0&&!combinations.data.some(row=>row.subject_codes.length===selectedSubjects.length&&row.subject_codes.every(x=>selectedSubjects.includes(x))))return res.status(400).json({error:'Select an approved subject combination.'});
  const {data,error}=await db.from('local_student_applications').update({subjects:selectedSubjects,form_data:{...existing.data.form_data,selectedSubjects}}).eq('id',req.params.id).eq('account_id',req.actor.sub).select('id,subjects').single();
  if(error)throw error;res.json({application:data});
 }));
