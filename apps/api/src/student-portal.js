@@ -460,4 +460,8 @@ router.post('/support/messages',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.actor.sub,author_account_id:req.actor.sub,author_role:'student',body:body.trim()}).select('id,author_role,body,created_at').single();
  if(error)throw error;res.status(201).json({message:data});
 }));
+router.get('/exam-registrations',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_exam_registrations').select('id,exam_body,exam_year,registration_number,examination_number,centre_name,exam_date,status,verified_at').eq('student_account_id',req.actor.sub).order('exam_year',{ascending:false}).limit(50);
+ if(error)throw error;res.json({registrations:data||[]});
+}));
 export default router;
