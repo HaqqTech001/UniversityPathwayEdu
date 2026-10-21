@@ -1,0 +1,14 @@
+import React,{useEffect,useState} from 'react';
+import {opsRequest} from './api';
+export default function HostelBeds(){
+ const [beds,setBeds]=useState([]),[allocations,setAllocations]=useState([]),[requests,setRequests]=useState([]),[hostel,setHostel]=useState(''),[room,setRoom]=useState(''),[bed,setBed]=useState(''),[requestId,setRequestId]=useState(''),[bedId,setBedId]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const load=async()=>{try{const [b,r]=await Promise.all([opsRequest('/hostel/beds'),opsRequest('/hostel/requests')]);setBeds(b.beds||[]);setAllocations(b.allocations||[]);setRequests((r.requests||[]).filter(x=>['offered','reviewing'].includes(x.status)));}catch(e){setError(e.message);}};
+ useEffect(()=>{void load();},[]);
+ const submitBed=async e=>{e.preventDefault();setError('');try{await opsRequest('/hostel/beds',{method:'POST',body:JSON.stringify({hostelName:hostel,roomCode:room,bedCode:bed})});setNotice('Bed added.');setBed('');await load();}catch(e){setError(e.message);}};
+ const allocate=async e=>{e.preventDefault();setError('');setNotice('');try{await opsRequest('/hostel/allocate',{method:'POST',body:JSON.stringify({requestId,bedId})});setNotice('Bed allocation recorded.');await load();}catch(e){setError(e.message);}};
+ const free=beds.filter(b=>b.active&&!allocations.some(a=>a.bed_id===b.id));
+ return <section className="staff-directory"><h2>Hostel Inventory & Bed Allocation</h2><p>Assign a bed only after confirming hostel availability and student eligibility. Occupied beds cannot be allocated twice.</p>{error&&<p role="alert" style={{color:'#b91c1c'}}>{error}</p>}{notice&&<p role="status">{notice}</p>}
+ <h3>Add a bed</h3><form onSubmit={submitBed}><input required placeholder="Hostel name" value={hostel} onChange={e=>setHostel(e.target.value)}/><input required placeholder="Room" value={room} onChange={e=>setRoom(e.target.value)}/><input required placeholder="Bed" value={bed} onChange={e=>setBed(e.target.value)}/><button type="submit">Add bed</button></form>
+ <h3>Allocate available bed</h3><form onSubmit={allocate}><select required value={requestId} onChange={e=>setRequestId(e.target.value)}><option value="">Select reviewed hostel request</option>{requests.filter(r=>!allocations.some(a=>a.request_id===r.id)).map(r=><option key={r.id} value={r.id}>{r.application_id} — {r.status}</option>)}</select><select required value={bedId} onChange={e=>setBedId(e.target.value)}><option value="">Choose free bed</option>{free.map(b=><option key={b.id} value={b.id}>{b.hostel_name} / {b.room_code} / {b.bed_code}</option>)}</select><button type="submit">Allocate bed</button></form>
+ <p>{beds.length} beds recorded · {allocations.length} active allocations · {free.length} available beds</p></section>;
+}
