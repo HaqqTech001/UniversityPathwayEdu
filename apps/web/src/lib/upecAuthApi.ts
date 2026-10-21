@@ -4,6 +4,8 @@ const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replac
 type AuthUser = { id: string; email: string; fullName: string; phone: string; isEmailVerified: boolean };
 type LoginResult = { token: string; user: AuthUser };
 
+export class UpecApiError extends Error {constructor(message:string,public status:number){super(message);this.name='UpecApiError';}}
+function statusError(status:number,message?:string){const fallback:Record<number,string>={401:'Your session has expired. Please sign in again.',403:'You do not have permission to perform this action.',404:'The requested information could not be found.',429:'Too many requests. Please wait before trying again.',500:'The server encountered a problem. Please try again.',503:'The service is temporarily unavailable.'};return new UpecApiError(message||fallback[status]||'Unable to complete your request.',status);}
 function requestFailure(error:unknown):Error {
  if(error instanceof DOMException&&(error.name==='TimeoutError'||error.name==='AbortError'))return new Error('The server is taking too long to respond. Please check your connection and try again.');
  if(error instanceof TypeError)return new Error('Cannot connect to UPEC right now. Check your internet connection and try again.');
@@ -18,7 +20,7 @@ async function post<T>(path: string, payload: Record<string, unknown>): Promise<
     signal: AbortSignal.timeout(path==='/register'?25000:18000),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || 'Unable to complete request');
+  if (!response.ok) throw statusError(response.status,result.error);
   return result as T;
   } catch(error) { throw requestFailure(error); }
 }
@@ -59,7 +61,7 @@ async function authorized<T>(path:string,token:string,method='GET',body?:unknown
  try {
  const response=await fetch(baseUrl+path,{signal:AbortSignal.timeout(20000),method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
  const data=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(data.error||'Request failed');
+ if(!response.ok)throw statusError(response.status,data.error);
  return data as T;
  }catch(error){throw requestFailure(error);}
 }
