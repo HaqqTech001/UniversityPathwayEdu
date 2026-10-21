@@ -265,6 +265,13 @@ router.post('/applications',wrap(async(req,res)=>{
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
+ if(formData.hostelInterest==='yes'){
+  const request=await db.from('upec_hostel_requests').insert({application_id:data.id,student_account_id:req.actor.sub});
+  if(request.error){
+   console.error('Accommodation interest sync failed',request.error);
+   return res.status(503).json({error:'Application saved but accommodation request could not be recorded. Contact admissions with your application reference.',applicationReference:data.reference_number});
+  }
+ }
  res.status(201).json({application:data});
 }));
 router.get('/applications/list',wrap(async(req,res)=>{
