@@ -132,14 +132,22 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
           ========================================================================= */}
       <div className="bg-[#081436] text-white py-1.5 px-3 sm:px-6 md:px-8 border-b border-[#0f2150] h-9 flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between text-[11px] sm:text-[12px] text-slate-200">
-          {/* News-style utility ticker with two seamless copies */}
-          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="UPEC address, phone and email">
-            <div className="upec-utility-ticker">
-              {[0,1].map(copy => <div key={copy} className="upec-utility-ticker__group" aria-hidden={copy===1}>
-                <span className="inline-flex shrink-0 items-center gap-1.5"><MapPin size={13} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
-                <span className="inline-flex shrink-0 items-center gap-1.5"><Phone size={13} className="text-[#e5b05c]"/>09133903600 | 09166664266</span>
-                <span className="inline-flex shrink-0 items-center gap-1.5"><Mail size={13} className="text-[#e5b05c]"/>unipathway2020@gmail.com</span>
-              </div>)}
+          {/* Small screens: moving marquee. Larger screens: stationary contact details. */}
+          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="UPEC contact information">
+            <div className="sm:hidden overflow-hidden">
+              <div className="upec-utility-ticker">
+                {[0,1].map(copy=><div key={copy} aria-hidden={copy===1} className="upec-utility-ticker__group">
+                  <span className="inline-flex shrink-0 items-center gap-1.5"><MapPin size={12} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5"><Phone size={12} className="text-[#e5b05c]"/>09133903600 | 09166664266</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</span>
+                </div>)}
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-4 whitespace-nowrap text-[11px] font-medium lg:gap-6">
+              <span className="inline-flex shrink-0 items-center gap-1"><MapPin size={12} className="text-[#e5b05c]"/>23 Olaiya Street, Sawmill Garage, Ilorin</span>
+              <a href="tel:+2349133903600" className="inline-flex shrink-0 items-center gap-1 hover:text-white"><Phone size={12} className="text-[#e5b05c]"/>09133903600</a>
+              <a href="tel:+2349166664266" className="inline-flex shrink-0 items-center gap-1 hover:text-white"><Phone size={12} className="text-[#e5b05c]"/>09166664266</a>
+              <a href="mailto:unipathway2020@gmail.com" className="inline-flex shrink-0 items-center gap-1 hover:text-white"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</a>
             </div>
           </div>
 
