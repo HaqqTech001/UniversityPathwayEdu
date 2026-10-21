@@ -1,4 +1,5 @@
 import StudentNotifications from '../portal/StudentNotifications';
+import StudentPhotoUpload from '../portal/StudentPhotoUpload';
 import AdditionalServices from '../portal/AdditionalServices';
 import StudentApplicationRegister from '../portal/StudentApplicationRegister';
 import StudentHostelRequests from '../portal/StudentHostelRequests';
@@ -346,6 +347,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'profile' && (
           <div className="space-y-6">
+            <StudentPhotoUpload/>
             <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
               <div>
                 <h2 className="font-serif text-base font-bold text-[#0b1a42]">
