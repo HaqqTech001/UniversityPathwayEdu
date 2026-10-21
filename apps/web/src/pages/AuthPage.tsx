@@ -136,7 +136,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       setVerificationEmail(regEmail);
       setAuthMode('email-verify');
       setResendSeconds(60);
-      setAuthSuccess('Account registered. Check your email for your six-digit verification code.');
+      setAuthSuccess('Account created. Check your inbox and spam folder for a six-digit verification code. If no email arrives, use Resend verification code.');
     } else if (res.error?.includes('Account created but email delivery failed')) {
       setVerificationEmail(regEmail);
       setAuthMode('email-verify');
