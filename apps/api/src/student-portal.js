@@ -253,6 +253,11 @@ router.post('/applications',wrap(async(req,res)=>{
  const conduct=await db.from('upec_student_conduct_acceptances').select('accepted_at').eq('student_account_id',req.actor.sub).eq('policy_version',CONDUCT_VERSION).maybeSingle();
  if(conduct.error)throw conduct.error;
  if(!conduct.data)return res.status(409).json({error:'Please acknowledge the Students’ Code of Conduct before submitting an application.'});
+ const requiredText=['guardianName','guardianPhone','emergencyContactName','emergencyContactPhone','sponsorName','sponsorPhone'];
+ for(const field of requiredText){if(typeof formData[field]!=='string'||formData[field].trim().length<2||formData[field].length>200)return res.status(400).json({error:'Complete required application field: '+field});}
+ if(!['yes','no'].includes(formData.hostelInterest))return res.status(400).json({error:'Please indicate whether hostel accommodation is required.'});
+ if(!Array.isArray(formData.educationHistory)||formData.educationHistory.length<1||formData.educationHistory.length>8||formData.educationHistory.some(x=>!x||typeof x.school!=='string'||!x.school.trim()||typeof x.qualification!=='string'||!x.qualification.trim()))return res.status(400).json({error:'At least one valid education history record is required.'});
+ if(formData.declarationAccepted!==true)return res.status(400).json({error:'You must confirm the accuracy of your application before submission.'});
  const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
