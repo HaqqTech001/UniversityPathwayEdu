@@ -243,6 +243,14 @@ router.get('/admissions/programmes',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_academic_programmes').select('code,name,description').eq('active',true).order('name').limit(100);
  if(error)throw error;res.json({programmes:data||[]});
 }));
+router.get('/admissions/subjects',wrap(async(req,res)=>{
+ const code=String(req.query.programme||'').trim();
+ if(!/^[A-Za-z0-9_-]{2,32}$/.test(code))return res.status(400).json({error:'Select a valid programme.'});
+ const prog=await db.from('upec_academic_programmes').select('id').eq('code',code).eq('active',true).maybeSingle();
+ if(prog.error)throw prog.error;if(!prog.data)return res.status(404).json({error:'Programme not available.'});
+ const {data,error}=await db.from('upec_academic_subjects').select('code,name').eq('programme_id',prog.data.id).eq('active',true).order('name');
+ if(error)throw error;res.json({subjects:data||[]});
+}));
 router.post('/applications',wrap(async(req,res)=>{
  const {formData}=req.body||{};
  if(!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid application'});
@@ -264,7 +272,15 @@ router.post('/applications',wrap(async(req,res)=>{
  if(formData.declarationAccepted!==true)return res.status(400).json({error:'You must confirm the accuracy of your application before submission.'});
  if(!Array.isArray(formData.universityPreferences)||formData.universityPreferences.length<1||formData.universityPreferences.length>3||formData.universityPreferences.some(x=>typeof x?.institution!=='string'||x.institution.trim().length<2||typeof x?.course!=='string'||x.course.trim().length<2))return res.status(400).json({error:'Provide at least one valid institution and intended course.'});
  if(!Array.isArray(formData.selectedSubjects)||formData.selectedSubjects.length<1||formData.selectedSubjects.length>8||formData.selectedSubjects.some(x=>typeof x!=='string'||!x.trim()||x.length>100))return res.status(400).json({error:'Select valid subject preferences.'});
- const subjects=[formData.utmeSubject2,formData.utmeSubject3,formData.utmeSubject4].filter(x=>typeof x==='string'&&x.trim());
+ const programmeRecord=await db.from('upec_academic_programmes').select('id').eq('code',programme).eq('active',true).maybeSingle();
+ if(programmeRecord.error)throw programmeRecord.error;
+ if(!programmeRecord.data)return res.status(409).json({error:'Programme is not currently available.'});
+ const subjectRecords=await db.from('upec_academic_subjects').select('code').eq('programme_id',programmeRecord.data.id).eq('active',true);
+ if(subjectRecords.error)throw subjectRecords.error;
+ const available=new Set((subjectRecords.data||[]).map(x=>x.code));
+ if(available.size===0)return res.status(409).json({error:'Subject choices for this programme have not been configured by UPEC.'});
+ if(formData.selectedSubjects.some(code=>!available.has(code))||new Set(formData.selectedSubjects).size!==formData.selectedSubjects.length)return res.status(400).json({error:'Choose distinct subjects approved for the selected programme.'});
+ const subjects=formData.selectedSubjects;
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
  if(formData.hostelInterest==='yes'){
