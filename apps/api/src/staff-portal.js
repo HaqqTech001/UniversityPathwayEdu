@@ -238,7 +238,7 @@ router.patch('/hostel/requests/:id',permit('applications.review'),wrap(async(req
 router.get('/hostel/beds',permit('applications.read'),wrap(async(req,res)=>{
  const [beds,allocations]=await Promise.all([
   db.from('upec_hostel_beds').select('id,hostel_name,room_code,bed_code,active').order('hostel_name').limit(300),
-  db.from('upec_hostel_allocations').select('id,bed_id,request_id,assigned_at').is('released_at',null).limit(300)
+  db.from('upec_hostel_allocations').select('id,bed_id,request_id,student_account_id,assigned_at').is('released_at',null).limit(300)
  ]);
  if(beds.error)throw beds.error;if(allocations.error)throw allocations.error;
  res.json({beds:beds.data||[],allocations:allocations.data||[]});
@@ -255,7 +255,15 @@ router.post('/hostel/allocate',permit('applications.review'),wrap(async(req,res)
  const [request,bed]=await Promise.all([db.from('upec_hostel_requests').select('id,status').eq('id',requestId).maybeSingle(),db.from('upec_hostel_beds').select('id,active').eq('id',bedId).maybeSingle()]);
  if(request.error)throw request.error;if(bed.error)throw bed.error;
  if(!request.data||!['offered','reviewing'].includes(request.data.status)||!bed.data?.active)return res.status(409).json({error:'Request must be reviewed and bed must be active.'});
- const {data,error}=await db.from('upec_hostel_allocations').insert({request_id:requestId,bed_id:bedId,assigned_by:req.actor.sub}).select('id,request_id,bed_id,assigned_at').single();
- if(error?.code==='23505')return res.status(409).json({error:'Bed or request already has an active allocation.'});if(error)throw error;res.status(201).json({allocation:data});
+ const {data,error}=await db.rpc('upec_allocate_hostel_bed',{p_request:requestId,p_bed:bedId,p_staff:req.actor.sub});
+ if(error?.code==='23505')return res.status(409).json({error:'Bed, request, or student already has an active allocation.'});
+ if(error)throw error;res.status(201).json({allocationId:data});
+}));
+router.post('/hostel/allocations/:id/release',permit('applications.review'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid allocation ID'});
+ const {data,error}=await db.rpc('upec_release_hostel_bed',{p_allocation:req.params.id});
+ if(error)throw error;
+ if(!data)return res.status(404).json({error:'Active allocation not found'});
+ res.json({released:true});
 }));
 export default router;
