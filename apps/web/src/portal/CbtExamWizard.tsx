@@ -175,8 +175,15 @@ export default function CbtExamWizard() {
         const aliases:Record<string,string>={'Use of English':'english','Agricultural Science':'agricultural-science','Literature in English':'literature-in-english','Christian Religious Studies':'crs','Islamic Religious Studies':'irs'};
         const requested=await Promise.all(selectedSubjects.map(async subject=>{
           const code=aliases[subject]||subject.toLowerCase().replaceAll(' ','-');
-          const result=await upecAuthApi.utmePracticeQuestions(token,code,historicalYear);
-          const items=(result.questions||[]).map((raw:any)=>{
+          const collected:any[]=[];let cursor:string|undefined=undefined;
+          for(let page=0;page<4;page++){
+            const result=await upecAuthApi.utmePracticeQuestions(token,code,historicalYear,cursor,30);
+            collected.push(...(Array.isArray(result.questions)?result.questions:[]));
+            const next=result.pagination?.nextCursor;
+            if(!next||typeof next!=='string'||next===cursor)break;
+            cursor=next;
+          }
+          const items=collected.map((raw:any)=>{
             const options=['a','b','c','d'].map(k=>raw.options?.[k]??raw.options?.[k.toUpperCase()]);
             const answer='abcd'.indexOf(String(raw.correctAnswer||'').toLowerCase());
             if(!raw.id||!String(raw.text||raw.questionHtml||'').trim()||options.some(v=>typeof v!=='string'||!v.trim())||answer<0)return null;
