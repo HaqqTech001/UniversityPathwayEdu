@@ -278,7 +278,7 @@ export default function CbtExamWizard() {
   },[stage]);
   // A page refresh can restore original sample practice, but licensed provider papers are not cached.
   // Warn before navigating away so students do not unintentionally lose those answers.
-  Warn users before leaving: provider question licensing has not been cleared for persistent client caching.
+  // Provider question licensing has not been cleared for persistent client caching.
   useEffect(()=>{
     if(stage!=='exam')return;
     const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
