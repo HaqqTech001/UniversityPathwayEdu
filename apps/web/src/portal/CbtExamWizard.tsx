@@ -165,6 +165,7 @@ export default function CbtExamWizard() {
   // Start Exam Handler
   const handleStartExam = async () => {
     if (!canStartExam) return;
+    if(questionSource==='aloc'&&(!Number.isInteger(historicalYear)||historicalYear<1990||historicalYear>2030)){setProviderError('Select a valid historical question year.');return;}
     setProviderError('');
     let questions:CbtQuestion[]=[];
     if(questionSource==='aloc'){
@@ -181,8 +182,9 @@ export default function CbtExamWizard() {
             if(!raw.id||!String(raw.text||raw.questionHtml||'').trim()||options.some(v=>typeof v!=='string'||!v.trim())||answer<0)return null;
             return {id:String(raw.id),subject,topic:'Historical UTME '+historicalYear,prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:'This provider tier does not include worked solutions.'} as CbtQuestion;
           }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
-          if(items.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
-          return items;
+          const distinct=[...new Map(items.map(q=>[q.id,q])).values()];
+          if(distinct.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
+          return distinct;
         }));
         questions=requested.flat();
       }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
@@ -191,6 +193,7 @@ export default function CbtExamWizard() {
       questions=CBT_QUESTION_BANK.filter(q=>selectedSubjects.includes(q.subject));
     }
     if(!questions.length){setProviderError('No practice questions are available.');return;}
+    if(questionSource==='aloc'&&questions.length<20){setProviderError('Historical drill requires at least 5 valid questions per subject.');return;}
     setExamQuestions(questions);
     setActiveSubject(selectedSubjects[0]||'Use of English');
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
@@ -313,7 +316,7 @@ export default function CbtExamWizard() {
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
-      examType,
+      examType: questionSource==='aloc'?'JAMB historical practice ('+historicalYear+', third-party)':'UPEC original sample practice',
       mode: practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
