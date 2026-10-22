@@ -15,6 +15,10 @@ router.use(async(req,res,next)=>{
  } catch(error){next(error);}
 });
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
+router.get('/finance/bank-account',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_bank_accounts').select('bank_name,account_number,account_name').eq('is_active',true).maybeSingle();
+ if(error)throw error;res.json({account:data||null});
+}));
 router.use('/practice',utmeRoutes);
 router.use('/guardian',guardianRoutes);
 // Published institutional assessments: never send answer keys or explanations.
