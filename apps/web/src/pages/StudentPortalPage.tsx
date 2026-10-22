@@ -223,7 +223,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             HEADER IDENTITY STRIP
             ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        {dashboardTab === 'overview' && <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
               {currentUser.biodata.firstName?.[0] || 'U'}
@@ -275,7 +275,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               <span>Print Slip</span>
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* =========================================================================
             DRAWER TAB 1: DASHBOARD (OVERVIEW)
@@ -366,6 +366,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               <button
                 type="button"
                 onClick={startEditing}
+                disabled={!currentUser.biodataEditAllowed}
+                title={!currentUser.biodataEditAllowed ? 'Contact administration to request biodata editing permission' : 'Update biodata'}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 <Edit3 size={14} />
