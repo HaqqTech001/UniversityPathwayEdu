@@ -1,3 +1,4 @@
+import PaymentLedger from './PaymentLedger';
 import RegistrationBilling from './RegistrationBilling';
 import FinanceSummary from './FinanceSummary';
 import BankAccounts from './BankAccounts';
@@ -99,7 +100,7 @@ export default function StaffDashboard({profile,onLogout}){
    {['admin','super_admin','content_editor'].includes(profile.role)&&<NoticeBoard role={profile.role}/>}
    {['super_admin','admin','content_editor'].includes(profile.role)&&<BlogManager role={profile.role}/>}
    {profile.permissions?.includes('students.manage')&&<StudentEditPermissions/>}
-   {profile.permissions?.includes('finance.manage')&&<><FinanceSummary/><BankAccounts/><ProgrammeFees/><RegistrationBilling/><FeeBilling/></>}
+   {profile.permissions?.includes('finance.manage')&&<><FinanceSummary/><PaymentLedger/><BankAccounts/><ProgrammeFees/><RegistrationBilling/><FeeBilling/></>}
    {canRead&&<ServiceRequests/>}
    {canRead&&<HostelRequests/>}
    {canReview&&<HostelBeds/>}
