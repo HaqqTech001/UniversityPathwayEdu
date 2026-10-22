@@ -414,7 +414,7 @@ router.get('/finance/monthly-fees',wrap(async(req,res)=>{
  res.json({fees:data||[]});
 }));
 router.get('/services',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn').eq('active',true).order('name');
+ const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn,offerings').eq('active',true).order('name');
  if(error)throw error;res.json({services:data||[]});
 }));
 router.get('/services/requests',wrap(async(req,res)=>{
@@ -431,7 +431,7 @@ router.post('/services/requests',wrap(async(req,res)=>{
  if(error)throw error;res.status(201).json({request:data});
 }));
 router.get('/services/catalogue',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn').eq('active',true).order('name');
+ const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn,offerings').eq('active',true).order('name');
  if(error)throw error;res.json({services:data||[]});
 }));
 router.get('/services/requests',wrap(async(req,res)=>{
