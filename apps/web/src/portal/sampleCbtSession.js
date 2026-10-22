@@ -19,6 +19,8 @@ function valid(session,owner){
  if(!activeCount||session.currentQuestionIndex>=activeCount)return false;
  if(session.deadline!==null&&(!Number.isFinite(session.deadline)||session.deadline<=Date.now()||session.deadline>Date.now()+86400000))return false;
  if(session.practiceMode!=='untimed'&&session.deadline===null)return false;
+ if(session.practiceMode==='untimed'&&session.deadline!==null)return false;
+ if(!Number.isInteger(session.durationMinutes)||session.durationMinutes<1||session.durationMinutes>1440)return false;
  const ids=new Set();
  for(const q of session.questions){
   const original=originals.get(q.id);
