@@ -312,12 +312,9 @@ router.post('/finance/bank-account',permit('finance.manage'),wrap(async(req,res)
 }));
 router.patch('/finance/bank-account/:id/activate',permit('finance.manage'),wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid account ID.'});
- const {data:target,error:lookupError}=await db.from('upec_bank_accounts').select('id').eq('id',req.params.id).maybeSingle();
- if(lookupError)throw lookupError;if(!target)return res.status(404).json({error:'Bank account not found.'});
- const {error:clearError}=await db.from('upec_bank_accounts').update({is_active:false,updated_by:req.actor.sub,updated_at:new Date().toISOString()}).eq('is_active',true);
- if(clearError)throw clearError;
- const {data,error}=await db.from('upec_bank_accounts').update({is_active:true,updated_by:req.actor.sub,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('id,is_active').single();
- if(error)throw error;res.json({account:data});
+ const {data,error}=await db.rpc('upec_activate_bank_account',{p_account_id:req.params.id,p_actor_id:req.actor.sub});
+ if(error?.code==='P0002')return res.status(404).json({error:'Bank account not found.'});
+ if(error)throw error;res.json({account:{id:data,is_active:true}});
 }));
 router.get('/exam-registrations/student-search',permit('applications.review'),wrap(async(req,res)=>{
  const q=String(req.query.q||'').trim();
