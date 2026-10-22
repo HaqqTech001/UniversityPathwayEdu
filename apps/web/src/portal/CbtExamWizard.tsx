@@ -130,6 +130,7 @@ export default function CbtExamWizard() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deadlineRef = useRef<number | null>(null);
   const submittingRef = useRef(false);
+  const submitLatestRef = useRef<()=>void>(()=>{});
 
   const availableSubjectsList = [
     'Use of English', 'Mathematics', 'Biology', 'Chemistry', 'Physics',
@@ -219,13 +220,15 @@ export default function CbtExamWizard() {
     setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
 
+  // Keep the current submission function available to the interval after answer changes.
+  useEffect(()=>{submitLatestRef.current=handleForceSubmit;});
   // Deadline-based timer also counts time while the browser tab is inactive.
   useEffect(() => {
     if(stage!=='exam'||deadlineRef.current===null)return;
     const tick=()=>{
       const remaining=Math.max(0,Math.ceil((deadlineRef.current!-Date.now())/1000));
       setTimeRemaining(remaining);
-      if(remaining===0&&!submittingRef.current){handleForceSubmit();}
+      if(remaining===0&&!submittingRef.current){submitLatestRef.current();}
     };
     tick();
     timerRef.current=setInterval(tick,1000);
@@ -338,7 +341,7 @@ export default function CbtExamWizard() {
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
       examType: questionSource==='aloc'?(historicalLength==='full'?'Full-length UTME-style historical mock (':'JAMB historical practice (')+historicalYear+', third-party)':'UPEC original sample practice',
-      mode: practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
+      mode: questionSource==='aloc'&&historicalLength==='full'?'Timed full mock':practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
       totalScore: 100,
