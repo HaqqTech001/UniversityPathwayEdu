@@ -33,6 +33,8 @@ export default function StudentBiodataForm({
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successToast, setSuccessToast] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Initialize form state directly from authenticated student's record
   const [formData, setFormData] = useState({
@@ -158,15 +160,19 @@ export default function StudentBiodataForm({
     }
   };
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
+    if (saving) return;
     e.preventDefault();
     if (!formData.declarationConfirmed) {
       setErrors({ declarationConfirmed: 'You must check the confirmation declaration to proceed.' });
       return;
     }
 
-    // Persist into AuthContext student record
-    updateBiodata({
+    // Wait for the backend to confirm persistence before showing success.
+    setSaving(true);
+    setSaveError('');
+    try {
+    await updateBiodata({
       surname: formData.surname,
       firstName: formData.firstName,
       otherNames: formData.middleName,
@@ -188,10 +194,12 @@ export default function StudentBiodataForm({
     });
 
     setSuccessToast(true);
-    setTimeout(() => {
-      setSuccessToast(false);
-      if (onSuccess) onSuccess();
-    }, 1500);
+    if (onSuccess) onSuccess();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save biodata. Please retry.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -206,7 +214,7 @@ export default function StudentBiodataForm({
             Complete Candidate Biodata Form
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Record ID: <strong className="text-[#0b1a42] font-mono">{currentUser?.regNumber}</strong> • Reference: <span className="font-mono text-slate-600">UPEC/APP/2025/0842</span>
+            Record ID: <strong className="text-[#0b1a42] font-mono">{currentUser?.id.slice(0,8).toUpperCase() || 'Pending'}</strong> • Application reference: <span className="font-mono text-slate-600">{currentUser?.application?.referenceNumber || 'Not yet issued'}</span>
           </p>
         </div>
 
@@ -275,6 +283,7 @@ export default function StudentBiodataForm({
         </div>
       </div>
 
+      {saveError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{saveError}</p>}
       {/* Success Notification */}
       {successToast && (
         <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
