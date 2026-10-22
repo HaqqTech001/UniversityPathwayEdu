@@ -361,6 +361,10 @@ router.get('/applications/list',wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,student_registration_number,submitted_at,subjects').eq('account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({applications:data||[]});
 }));
+router.get('/finance/registration-invoices',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_registration_invoices').select('id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({invoices:data||[]});
+}));
 router.get('/finance/monthly-fees',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').eq('student_account_id',req.actor.sub).order('billing_month',{ascending:false}).limit(60);
  if(error)throw error;
