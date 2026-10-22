@@ -36,13 +36,6 @@ export default function StudentApplicationRegister(){
   window.addEventListener('focus',onFocus);
   window.addEventListener('upec:application-submitted',onFocus);
   window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
-  window.addEventListener('upec:application-documents-updated',onFocus);
   document.addEventListener('visibilitychange',onVisible);
   return()=>{window.removeEventListener('focus',onFocus);window.removeEventListener('upec:application-submitted',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);window.removeEventListener('upec:application-documents-updated',onFocus);document.removeEventListener('visibilitychange',onVisible);};
  },[]);
