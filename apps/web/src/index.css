@@ -130,12 +130,28 @@ h1, h2, h3, h4, p {
 }
 
 
-/* Seamless utility news ticker: duplicated equal-width groups move one group per cycle. */
-.upec-utility-ticker{display:flex;width:max-content;white-space:nowrap;animation:upec-utility-scroll 24s linear infinite;will-change:transform}
-.upec-utility-ticker__group{display:flex;align-items:center;flex:none;gap:2rem;padding-right:2rem}
-@keyframes upec-utility-scroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
-.upec-utility-ticker:hover{animation-play-state:paused}
-@media(prefers-reduced-motion:reduce){.upec-utility-ticker{animation:none;max-width:100%;overflow:hidden}}
-
-/* Ticker readability, focusability and continuous movement with motion preference support. */
-.upec-utility-ticker:focus-within{animation-play-state:paused}
+/* Continuous public contact marquee: two identical tracks for a seamless loop.
+   The public utility information must move without hover-stopping or a scrollbar. */
+.upec-utility-ticker {
+  display: flex;
+  width: max-content;
+  min-width: max-content;
+  white-space: nowrap;
+  animation-name: upec-utility-scroll !important;
+  animation-duration: 20s !important;
+  animation-timing-function: linear !important;
+  animation-iteration-count: infinite !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+.upec-utility-ticker__group {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 2rem;
+  padding-right: 2rem;
+}
+@keyframes upec-utility-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
