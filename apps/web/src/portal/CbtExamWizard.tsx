@@ -274,14 +274,10 @@ export default function CbtExamWizard() {
     if (stage !== 'exam') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if focus is inside an input or textarea
-      if (
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(
-          (e.target as HTMLElement).tagName
-        )
-      ) {
-        return;
-      }
+      // Shortcuts must not override browser commands or interactive controls.
+      if (e.altKey || e.ctrlKey || e.metaKey || e.repeat || e.isComposing) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [contenteditable="true"], [role="dialog"]')) return;
 
       if (isSubmitModalOpen) {
         const key = e.key.toUpperCase();
@@ -294,13 +290,18 @@ export default function CbtExamWizard() {
 
       if (['A', 'B', 'C', 'D'].includes(key) && activeQuestion) {
         const optionIndex = key.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
-        setAnswers((prev) => ({ ...prev, [activeQuestion.id]: optionIndex }));
+        if (optionIndex < activeQuestion.options.length) {
+          e.preventDefault();
+          setAnswers((prev) => ({ ...prev, [activeQuestion.id]: optionIndex }));
+        }
       } else if (key === 'P' || e.key === 'ArrowLeft') {
+        e.preventDefault();
         // Previous
         if (currentQuestionIndex > 0) {
           setCurrentQuestionIndex((prev) => prev - 1);
         }
       } else if (key === 'N' || e.key === 'ArrowRight') {
+        e.preventDefault();
         // Next
         if (currentQuestionIndex < currentSubjectQuestions.length - 1) {
           setCurrentQuestionIndex((prev) => prev + 1);
