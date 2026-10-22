@@ -19,7 +19,7 @@ export default function StudentApplicationRegister(){
  const [correctionId,setCorrectionId]=useState(''),[correctionDraft,setCorrectionDraft]=useState<Record<string,unknown>|null>(null),[correctionBusy,setCorrectionBusy]=useState(false),[correctionError,setCorrectionError]=useState('');
  const correctionApi=async(id:string,method:'GET'|'PUT',formData?:Record<string,unknown>)=>{
   const token=getStudentToken();if(!token)throw Error('Please sign in again.');
-  const root=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');
+  const root=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
   const url=root+'/api/student/applications/'+encodeURIComponent(id)+(method==='GET'?'/correction-draft':'/correction');
   const response=await fetch(url,{method,headers:{Authorization:'Bearer '+token,...(formData?{'Content-Type':'application/json'}:{})},...(formData?{body:JSON.stringify({formData})}:{})});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to process correction.');return result;
