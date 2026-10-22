@@ -127,7 +127,9 @@ export default function CbtExamWizard() {
     }
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const deadlineRef = useRef<number | null>(null);
+  const submittingRef = useRef(false);
 
   const availableSubjectsList = [
     'Use of English', 'Mathematics', 'Biology', 'Chemistry', 'Physics',
@@ -212,28 +214,30 @@ export default function CbtExamWizard() {
     setActiveSubject(selectedSubjects[0]||'Use of English');
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
     const totalSecs=questionSource==='aloc'&&historicalLength==='full'?120*60:practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
+    deadlineRef.current=practiceMode==='untimed'&&!(questionSource==='aloc'&&historicalLength==='full')?null:Date.now()+totalSecs*1000;
+    submittingRef.current=false;
     setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
 
-  // Timer loop
+  // Deadline-based timer also counts time while the browser tab is inactive.
   useEffect(() => {
-    if (stage !== 'exam' || (practiceMode === 'untimed' && !(questionSource==='aloc'&&historicalLength==='full'))) return;
-
-    timerRef.current = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleForceSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+    if(stage!=='exam'||deadlineRef.current===null)return;
+    const tick=()=>{
+      const remaining=Math.max(0,Math.ceil((deadlineRef.current!-Date.now())/1000));
+      setTimeRemaining(remaining);
+      if(remaining===0&&!submittingRef.current){handleForceSubmit();}
     };
-  }, [stage, practiceMode]);
+    tick();
+    timerRef.current=setInterval(tick,1000);
+    return()=>{if(timerRef.current)clearInterval(timerRef.current);};
+  },[stage]);
+  // Warn users before leaving: provider question licensing has not been cleared for persistent client caching.
+  useEffect(()=>{
+    if(stage!=='exam')return;
+    const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
+    window.addEventListener('beforeunload',warn);
+    return()=>window.removeEventListener('beforeunload',warn);
+  },[stage]);
 
   // Keyboard Shortcuts (A, B, C, D, P, N, S, R, F)
   useEffect(() => {
@@ -304,6 +308,9 @@ export default function CbtExamWizard() {
 
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
+    if(submittingRef.current)return;
+    submittingRef.current=true;
+    deadlineRef.current=null;
     stopCamera();
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     if (timerRef.current) clearInterval(timerRef.current);
