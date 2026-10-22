@@ -29,7 +29,7 @@ interface HeaderProps {
 export default function Header({ currentPath, onNavigate }: HeaderProps) {
   const { currentUser, isAuthenticated } = useAuth();
   const [newsItems,setNewsItems] = useState<Array<{title:string;url:string}>>([]);
-  useEffect(()=>{const controller=new AbortController();const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');fetch(base+'/api/news/education',{signal:controller.signal}).then(r=>{if(!r.ok)throw Error('News unavailable');return r.json();}).then(data=>setNewsItems(Array.isArray(data.articles)?data.articles.filter((a:unknown):a is {title:string;url:string}=>Boolean(a)&&typeof a==='object'&&typeof (a as {title?:unknown}).title==='string'&&typeof (a as {url?:unknown}).url==='string'&&/^https:\/\//.test((a as {url:string}).url)).slice(0,10):[])).catch(()=>{});return()=>controller.abort();},[]);
+  useEffect(()=>{const controller=new AbortController();const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');fetch(base+'/api/news/education',{signal:controller.signal}).then(r=>{if(!r.ok)throw Error('News unavailable');return r.json();}).then(data=>setNewsItems(Array.isArray(data.articles)?data.articles.filter((a:unknown):a is {title:string;url:string}=>Boolean(a)&&typeof a==='object'&&typeof (a as {title?:unknown}).title==='string'&&typeof (a as {url?:unknown}).url==='string'&&/^https:\/\//.test((a as {url:string}).url)).slice(0,10):[])).catch(()=>{});return()=>controller.abort();},[]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
   const [activeDesktopDropdown, setActiveDesktopDropdown] = useState<string | null>(null);
