@@ -102,3 +102,16 @@ test('malformed question entries and answer arrays fail recovery safely',()=>{
  malformedFlag.flagged=[null];
  assert.equal(saveSampleSession(malformedFlag,owner),false);
 });
+
+test('rejects subjects that do not correspond to the saved examination paper',()=>{
+ const owner='student-subject-consistency';
+ const unexpected=make(owner);
+ unexpected.questions=[{...source,subject:'Unselected Subject'}];
+ assert.equal(saveSampleSession(unexpected,owner),false);
+ const duplicate=make(owner);
+ duplicate.selectedSubjects=[source.subject,source.subject];
+ assert.equal(saveSampleSession(duplicate,owner),false);
+ const malformed=make(owner);
+ malformed.selectedSubjects=[source.subject,null];
+ assert.equal(saveSampleSession(malformed,owner),false);
+});
