@@ -7,7 +7,8 @@ function valid(session,owner){
  if(typeof owner!=='string'||!owner.trim()||session?.owner!==owner)return false;
  if(!session||session.source!=='sample'||!['timed','untimed','speed'].includes(session.practiceMode))return false;
  if(!Array.isArray(session.questions)||!session.questions.length||session.questions.length>CBT_QUESTION_BANK.length)return false;
- if(!Array.isArray(session.selectedSubjects)||!Array.isArray(session.flagged)||!session.answers||typeof session.answers!=='object')return false;
+ if(!Array.isArray(session.selectedSubjects)||!Array.isArray(session.flagged)||!session.answers||typeof session.answers!=='object'||Array.isArray(session.answers))return false;
+ if(!session.questions.every(q=>q!==null&&typeof q==='object'&&typeof q.id==='string'&&typeof q.subject==='string'))return false;
  if(!Number.isInteger(session.currentQuestionIndex)||session.currentQuestionIndex<0||session.currentQuestionIndex>=session.questions.length)return false;
  if(typeof session.activeSubject!=='string'||!session.selectedSubjects.includes(session.activeSubject))return false;
  // Question navigation is indexed within the active subject, not the whole paper.
@@ -27,7 +28,7 @@ function valid(session,owner){
   const q=byId.get(id);
   if(!q||!Number.isInteger(answer)||answer<0||answer>=q.options.length)return false;
  }
- return session.flagged.every(id=>ids.has(id))&&new Set(session.flagged).size===session.flagged.length;
+ return session.flagged.every(id=>typeof id==='string'&&ids.has(id))&&new Set(session.flagged).size===session.flagged.length;
 }
 export function saveSampleSession(session,owner){
  if(!valid(session,owner))return false;
