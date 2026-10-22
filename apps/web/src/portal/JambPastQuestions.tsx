@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {getStudentToken} from '../context/AuthContext';
 import {upecAuthApi} from '../lib/upecAuthApi';
 
@@ -24,6 +24,9 @@ export default function JambPastQuestions(){
  const [error,setError]=useState('');
  const [loaded,setLoaded]=useState(false);
  const [nextCursor,setNextCursor]=useState<string|null>(null);
+ const [availableYears,setAvailableYears]=useState<number[]>([]);
+ const [catalogueWarning,setCatalogueWarning]=useState('');
+ useEffect(()=>{let current=true;const token=getStudentToken();if(!token)return;const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');fetch(base+'/api/student/practice/utme/subjects/'+encodeURIComponent(subject)+'/years',{headers:{Authorization:'Bearer '+token}}).then(async r=>{if(!r.ok)throw Error('Provider year catalogue unavailable');return r.json()}).then(result=>{if(!current)return;const years=(Array.isArray(result.years)?result.years:[]).filter((row:any)=>row?.examTypes?.includes('jamb')||Number(row?.breakdown?.jamb)>0).map((row:any)=>Number(row.year)).filter((value:number)=>Number.isInteger(value)).sort((a:number,b:number)=>b-a);setAvailableYears(years);if(years.length)setYear(years[0]);setCatalogueWarning(years.length?'':'No JAMB question years confirmed for this subject by the provider.');}).catch(()=>{if(current){setAvailableYears([]);setCatalogueWarning('Unable to check provider year coverage. Availability is not confirmed.');}});return()=>{current=false;};},[subject]);
  const fetchQuestions=async(event:React.FormEvent)=>{
   event.preventDefault();setLoading(true);setError('');setQuestions([]);setAnswers({});setRevealed({});setLoaded(false);setNextCursor(null);
   try{
@@ -50,12 +53,13 @@ export default function JambPastQuestions(){
   finally{setLoading(false);}
  };
  return <section aria-labelledby="past-questions-title" className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-  <div><h3 id="past-questions-title" className="font-serif text-lg font-bold text-[#111a43]">Historical JAMB past questions</h3><p className="mt-2 text-xs leading-6 text-slate-600">Third-party historical JAMB question bank. Choose any listed UTME subject and a year; availability depends on the provider's verified subject/year coverage. The latest advertised ALOC JAMB coverage extends to 2025, not confirmed 2026 questions. This is separate from the official examination. Answers are revealed only when you choose to check your response.</p></div>
+  <div><h3 id="past-questions-title" className="font-serif text-lg font-bold text-[#111a43]">Historical JAMB past questions</h3><p className="mt-2 text-xs leading-6 text-slate-600">Third-party historical JAMB question bank. Choose any listed UTME subject and a year; availability depends on the provider's verified subject/year coverage. Available examination years are fetched for each subject from the provider. Do not assume a year has questions until its coverage is confirmed. This is separate from the official examination. Answers are revealed only when you choose to check your response.</p></div>
   <form onSubmit={fetchQuestions} className="mt-5 flex flex-wrap items-end gap-3">
    <label className="flex min-w-40 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Subject<select value={subject} onChange={e=>setSubject(e.target.value)} className="rounded-xl border border-slate-300 bg-white p-3">{subjects.map(([code,label])=><option value={code} key={code}>{label}</option>)}</select></label>
-   <label className="flex min-w-32 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Examination year<select value={year} onChange={e=>setYear(Number(e.target.value))} className="rounded-xl border border-slate-300 bg-white p-3">{Array.from({length:30},(_,i)=>2025-i).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
+   <label className="flex min-w-32 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Examination year<select value={year} onChange={e=>setYear(Number(e.target.value))} className="rounded-xl border border-slate-300 bg-white p-3">{(availableYears.length?availableYears:[year]).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
    <button disabled={loading} type="submit" className="rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{loading?'Loading...':'Load questions'}</button>
   </form>
+  {catalogueWarning&&<p className="mt-3 text-xs text-amber-800" role="status">{catalogueWarning}</p>}
   {error&&<p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
   {loaded&&!questions.length&&<p className="mt-4 text-sm text-slate-600">No questions were returned for this subject and year. Try another combination.</p>}
   <ol className="mt-6 space-y-5">{questions.map((q,i)=>{
