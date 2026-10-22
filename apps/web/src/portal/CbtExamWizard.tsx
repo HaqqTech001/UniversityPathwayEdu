@@ -1,3 +1,4 @@
+import {shuffledPracticePool} from './practiceSelection.js';
 import {getStudentToken} from '../context/AuthContext';
 import {upecAuthApi} from '../lib/upecAuthApi';
 import React, { useState, useEffect, useRef } from 'react';
@@ -191,13 +192,13 @@ export default function CbtExamWizard() {
           }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
           const distinct=[...new Map(items.map(q=>[q.id,q])).values()];
           if(distinct.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
-          return distinct;
+          return shuffledPracticePool(distinct,Math.min(20,distinct.length));
         }));
         questions=requested.flat();
       }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
       finally{setProviderLoading(false);}
     }else{
-      questions=CBT_QUESTION_BANK.filter(q=>selectedSubjects.includes(q.subject));
+      questions=selectedSubjects.flatMap(subject=>shuffledPracticePool(CBT_QUESTION_BANK.filter(q=>q.subject===subject)));
     }
     if(!questions.length){setProviderError('No practice questions are available.');return;}
     if(questionSource==='aloc'&&questions.length<20){setProviderError('Historical drill requires at least 5 valid questions per subject.');return;}
