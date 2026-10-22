@@ -15,6 +15,19 @@ router.use(async(req,res,next)=>{
  } catch(error){next(error);}
 });
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
+// An account holder is an applicant until at least one programme application is approved.
+// Restrict learning, examinations and accommodation to admitted students at API level.
+const admissionOnly=/^\/(?:practice(?:\/|$)|assessments(?:\/|$)|assessment-results(?:\/|$)|learning\/resources(?:\/|$)|hostel(?:\/|$))/;
+router.use(async(req,res,next)=>{
+ if(!admissionOnly.test(req.path))return next();
+ try{
+  const {data,error}=await db.from('local_student_applications').select('id').eq('account_id',req.actor.sub).eq('status','approved').limit(1);
+  if(error)throw error;
+  if(!data?.length)return res.status(403).json({code:'ADMISSION_REQUIRED',error:'This feature becomes available after UPEC approves your programme application.'});
+  next();
+ }catch(error){next(error);}
+});
+
 router.get('/finance/bank-account',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_bank_accounts').select('bank_name,account_number,account_name').eq('is_active',true).maybeSingle();
  if(error)throw error;res.json({account:data||null});
