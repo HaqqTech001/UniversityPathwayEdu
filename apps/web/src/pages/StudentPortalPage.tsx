@@ -272,7 +272,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b1a42] hover:bg-[#122867] text-white text-xs font-bold transition-colors cursor-pointer"
             >
               <Printer size={13} />
-              <span>Print Slip</span>
+              <span>Application Documents</span>
             </button>
           </div>
         </div>}
@@ -551,7 +551,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-[#0b1a42] shadow-xs cursor-pointer"
                     >
                       <Printer size={14} />
-                      <span>View Official Slip</span>
+                      <span>View Application Documents</span>
                     </button>
                   </div>
                 </div>
