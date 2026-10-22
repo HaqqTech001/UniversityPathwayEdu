@@ -300,6 +300,25 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
 }));
 
 // External examination records are entered by authorized staff only after official registration.
+router.get('/finance/bank-account',permit('finance.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_bank_accounts').select('id,bank_name,account_number,account_name,is_active,updated_at').order('updated_at',{ascending:false}).limit(20);
+ if(error)throw error;res.json({accounts:data||[]});
+}));
+router.post('/finance/bank-account',permit('finance.manage'),wrap(async(req,res)=>{
+ const {bankName,accountNumber,accountName}=req.body||{};
+ if(typeof bankName!=='string'||bankName.trim().length<2||bankName.length>100||typeof accountNumber!=='string'||!/^[0-9]{10}$/.test(accountNumber)||typeof accountName!=='string'||accountName.trim().length<3||accountName.length>160)return res.status(400).json({error:'Enter a valid bank, 10-digit account number and account name.'});
+ const {data,error}=await db.from('upec_bank_accounts').insert({bank_name:bankName.trim(),account_number:accountNumber,account_name:accountName.trim(),created_by:req.actor.sub,updated_by:req.actor.sub,is_active:false}).select('id').single();
+ if(error)throw error;res.status(201).json({account:data});
+}));
+router.patch('/finance/bank-account/:id/activate',permit('finance.manage'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid account ID.'});
+ const {data:target,error:lookupError}=await db.from('upec_bank_accounts').select('id').eq('id',req.params.id).maybeSingle();
+ if(lookupError)throw lookupError;if(!target)return res.status(404).json({error:'Bank account not found.'});
+ const {error:clearError}=await db.from('upec_bank_accounts').update({is_active:false,updated_by:req.actor.sub,updated_at:new Date().toISOString()}).eq('is_active',true);
+ if(clearError)throw clearError;
+ const {data,error}=await db.from('upec_bank_accounts').update({is_active:true,updated_by:req.actor.sub,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('id,is_active').single();
+ if(error)throw error;res.json({account:data});
+}));
 router.get('/exam-registrations/student-search',permit('applications.review'),wrap(async(req,res)=>{
  const q=String(req.query.q||'').trim();
  if(q.length<3||q.length>100)return res.status(400).json({error:'Enter at least three characters from an application reference.'});
