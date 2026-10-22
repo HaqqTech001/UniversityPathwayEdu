@@ -157,6 +157,14 @@ export default function CbtExamWizard() {
   // Subject questions count & answered count
   const totalQuestionsCount = examQuestions.length;
   const totalAnsweredCount = Object.keys(answers).length;
+  const topicBreakdown=examQuestions.reduce<Record<string,{subject:string;topic:string;total:number;answered:number;correct:number}>>((acc,q)=>{
+    const key=q.subject+'::'+(q.topic||'General');
+    const item=acc[key]??{subject:q.subject,topic:q.topic||'General',total:0,answered:0,correct:0};
+    item.total++;if(answers[q.id]!==undefined)item.answered++;if(answers[q.id]===q.answer)item.correct++;
+    acc[key]=item;return acc;
+  },{});
+  const revisionTopics=Object.values(topicBreakdown).sort((a,b)=>(a.correct/a.total)-(b.correct/b.total));
+
 
   // Toggle subject selection during setup
   const toggleSubject = (sub: string) => {
@@ -1189,6 +1197,19 @@ export default function CbtExamWizard() {
         </div>
       </div>
 
+      {/* Revision priorities from the submitted practice paper. */}
+      {revisionTopics.length>0&&<section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <h3 className="font-serif text-lg font-extrabold text-[#111A43]">Topic Performance & Revision Priorities</h3>
+        <p className="mt-2 text-xs text-slate-600">Lowest-scoring topics appear first. Historical papers without topic metadata are grouped under their source year; this is a practice report, not an official result.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {revisionTopics.map(t=>{const pct=Math.round(t.correct/t.total*100);return <div key={t.subject+'::'+t.topic} className="rounded-xl border border-slate-200 bg-[#F7F8FC] p-4">
+            <div className="flex items-center justify-between gap-3"><strong className="text-sm text-[#111A43]">{t.subject} · {t.topic}</strong><span className="text-sm font-bold">{pct}%</span></div>
+            <p className="mt-1 text-xs text-slate-600">{t.correct}/{t.total} correct · {t.answered} attempted</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-[#C62839]" style={{width:pct+'%'}}/></div>
+            <p className="mt-2 text-xs text-slate-600">{pct<60?'Priority: review this topic before your next attempt.':'Keep practising to maintain this result.'}</p>
+          </div>})}
+        </div>
+      </section>}
       {/* Subject-by-Subject Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {latestAttempt &&
