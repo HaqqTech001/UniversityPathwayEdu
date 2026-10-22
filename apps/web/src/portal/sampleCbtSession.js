@@ -10,6 +10,9 @@ function valid(session,owner){
  if(!Array.isArray(session.selectedSubjects)||!Array.isArray(session.flagged)||!session.answers||typeof session.answers!=='object')return false;
  if(!Number.isInteger(session.currentQuestionIndex)||session.currentQuestionIndex<0||session.currentQuestionIndex>=session.questions.length)return false;
  if(typeof session.activeSubject!=='string'||!session.selectedSubjects.includes(session.activeSubject))return false;
+ // Question navigation is indexed within the active subject, not the whole paper.
+ const activeCount=session.questions.filter(q=>q?.subject===session.activeSubject).length;
+ if(!activeCount||session.currentQuestionIndex>=activeCount)return false;
  if(session.deadline!==null&&(!Number.isFinite(session.deadline)||session.deadline<=Date.now()||session.deadline>Date.now()+86400000))return false;
  if(session.practiceMode!=='untimed'&&session.deadline===null)return false;
  const ids=new Set();
