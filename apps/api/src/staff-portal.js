@@ -438,6 +438,13 @@ router.post('/exam-registrations',permit('applications.review'),wrap(async(req,r
  if(error?.code==='23505')return res.status(409).json({error:'This exam registration number is already recorded for that examination and year.'});
  if(error)throw error;res.status(201).json({registration:data});
 }));
+router.get('/exam-registrations/:id/audit',permit('applications.read'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+ const {data:registration,error:lookupError}=await db.from('upec_exam_registrations').select('id').eq('id',req.params.id).maybeSingle();
+ if(lookupError)throw lookupError;if(!registration)return res.status(404).json({error:'Examination registration not found.'});
+ const {data,error}=await db.from('upec_exam_registration_audit').select('id,actor_id,action,created_at').eq('registration_id',req.params.id).order('created_at',{ascending:false}).limit(50);
+ if(error)throw error;res.json({events:data||[]});
+}));
 router.patch('/exam-registrations/:id/verify',permit('applications.review'),wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
  const {data,error}=await db.from('upec_exam_registrations').update({status:'verified',verified_by:req.actor.sub,verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',req.params.id).eq('status','pending_verification').select('id,status').maybeSingle();
