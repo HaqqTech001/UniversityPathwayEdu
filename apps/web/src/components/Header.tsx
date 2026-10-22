@@ -28,6 +28,8 @@ interface HeaderProps {
 
 export default function Header({ currentPath, onNavigate }: HeaderProps) {
   const { currentUser, isAuthenticated } = useAuth();
+  const [newsItems,setNewsItems] = useState<Array<{title:string;url:string}>>([]);
+  useEffect(()=>{const controller=new AbortController();const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');fetch(base+'/api/news/education',{signal:controller.signal}).then(r=>{if(!r.ok)throw Error('News unavailable');return r.json();}).then(data=>setNewsItems(Array.isArray(data.articles)?data.articles.filter((a:unknown):a is {title:string;url:string}=>Boolean(a)&&typeof a==='object'&&typeof (a as {title?:unknown}).title==='string'&&typeof (a as {url?:unknown}).url==='string'&&/^https:\/\//.test((a as {url:string}).url)).slice(0,10):[])).catch(()=>{});return()=>controller.abort();},[]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
   const [activeDesktopDropdown, setActiveDesktopDropdown] = useState<string | null>(null);
@@ -127,80 +129,28 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
 
   return (
     <header className="w-full sticky top-0 z-50 bg-white">
-      {/* =========================================================================
-          SECTION A: TOP UTILITY CONTACT BAR
-          ========================================================================= */}
-      <div className="bg-[#081436] text-white py-1.5 px-3 sm:px-6 md:px-8 border-b border-[#0f2150] h-9 flex items-center overflow-hidden">
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between text-[11px] sm:text-[12px] text-slate-200">
-          {/* Continuous, clipped headline-style ticker on all viewport sizes. */}
-          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="UPEC contact information">
-            <div className="overflow-hidden">
-              <div className="upec-utility-ticker">
-                {[0,1].map(copy=><div key={copy} aria-hidden={copy===1} className="upec-utility-ticker__group">
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><MapPin size={12} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><Phone size={12} className="text-[#e5b05c]"/>09133903600 | 09166664266</span>
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</span>
-                </div>)}
-              </div>
+      {/* Social-only utility strip. Profile links can be enabled when approved URLs are supplied. */}
+      <div className="border-b border-[#182753] bg-[#081436] px-4 py-1.5 text-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-end gap-3" aria-label="Social media platforms">
+          {[
+            {label:'Facebook',glyph:'f'},
+            {label:'X',glyph:'𝕏'},
+            {label:'Instagram',glyph:'◎'},
+            {label:'TikTok',glyph:'♪'},
+          ].map(social=><span key={social.label} title={social.label+' — official profile link pending'} aria-label={social.label+' profile link pending'} className="flex h-6 w-6 items-center justify-center rounded-full border border-white/25 text-sm font-bold text-slate-200" >{social.glyph}</span>)}
+        </div>
+      </div>
+      {/* Separate education-headlines ticker — not address/contact information. */}
+      <div className="flex min-h-9 items-center overflow-hidden border-b border-[#24355f] bg-[#111A43] px-3 text-white" aria-label="Education news headlines">
+        <span className="relative z-10 shrink-0 bg-[#C62839] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide sm:text-xs">Latest News</span>
+        <div className="ml-3 min-w-0 flex-1 overflow-hidden">
+          {newsItems.length > 0 ? (
+            <div className="upec-utility-ticker" aria-label="Headlines scroll continuously right to left">
+              {[0,1].map(copy=><div className="upec-utility-ticker__group" key={copy} aria-hidden={copy===1}>
+                {newsItems.map(item=><a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-2 text-xs text-slate-100 hover:text-[#f2ca7b] focus-visible:text-[#f2ca7b]"><span className="text-[#f2ca7b]">●</span>{item.title}</a>)}
+              </div>)}
             </div>
-
-          </div>
-
-          {/* Right Social Media Icons (Mockup arrangement: Facebook, Twitter/X, Instagram, LinkedIn) */}
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            {[
-              {
-                name: 'Facebook',
-                href: '#',
-                icon: (
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95C18.05 21.45 22 17.18 22 12z" />
-                  </svg>
-                ),
-              },
-              {
-                name: 'Twitter',
-                href: '#',
-                icon: (
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                ),
-              },
-              {
-                name: 'Instagram',
-                href: '#',
-                icon: (
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                  </svg>
-                ),
-              },
-              {
-                name: 'LinkedIn',
-                href: '#',
-                icon: (
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                  </svg>
-                ),
-              },
-            ].map((social) => (
-              <a
-                key={social.name}
-                href={social.href}
-                onClick={(e) => {
-                  if (social.href === '#') {
-                    e.preventDefault();
-                  }
-                }}
-                aria-label={social.name}
-                className="w-6 h-6 rounded-full border border-white/20 hover:border-[#e5b05c] hover:text-[#e5b05c] flex items-center justify-center transition-colors text-slate-300"
-              >
-                {social.icon}
-              </a>
-            ))}
-          </div>
+          ) : <span className="block truncate py-1 text-xs text-slate-300">Education headlines are temporarily unavailable.</span>}
         </div>
       </div>
 
