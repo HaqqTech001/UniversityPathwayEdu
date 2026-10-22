@@ -300,6 +300,13 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
 }));
 
 // External examination records are entered by authorized staff only after official registration.
+router.get('/exam-registrations/student-search',permit('applications.review'),wrap(async(req,res)=>{
+ const q=String(req.query.q||'').trim();
+ if(q.length<3||q.length>100)return res.status(400).json({error:'Enter at least three characters from an application reference.'});
+ const escaped=q.replace(/[\\%_]/g,c=>'\\'+c);
+ const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status').ilike('reference_number','%'+escaped+'%').order('created_at',{ascending:false}).limit(30);
+ if(error)throw error;res.json({applications:data||[]});
+}));
 router.get('/exam-registrations',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_exam_registrations').select('id,student_account_id,exam_body,exam_year,registration_number,examination_number,centre_name,exam_date,status,created_at').order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({registrations:data||[]});
