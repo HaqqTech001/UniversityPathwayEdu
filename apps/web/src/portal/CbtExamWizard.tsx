@@ -126,6 +126,7 @@ export default function CbtExamWizard() {
   const historyKey = ownerId ? 'upec_cbt_attempt_history_' + ownerId : null;
   const [attemptHistory, setAttemptHistory] = useState<ExamAttemptRecord[]>([]);
   useEffect(() => {
+    setHistoryLoadedFor(null);
     if (!historyKey) { setAttemptHistory([]); return; }
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
@@ -142,8 +143,17 @@ export default function CbtExamWizard() {
         record.subjectBreakdown !== null && typeof record.subjectBreakdown === 'object'
       ).slice(0, 15) : [];
       setAttemptHistory(safe);
-    } catch { setAttemptHistory([]); }
+      setHistoryLoadedFor(historyKey);
+    } catch { setAttemptHistory([]); setHistoryLoadedFor(historyKey); }
   }, [historyKey]);
+
+  const [historyLoadedFor, setHistoryLoadedFor] = useState<string | null>(null);
+  useEffect(() => {
+    // Never persist an earlier account's in-memory results into a new account's key.
+    if (!historyKey || historyLoadedFor !== historyKey) return;
+    try { localStorage.setItem(historyKey, JSON.stringify(attemptHistory)); }
+    catch { /* Browser storage may be disabled or full. */ }
+  }, [historyKey, historyLoadedFor, attemptHistory]);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deadlineRef = useRef<number | null>(null);
@@ -413,14 +423,8 @@ export default function CbtExamWizard() {
     };
 
     setLatestAttempt(attempt);
-    setAttemptHistory(previous => {
-      const updated = [attempt, ...previous].slice(0, 15);
-      if (historyKey) {
-        try { localStorage.setItem(historyKey, JSON.stringify(updated)); }
-        catch { /* Browser storage may be disabled. */ }
-      }
-      return updated;
-    });
+    // Keep React state updates pure; persistence happens in the account-specific effect.
+    setAttemptHistory(previous => [attempt, ...previous].slice(0, 15));
 
     setStage('results');
     window.scrollTo({ top: 0, behavior: 'smooth' });
