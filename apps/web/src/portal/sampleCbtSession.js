@@ -19,8 +19,12 @@ function valid(session,owner){
   if(q.options.some(option=>typeof option!=='string')||[...q.options].sort().join('\u0000')!==[...original.options].sort().join('\u0000')||q.options[q.answer]!==original.options[original.answer])return false;
   ids.add(q.id);
  }
- for(const [id,answer] of Object.entries(session.answers)){if(!ids.has(id)||!Number.isInteger(answer)||answer<0||answer>3)return false;}
- return session.flagged.every(id=>ids.has(id));
+ const byId=new Map(session.questions.map(q=>[q.id,q]));
+ for(const [id,answer] of Object.entries(session.answers)){
+  const q=byId.get(id);
+  if(!q||!Number.isInteger(answer)||answer<0||answer>=q.options.length)return false;
+ }
+ return session.flagged.every(id=>ids.has(id))&&new Set(session.flagged).size===session.flagged.length;
 }
 export function saveSampleSession(session,owner){
  if(!valid(session,owner))return false;
