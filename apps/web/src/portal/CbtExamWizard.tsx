@@ -1,3 +1,4 @@
+import {saveSampleSession,loadSampleSession,clearSampleSession} from './sampleCbtSession.js';
 import {preparePracticePaper} from './practicePaper.js';
 import {shuffledPracticePool,shufflePracticeOptions} from './practiceSelection.js';
 import {getStudentToken} from '../context/AuthContext';
@@ -46,6 +47,7 @@ export default function CbtExamWizard() {
 
   // Wizard Stage: 'setup' | 'exam' | 'results'
   const [stage, setStage] = useState<'setup' | 'exam' | 'results'>('setup');
+  const [recoverable,setRecoverable]=useState(()=>loadSampleSession());
 
   // Setup options
   const [examType, setExamType] = useState('JAMB (UTME)');
@@ -168,9 +170,20 @@ export default function CbtExamWizard() {
     }
   };
 
+  const resumeSample=()=>{
+    const saved=loadSampleSession();if(!saved){setRecoverable(null);return;}
+    setQuestionSource('sample');setExamQuestions(saved.questions);setSelectedSubjects(saved.selectedSubjects);
+    setActiveSubject(saved.activeSubject);setCurrentQuestionIndex(saved.currentQuestionIndex);
+    setAnswers(saved.answers||{});setFlagged(saved.flagged||[]);setPracticeMode(saved.practiceMode);
+    setDurationMinutes(saved.durationMinutes||15);
+    deadlineRef.current=saved.deadline;submittingRef.current=false;
+    setTimeRemaining(saved.deadline===null?0:Math.max(0,Math.ceil((saved.deadline-Date.now())/1000)));
+    setRecoverable(null);setStage('exam');
+  };
   // Start Exam Handler
   const handleStartExam = async () => {
     if (!canStartExam) return;
+    clearSampleSession();setRecoverable(null);
     if(questionSource==='aloc'&&(!Number.isInteger(historicalYear)||historicalYear<1990||historicalYear>2030)){setProviderError('Select a valid historical question year.');return;}
     setProviderError('');
     let questions:CbtQuestion[]=[];
@@ -222,6 +235,10 @@ export default function CbtExamWizard() {
 
   // Keep the current submission function available to the interval after answer changes.
   useEffect(()=>{submitLatestRef.current=handleForceSubmit;});
+  useEffect(()=>{
+    if(stage!=='exam'||questionSource!=='sample')return;
+    saveSampleSession({source:'sample',questions:examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,deadline:deadlineRef.current,durationMinutes});
+  },[stage,questionSource,examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,durationMinutes]);
   // Deadline-based timer also counts time while the browser tab is inactive.
   useEffect(() => {
     if(stage!=='exam'||deadlineRef.current===null)return;
@@ -312,6 +329,7 @@ export default function CbtExamWizard() {
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
     if(submittingRef.current)return;
+    clearSampleSession();setRecoverable(null);
     submittingRef.current=true;
     deadlineRef.current=null;
     stopCamera();
@@ -522,6 +540,7 @@ export default function CbtExamWizard() {
               {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
+            {recoverable&&<div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><h3 className="font-bold text-[#111A43]">Resume saved UPEC sample practice?</h3><p className="mt-2 text-sm">A previous sample practice session was saved on this browser. The original deadline still applies.</p><div className="mt-3 flex gap-3"><button type="button" onClick={resumeSample} className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Resume practice</button><button type="button" onClick={()=>{clearSampleSession();setRecoverable(null);}} className="rounded-lg border border-slate-300 px-4 py-2">Discard</button></div></div>}
             <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">UPEC original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><label className="block text-sm font-bold">Practice length<select value={historicalLength} onChange={e=>setHistoricalLength(e.target.value as 'drill'|'full')} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="drill">Short historical practice drill</option><option value="full">Full UTME-style mock · 180 questions · 120 minutes</option></select></label><p className="text-xs text-amber-900">{historicalLength==='full'?'Requires 60 unique, valid English questions and 40 for each other subject. No paper starts if the provider has insufficient coverage. Fixed 120-minute timer. This is practice, not an official JAMB exam.':'Short practice drill using historical questions. Counts vary by provider availability; this is not a full UTME paper.'}</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
             {/* 4. Duration Setting for Timed Mode */}
             {practiceMode === 'timed' && !(questionSource==='aloc'&&historicalLength==='full') && (
