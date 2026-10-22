@@ -39,7 +39,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         'Flexible morning, afternoon, and evening coaching sessions',
       ],
       duration: '1 Month, 3 Months, or Full Session (up to exam date)',
-      feeInfo: 'Application fee: ₦15,000 (Tuition schedules per duration)',
+      feeInfo: 'Current fees are provided by the admissions office.',
     },
     {
       id: 'olevel',
@@ -57,7 +57,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         'Individual remedial support for recurring problem topics',
       ],
       duration: '3 Months, 6 Months, or Full Academic Year',
-      feeInfo: 'Application fee: ₦15,000 (Subject-package fees apply)',
+      feeInfo: 'Current fees are provided by the admissions office.',
     },
     {
       id: 'alevel',
@@ -75,7 +75,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         'Direct Entry (DE) university admission counselling and processing guidance',
       ],
       duration: '9 to 10 Months (Full Academic Session)',
-      feeInfo: 'Application fee: ₦15,000 (Direct Entry instalment schedules)',
+      feeInfo: 'Current fees are provided by the admissions office.',
     },
     {
       id: 'international',
@@ -93,7 +93,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         'GRE & GMAT quantitative reasoning and analytical writing tutorials',
       ],
       duration: '4 to 8 Weeks intensive modular bootcamps',
-      feeInfo: 'Application fee: ₦15,000 (Test preparation & mock bundles)',
+      feeInfo: 'Current fees are provided by the admissions office.',
     },
   ];
 
@@ -237,7 +237,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
                       </div>
                       <button
                         type="button"
-                        onClick={() => onNavigate('/apply')}
+                        onClick={() => { window.sessionStorage.setItem('upec_selected_programme', item.title); onNavigate('/apply'); }}
                         className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-md transition-all"
                       >
                         Apply Now <ArrowRight size={14} />
