@@ -274,7 +274,17 @@ export default function CbtExamWizard() {
     };
     tick();
     timerRef.current=setInterval(tick,1000);
-    return()=>{if(timerRef.current)clearInterval(timerRef.current);};
+    // Background tabs may throttle intervals; refresh immediately on return.
+    const onVisible=()=>{if(document.visibilityState==='visible')tick();};
+    document.addEventListener('visibilitychange',onVisible);
+    window.addEventListener('focus',tick);
+    window.addEventListener('pageshow',tick);
+    return()=>{
+      if(timerRef.current){clearInterval(timerRef.current);timerRef.current=null;}
+      document.removeEventListener('visibilitychange',onVisible);
+      window.removeEventListener('focus',tick);
+      window.removeEventListener('pageshow',tick);
+    };
   },[stage]);
   // A page refresh can restore original sample practice, but licensed provider papers are not cached.
   // Warn before navigating away so students do not unintentionally lose those answers.
