@@ -124,3 +124,23 @@ test('rejects altered sample explanations, passages and topics',()=>{
   assert.equal(saveSampleSession(session,owner),false);
  }
 });
+
+test('validates timed and untimed session deadlines consistently',()=>{
+ const untimed=make('student-untimed');
+ untimed.practiceMode='untimed';
+ untimed.deadline=null;
+ assert.equal(saveSampleSession(untimed,'student-untimed'),true);
+ clearSampleSession('student-untimed');
+ untimed.deadline=Date.now()+60000;
+ assert.equal(saveSampleSession(untimed,'student-untimed'),false);
+ const timed=make('student-timed');
+ timed.deadline=null;
+ assert.equal(saveSampleSession(timed,'student-timed'),false);
+});
+test('rejects invalid practice durations',()=>{
+ for(const minutes of [0,-1,1.5,1441,null]){
+  const session=make('student-duration');
+  session.durationMinutes=minutes;
+  assert.equal(saveSampleSession(session,'student-duration'),false);
+ }
+});
