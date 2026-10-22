@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {shuffledPracticePool} from './practiceSelection.js';
+import {shuffledPracticePool,shufflePracticeOptions} from './practiceSelection.js';
 test('selection does not mutate the shared question bank',()=>{
  const pool=[1,2,3,4,5];const selected=shuffledPracticePool(pool,3,()=>0);
  assert.deepEqual(pool,[1,2,3,4,5]);
@@ -15,4 +15,11 @@ test('different shuffle draws can produce distinct practice papers',()=>{
 });
 test('requested size cannot exceed available questions',()=>{
  assert.equal(shuffledPracticePool([1,2],20).length,2);
+});
+
+test('option shuffling retains the correct answer meaning',()=>{
+ const q={id:'q1',options:['wrong A','correct','wrong C','wrong D'],answer:1};
+ const transformed=shufflePracticeOptions(q,()=>0);
+ assert.equal(transformed.options[transformed.answer],'correct');
+ assert.deepEqual(q.options,['wrong A','correct','wrong C','wrong D']);
 });
