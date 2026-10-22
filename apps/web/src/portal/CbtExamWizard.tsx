@@ -129,7 +129,19 @@ export default function CbtExamWizard() {
     if (!historyKey) { setAttemptHistory([]); return; }
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
-      setAttemptHistory(Array.isArray(parsed) ? parsed.slice(0, 15) as ExamAttemptRecord[] : []);
+      // Ignore corrupt or obsolete browser records rather than crashing results rendering.
+      const safe = Array.isArray(parsed) ? parsed.filter((record): record is ExamAttemptRecord =>
+        record !== null && typeof record === 'object' &&
+        typeof record.id === 'string' && typeof record.examType === 'string' &&
+        typeof record.mode === 'string' && Array.isArray(record.subjects) &&
+        record.subjects.every((subject: unknown) => typeof subject === 'string') &&
+        typeof record.score === 'number' && Number.isFinite(record.score) &&
+        typeof record.totalScore === 'number' && Number.isFinite(record.totalScore) &&
+        typeof record.percentage === 'number' && Number.isFinite(record.percentage) &&
+        typeof record.date === 'string' &&
+        record.subjectBreakdown !== null && typeof record.subjectBreakdown === 'object'
+      ).slice(0, 15) : [];
+      setAttemptHistory(safe);
     } catch { setAttemptHistory([]); }
   }, [historyKey]);
 
