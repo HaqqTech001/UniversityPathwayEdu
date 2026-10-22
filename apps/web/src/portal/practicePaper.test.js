@@ -13,3 +13,12 @@ test('duplicate IDs in same subject are not counted twice',()=>{
 test('short drill is not labelled as full UTME',()=>{
  assert.equal(preparePracticePaper([[q('English','1')],[q('Math','2')]],1).isFullUtme,false);
 });
+
+test('same question text under different provider IDs is not repeated',()=>{
+ const first={...q('Mathematics','one'),prompt:'Solve 2x = 8'};
+ const duplicate={...q('Mathematics','two'),prompt:'  SOLVE   2x = 8  '};
+ const second={...q('Mathematics','three'),prompt:'Find 5 + 7'};
+ const paper=preparePracticePaper([[first,duplicate,second]],2);
+ assert.equal(paper.questions.length,2);
+ assert.deepEqual(paper.questions.map(item=>item.id),['Mathematics:one','Mathematics:three']);
+});
