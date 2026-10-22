@@ -213,6 +213,14 @@ router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res
  ].sort((a,b)=>Date.parse(b.recorded_at)-Date.parse(a.recorded_at)).slice(0,limit);
  res.json({entries,limit,hasMore:(monthly.data||[]).length===limit||(registration.data||[]).length===limit});
 }));
+router.get('/finance/application-search',permit('finance.manage'),wrap(async(req,res)=>{
+ const q=String(req.query.q||'').trim();
+ if(q.length<3||q.length>100)return res.status(400).json({error:'Enter 3–100 characters of the application reference.'});
+ const escaped=q.replace(/[\\%_]/g,c=>'\\'+c);
+ const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,account_id').ilike('reference_number','%'+escaped+'%').order('created_at',{ascending:false}).limit(30);
+ if(error)throw error;
+ res.json({applications:(data||[]).map(({id,reference_number,programme,academic_session,status,account_id})=>({id,reference_number,programme,academic_session,status,account_id}))});
+}));
 router.get('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_registration_invoices').select('id,student_account_id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({invoices:data||[]});
