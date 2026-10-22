@@ -434,19 +434,6 @@ router.get('/services/catalogue',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,allow_online,allow_physical,fee_ngn,offerings').eq('active',true).order('name');
  if(error)throw error;res.json({services:data||[]});
 }));
-router.get('/services/requests',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_requests').select('id,service_code,delivery_mode,requested_subject,preferred_schedule,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(50);
- if(error)throw error;res.json({requests:data||[]});
-}));
-router.post('/services/requests',wrap(async(req,res)=>{
- const {serviceCode,deliveryMode,requestedSubject,preferredSchedule}=req.body||{};
- if(!['extramural_lessons','educational_consultation'].includes(serviceCode)||!['online','physical'].includes(deliveryMode)||typeof requestedSubject!=='string'||requestedSubject.trim().length<3||requestedSubject.length>500||typeof preferredSchedule!=='string'||preferredSchedule.length>300)return res.status(400).json({error:'Enter the service, delivery mode, request description and preferred schedule.'});
- const item=await db.from('upec_service_catalogue').select('code,active,allow_online,allow_physical').eq('code',serviceCode).maybeSingle();
- if(item.error)throw item.error;
- if(!item.data?.active||!(deliveryMode==='online'?item.data.allow_online:item.data.allow_physical))return res.status(409).json({error:'Selected service or delivery mode is unavailable.'});
- const {data,error}=await db.from('upec_service_requests').insert({student_account_id:req.actor.sub,service_code:serviceCode,delivery_mode:deliveryMode,requested_subject:requestedSubject.trim(),preferred_schedule:preferredSchedule.trim()}).select('id,status').single();
- if(error)throw error;res.status(201).json({request:data});
-}));
 router.get('/hostel/requests',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_hostel_requests').select('id,application_id,status,staff_note,accommodation_detail,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(50);
  if(error)throw error;res.json({requests:data||[]});
