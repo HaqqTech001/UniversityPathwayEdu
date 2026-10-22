@@ -25,7 +25,7 @@ export default function CommonApplicationForm(){
  const uploadPaymentReceipt=async()=>{if(!paymentReceipt)return;setUploadingReceipt(true);setError('');try{
  if(!['application/pdf','image/png','image/jpeg'].includes(paymentReceipt.type)||paymentReceipt.size>5242880||!paymentReceipt.size)throw Error('Choose a PDF, PNG or JPG receipt under 5 MB.');
  const token=getStudentToken();if(!token)throw Error('Sign in again.');
- const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');
+ const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
  const call=async(path:string,payload:object)=>{const response=await fetch(base+'/api/student/application-payment/'+path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw Error(data.error||'Receipt upload failed.');return data;};
  const signed=await call('upload-url',{mimeType:paymentReceipt.type,sizeBytes:paymentReceipt.size});
  const transferred=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':paymentReceipt.type},body:paymentReceipt});if(!transferred.ok)throw Error('Could not upload payment receipt.');
