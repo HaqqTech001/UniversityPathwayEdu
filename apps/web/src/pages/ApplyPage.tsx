@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   GraduationCap,
   BookOpen,
@@ -24,6 +24,7 @@ interface ApplyPageProps {
 }
 
 export default function ApplyPage({ onNavigate }: ApplyPageProps) {
+  const [selectedProgramme] = useState(() => typeof window === 'undefined' ? '' : window.sessionStorage.getItem('upec_selected_programme') || '');
   const handleNav = (path: string) => {
     if (onNavigate) {
       onNavigate(path);
@@ -113,6 +114,7 @@ export default function ApplyPage({ onNavigate }: ApplyPageProps) {
           </nav>
 
           <div className="max-w-3xl">
+            {selectedProgramme && <p className="mb-4 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white" role="status">Selected programme: <strong>{selectedProgramme}</strong>. Your selection will be kept while you sign in or register. Confirm the programme when starting your application inside the portal.</p>}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-[#f0bb5b] text-xs font-extrabold uppercase tracking-widest mb-4 border border-white/10">
               <Sparkles size={14} />
               <span>Admissions Entry Portal</span>
@@ -121,7 +123,7 @@ export default function ApplyPage({ onNavigate }: ApplyPageProps) {
               Begin Your Journey with University Pathway
             </h1>
             <p className="mt-4 text-sm sm:text-base text-slate-200 leading-relaxed font-normal">
-              University Pathway Educational Consult welcomes prospective candidates to our structured coaching programmes and university pathway preparatory cohorts. Review the available educational pathways below, create your student account, and connect with our admissions desk to complete your registration.
+              University Pathway Educational Consult welcomes prospective candidates to our structured coaching programmes and university pathway preparatory cohorts. Review the available educational pathways, create your account, and complete your application in the student portal.
             </p>
           </div>
         </div>
