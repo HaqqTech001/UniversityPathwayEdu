@@ -309,7 +309,7 @@ export default function CbtExamWizard() {
     });
 
     const percent = Math.round((correctCount / totalQuestionsCount) * 100) || 0;
-    const scaledScore = Math.round((correctCount / totalQuestionsCount) * 400);
+    const scaledScore = Math.round((correctCount / totalQuestionsCount) * 100);
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
@@ -317,7 +317,7 @@ export default function CbtExamWizard() {
       mode: practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
-      totalScore: 400,
+      totalScore: 100,
       percentage: percent,
       date: new Date().toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -617,7 +617,7 @@ export default function CbtExamWizard() {
                       className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between"
                     >
                       <div>
-                        <p className="font-bold text-[#0b1a42]">{att.score} / 400</p>
+                        <p className="font-bold text-[#0b1a42]">{att.score} / {att.totalScore}</p>
                         <p className="text-[10px] text-slate-400">{att.date}</p>
                       </div>
                       <span
@@ -1132,7 +1132,7 @@ export default function CbtExamWizard() {
               Aggregate Score
             </span>
             <p className="font-serif text-3xl sm:text-4xl font-black text-[#f0bb5b] mt-0.5">
-              {latestAttempt?.score} / 400
+              {latestAttempt?.score} / {latestAttempt?.totalScore}
             </p>
             <span className="text-[10px] font-bold text-emerald-300">
               {latestAttempt?.percentage}% Overall Mastery
