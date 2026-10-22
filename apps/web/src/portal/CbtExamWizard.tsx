@@ -46,12 +46,14 @@ export default function CbtExamWizard() {
   const { currentUser } = useAuth();
   const ownerId=currentUser?.id;
   const previousOwnerIdRef = useRef(ownerId);
+  const activeExamOwnerRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (previousOwnerIdRef.current !== ownerId) {
       // An examination belongs to the signed-in student; never carry its answers
       // into a different account. The previous student's saved practice remains intact.
       previousOwnerIdRef.current = ownerId;
       deadlineRef.current = null;
+      activeExamOwnerRef.current = undefined;
       submittingRef.current = false;
       setStage('setup');
       setExamQuestions([]);
@@ -226,6 +228,7 @@ export default function CbtExamWizard() {
     setActiveSubject(saved.activeSubject);setCurrentQuestionIndex(saved.currentQuestionIndex);
     setAnswers(saved.answers||{});setFlagged(saved.flagged||[]);setPracticeMode(saved.practiceMode);
     setDurationMinutes(saved.durationMinutes||15);
+    activeExamOwnerRef.current=ownerId;
     deadlineRef.current=saved.deadline;submittingRef.current=false;
     setTimeRemaining(saved.deadline===null?0:Math.max(0,Math.ceil((saved.deadline-Date.now())/1000)));
     setRecoverable(null);setStage('exam');
@@ -280,6 +283,7 @@ export default function CbtExamWizard() {
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
     const totalSecs=questionSource==='aloc'&&historicalLength==='full'?120*60:practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
     deadlineRef.current=practiceMode==='untimed'&&!(questionSource==='aloc'&&historicalLength==='full')?null:Date.now()+totalSecs*1000;
+    activeExamOwnerRef.current=ownerId;
     submittingRef.current=false;
     setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
@@ -287,7 +291,7 @@ export default function CbtExamWizard() {
   // Keep the current submission function available to the interval after answer changes.
   useEffect(()=>{submitLatestRef.current=handleForceSubmit;});
   useEffect(()=>{
-    if(stage!=='exam'||questionSource!=='sample')return;
+    if(stage!=='exam'||questionSource!=='sample'||!ownerId||activeExamOwnerRef.current!==ownerId)return;
     saveSampleSession({owner:ownerId,source:'sample',questions:examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,deadline:deadlineRef.current,durationMinutes},ownerId);
   },[stage,questionSource,examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,durationMinutes]);
   // Deadline-based timer also counts time while the browser tab is inactive.
@@ -392,9 +396,10 @@ export default function CbtExamWizard() {
 
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
-    if(submittingRef.current)return;
+    if(submittingRef.current||!ownerId||activeExamOwnerRef.current!==ownerId)return;
     clearSampleSession(ownerId);setRecoverable(null);
     submittingRef.current=true;
+    activeExamOwnerRef.current=undefined;
     deadlineRef.current=null;
     stopCamera();
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
