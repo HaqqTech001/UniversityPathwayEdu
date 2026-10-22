@@ -8,3 +8,11 @@ export function shuffledPracticePool(items,limit=items.length,random=Math.random
  }
  return copy.slice(0,Math.max(0,Math.min(limit,copy.length)));
 }
+
+/** Randomize answer choices for a browser-only practice attempt, preserving the correct answer. */
+export function shufflePracticeOptions(question,random=Math.random){
+ if(!Array.isArray(question.options)||question.options.length<2)return {...question};
+ const choices=question.options.map((label,index)=>({label,index}));
+ const shuffled=shuffledPracticePool(choices,choices.length,random);
+ return {...question,options:shuffled.map(choice=>choice.label),answer:shuffled.findIndex(choice=>choice.index===question.answer)};
+}
