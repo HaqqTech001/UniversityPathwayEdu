@@ -193,6 +193,30 @@ router.post('/finance/invoices/:id/payments',permit('finance.manage'),wrap(async
  if(error)throw error;
  res.json({invoice:data});
 }));
+router.get('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_registration_invoices').select('id,student_account_id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;res.json({invoices:data||[]});
+}));
+router.post('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
+ const {applicationId}=req.body||{};
+ if(typeof applicationId!=='string'||!/^[0-9a-f-]{36}$/i.test(applicationId))return res.status(400).json({error:'Select a valid programme application.'});
+ const {data:application,error:applicationError}=await db.from('local_student_applications').select('account_id,programme,academic_session,status,submitted_at').eq('id',applicationId).maybeSingle();
+ if(applicationError)throw applicationError;if(!application)return res.status(404).json({error:'Application not found.'});
+ if(!application.submitted_at)return res.status(409).json({error:'Application must be submitted before registration billing.'});
+ const date=(application.submitted_at||new Date().toISOString()).slice(0,10);
+ const {data:rates,error:ratesError}=await db.from('upec_registration_fee_rates').select('amount_ngn').eq('programme_code',application.programme).lte('effective_month',date.slice(0,7)+'-01').order('effective_month',{ascending:false}).limit(1);
+ if(ratesError)throw ratesError;if(!rates?.length)return res.status(409).json({error:'No programme registration fee rate was effective at application submission.'});
+ const {data,error}=await db.from('upec_registration_invoices').insert({student_account_id:application.account_id,programme_code:application.programme,academic_session:application.academic_session,fee_amount_ngn:rates[0].amount_ngn,issued_by:req.actor.sub}).select('id,status,fee_amount_ngn').single();
+ if(error?.code==='23505')return res.status(409).json({error:'Registration invoice already exists for this student, programme and session.'});
+ if(error)throw error;res.status(201).json({invoice:data});
+}));
+router.post('/finance/registration-invoices/:id/payments',permit('finance.manage'),wrap(async(req,res)=>{
+ const {amountNgn,reference}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||typeof amountNgn!=='number'||!Number.isFinite(amountNgn)||amountNgn<=0||typeof reference!=='string'||reference.trim().length<5||reference.length>120)return res.status(400).json({error:'Valid verified payment details required.'});
+ const {data,error}=await db.rpc('upec_record_registration_payment',{p_invoice:req.params.id,p_amount:amountNgn,p_reference:reference.trim(),p_staff:req.actor.sub});
+ if(error?.code==='23505')return res.status(409).json({error:'Payment reference has already been recorded.'});
+ if(error)throw error;res.json({invoice:data});
+}));
 router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
  const month=typeof req.query.month==='string'?req.query.month:'';
  if(month&&!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month))return res.status(400).json({error:'Month must be YYYY-MM.'});
