@@ -353,8 +353,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'profile' && (
           <div className="space-y-6">
-            <StudentPhotoUpload/>
-            <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+            <StudentPhotoUpload fullName={currentUser.fullName} email={currentUser.email}/>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
               <div>
                 <h2 className="font-serif text-base font-bold text-[#0b1a42]">
                   Candidate Biodata Record
