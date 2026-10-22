@@ -58,6 +58,7 @@ export default function CbtExamWizard() {
   ]);
   const [questionSource,setQuestionSource]=useState<'sample'|'aloc'>('sample');
   const [historicalYear,setHistoricalYear]=useState(2025);
+  const [historicalLength,setHistoricalLength]=useState<'drill'|'full'>('drill');
   const [providerLoading,setProviderLoading]=useState(false);
   const [providerError,setProviderError]=useState('');
   const [durationMinutes, setDurationMinutes] = useState(15); // 15 mins for realistic mini-mock
@@ -178,10 +179,11 @@ export default function CbtExamWizard() {
         const requested=await Promise.all(selectedSubjects.map(async subject=>{
           const code=aliases[subject]||subject.toLowerCase().replaceAll(' ','-');
           const collected:any[]=[];let cursor:string|undefined=undefined;
-          for(let page=0;page<4;page++){
+          for(let page=0;page<(historicalLength==='full'?8:4);page++){
             const result=await upecAuthApi.utmePracticeQuestions(token,code,historicalYear,cursor,30);
             collected.push(...(Array.isArray(result.questions)?result.questions:[]));
             const next=result.pagination?.nextCursor;
+            if(collected.length>= (historicalLength==='full'?(subject==='Use of English'?100:70):60))break;
             if(!next||typeof next!=='string'||next===cursor)break;
             cursor=next;
           }
@@ -192,10 +194,13 @@ export default function CbtExamWizard() {
             return {id:String(raw.id),subject,topic:'Historical UTME '+historicalYear,prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:'This provider tier does not include worked solutions.'} as CbtQuestion;
           }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
           const distinct=[...new Map(items.map(q=>[q.id,q])).values()];
-          if(distinct.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
-          return shuffledPracticePool(distinct,Math.min(20,distinct.length));
+          const required=historicalLength==='full'?(subject==='Use of English'?60:40):5;
+          if(distinct.length<required)throw Error(subject+' returned '+distinct.length+' valid distinct questions; '+required+' required for '+(historicalLength==='full'?'a full mock':'a drill')+'. Try a different historical year.');
+          return shuffledPracticePool(distinct,historicalLength==='full'?required:Math.min(20,distinct.length));
         }));
-        questions=preparePracticePaper(requested,5).questions;
+        const paper=preparePracticePaper(requested,historicalLength==='full'?40:5);
+        if(historicalLength==='full'&&!paper.isFullUtme)throw Error('Full UTME mock cannot start: all 180 questions must be present (60 English and 40 each for three subjects).');
+        questions=paper.questions;
       }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
       finally{setProviderLoading(false);}
     }else{
@@ -206,7 +211,7 @@ export default function CbtExamWizard() {
     setExamQuestions(questions.map(q=>shufflePracticeOptions(q)));
     setActiveSubject(selectedSubjects[0]||'Use of English');
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
-    const totalSecs=practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
+    const totalSecs=questionSource==='aloc'&&historicalLength==='full'?120*60:practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
     setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
 
@@ -325,7 +330,7 @@ export default function CbtExamWizard() {
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
-      examType: questionSource==='aloc'?'JAMB historical practice ('+historicalYear+', third-party)':'UPEC original sample practice',
+      examType: questionSource==='aloc'?(historicalLength==='full'?'Full-length UTME-style historical mock (':'JAMB historical practice (')+historicalYear+', third-party)':'UPEC original sample practice',
       mode: practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
@@ -507,9 +512,9 @@ export default function CbtExamWizard() {
               {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">UPEC original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><p className="text-xs text-amber-900">This loads a short third-party practice drill, NOT a standard 180-question JAMB mock. All four subjects must return usable questions. No official endorsement is implied.</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
+            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">UPEC original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><label className="block text-sm font-bold">Practice length<select value={historicalLength} onChange={e=>setHistoricalLength(e.target.value as 'drill'|'full')} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="drill">Short historical practice drill</option><option value="full">Full UTME-style mock · 180 questions · 120 minutes</option></select></label><p className="text-xs text-amber-900">{historicalLength==='full'?'Requires 60 unique, valid English questions and 40 for each other subject. No paper starts if the provider has insufficient coverage. Fixed 120-minute timer. This is practice, not an official JAMB exam.':'Short practice drill using historical questions. Counts vary by provider availability; this is not a full UTME paper.'}</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
             {/* 4. Duration Setting for Timed Mode */}
-            {practiceMode === 'timed' && (
+            {practiceMode === 'timed' && !(questionSource==='aloc'&&historicalLength==='full') && (
               <div>
                 <label className="block text-xs font-bold text-[#0b1a42] uppercase tracking-wider mb-2">
                   4. Session Time Duration
