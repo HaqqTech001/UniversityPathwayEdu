@@ -1,3 +1,5 @@
+import {getStudentToken} from '../context/AuthContext';
+import {upecAuthApi} from '../lib/upecAuthApi';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock,
@@ -52,6 +54,10 @@ export default function CbtExamWizard() {
     'Chemistry',
     'Physics',
   ]);
+  const [questionSource,setQuestionSource]=useState<'sample'|'aloc'>('sample');
+  const [historicalYear,setHistoricalYear]=useState(2025);
+  const [providerLoading,setProviderLoading]=useState(false);
+  const [providerError,setProviderError]=useState('');
   const [durationMinutes, setDurationMinutes] = useState(15); // 15 mins for realistic mini-mock
 
   // Examination state
@@ -130,7 +136,7 @@ export default function CbtExamWizard() {
   ];
   const subjectsWithQuestions = new Set(CBT_QUESTION_BANK.map(question => question.subject));
   const unavailableSubjects = selectedSubjects.filter(subject => !subjectsWithQuestions.has(subject));
-  const canStartExam = selectedSubjects.length === 4 && unavailableSubjects.length === 0;
+  const canStartExam = selectedSubjects.length === 4 && (questionSource==='aloc'||unavailableSubjects.length===0) && !providerLoading;
 
   // Filter current subject's questions
   const currentSubjectQuestions = examQuestions.filter(
@@ -157,23 +163,39 @@ export default function CbtExamWizard() {
   };
 
   // Start Exam Handler
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
     if (!canStartExam) return;
-    const questions = CBT_QUESTION_BANK.filter((q) =>
-      selectedSubjects.includes(q.subject)
-    );
+    setProviderError('');
+    let questions:CbtQuestion[]=[];
+    if(questionSource==='aloc'){
+      setProviderLoading(true);
+      try{
+        const token=getStudentToken();if(!token)throw Error('Please sign in again.');
+        const aliases:Record<string,string>={'Use of English':'english','Agricultural Science':'agricultural-science','Literature in English':'literature-in-english','Christian Religious Studies':'crs','Islamic Religious Studies':'irs'};
+        const requested=await Promise.all(selectedSubjects.map(async subject=>{
+          const code=aliases[subject]||subject.toLowerCase().replaceAll(' ','-');
+          const result=await upecAuthApi.utmePracticeQuestions(token,code,historicalYear);
+          const items=(result.questions||[]).map((raw:any)=>{
+            const options=['a','b','c','d'].map(k=>raw.options?.[k]??raw.options?.[k.toUpperCase()]);
+            const answer='abcd'.indexOf(String(raw.correctAnswer||'').toLowerCase());
+            if(!raw.id||!String(raw.text||raw.questionHtml||'').trim()||options.some(v=>typeof v!=='string'||!v.trim())||answer<0)return null;
+            return {id:String(raw.id),subject,topic:'Historical UTME '+historicalYear,prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:'This provider tier does not include worked solutions.'} as CbtQuestion;
+          }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
+          if(items.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
+          return items;
+        }));
+        questions=requested.flat();
+      }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
+      finally{setProviderLoading(false);}
+    }else{
+      questions=CBT_QUESTION_BANK.filter(q=>selectedSubjects.includes(q.subject));
+    }
+    if(!questions.length){setProviderError('No practice questions are available.');return;}
     setExamQuestions(questions);
-    setActiveSubject(selectedSubjects[0] || 'Use of English');
-    setCurrentQuestionIndex(0);
-    setAnswers({});
-    setFlagged([]);
-    const totalSecs =
-      practiceMode === 'speed'
-        ? selectedSubjects.length * 2 * 60
-        : durationMinutes * 60;
-    setTimeRemaining(totalSecs);
-    setStage('exam');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveSubject(selectedSubjects[0]||'Use of English');
+    setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
+    const totalSecs=practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
+    setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
 
   // Timer loop
@@ -473,6 +495,7 @@ export default function CbtExamWizard() {
               {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
+            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">UPEC original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><p className="text-xs text-amber-900">This loads a short third-party practice drill, NOT a standard 180-question JAMB mock. All four subjects must return usable questions. No official endorsement is implied.</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
             {/* 4. Duration Setting for Timed Mode */}
             {practiceMode === 'timed' && (
               <div>
@@ -509,7 +532,7 @@ export default function CbtExamWizard() {
 
               <button
                 type="button"
-                onClick={handleStartExam}
+                onClick={()=>void handleStartExam()}
                 disabled={!canStartExam}
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
