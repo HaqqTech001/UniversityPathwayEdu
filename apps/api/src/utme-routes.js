@@ -14,7 +14,7 @@ const request=async(path)=>{
  const timer=setTimeout(()=>controller.abort(),timeoutMs);
  try{
   const response=await fetch(upstream+path,{headers:{'X-API-Key':key,'Accept':'application/json'},signal:controller.signal});
-  if(!response.ok){const error=new Error('Past-question provider unavailable');error.status=502;throw error;}
+  if(!response.ok){const error=new Error('Past-question provider unavailable');error.status=response.status===429?429:response.status===401||response.status===403?503:502;throw error;}
   return await response.json();
  }finally{clearTimeout(timer);}
 };
