@@ -14,7 +14,15 @@ export default function StudentNotices(){
   catch(e){setError(e instanceof Error?e.message:'Unable to load notices.');}
   finally{setLoading(false);setRefreshing(false);}
  };
- useEffect(()=>{void load();},[]);
+ useEffect(()=>{
+  void load();
+  // A notice published by staff becomes visible when the student returns to this tab.
+  const onVisible=()=>{if(document.visibilityState==='visible')void load();};
+  const onFocus=()=>{if(document.visibilityState==='visible')void load();};
+  document.addEventListener('visibilitychange',onVisible);
+  window.addEventListener('focus',onFocus);
+  return()=>{document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onFocus);};
+ },[]);
  const visible=notices.filter(n=>(n.title+' '+n.body).toLowerCase().includes(query.trim().toLowerCase()));
  return <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7" aria-labelledby="student-notices-heading">
   <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 id="student-notices-heading" className="font-serif text-xl font-bold text-[#111a43]">Student Notice Board</h2><p className="mt-2 text-sm text-slate-600">Official announcements published by UPEC administration.</p></div><button type="button" onClick={()=>void load()} disabled={refreshing} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#111a43] disabled:opacity-50">{refreshing?'Checking…':'Refresh notices'}</button></div>
