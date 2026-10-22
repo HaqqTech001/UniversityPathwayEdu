@@ -115,3 +115,12 @@ test('rejects subjects that do not correspond to the saved examination paper',()
  malformed.selectedSubjects=[source.subject,null];
  assert.equal(saveSampleSession(malformed,owner),false);
 });
+
+test('rejects altered sample explanations, passages and topics',()=>{
+ const owner='student-content-integrity';
+ for(const field of ['explanation','passage','topic']){
+  const session=make(owner);
+  session.questions=[{...source,[field]:'Changed content'}];
+  assert.equal(saveSampleSession(session,owner),false);
+ }
+});
