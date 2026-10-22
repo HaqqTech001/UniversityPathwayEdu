@@ -224,6 +224,15 @@ router.get('/applications/:id/history',wrap(async(req,res)=>{
  // Expose only the status events until a separate public-feedback workflow is approved.
  res.json({application,reviews:(data||[]).map(({id,new_status,created_at})=>({id,new_status,created_at}))});
 }));
+router.get('/applications/:id/correction-draft',wrap(async(req,res)=>{
+ const id=req.params.id;
+ if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid application ID.'});
+ const {data,error}=await db.from('local_student_applications').select('id,status,form_data').eq('id',id).eq('account_id',req.actor.sub).maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(404).json({error:'Application not found.'});
+ if(data.status!=='action_required')return res.status(409).json({error:'This application is not awaiting corrections.'});
+ res.json({formData:data.form_data||{}});
+}));
 router.put('/applications/:id/correction',wrap(async(req,res)=>{
  const id=req.params.id,formData=req.body?.formData;
  if(!/^[0-9a-f-]{36}$/i.test(id)||!formData||typeof formData!=='object'||Array.isArray(formData)||JSON.stringify(formData).length>20000)return res.status(400).json({error:'Invalid correction request.'});
