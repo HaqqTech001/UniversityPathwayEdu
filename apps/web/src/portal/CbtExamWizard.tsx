@@ -44,10 +44,12 @@ export interface ExamAttemptRecord {
 
 export default function CbtExamWizard() {
   const { currentUser } = useAuth();
+  const ownerId=currentUser?.id;
+  useEffect(()=>{setRecoverable(ownerId?loadSampleSession(ownerId):null);},[ownerId]);
 
   // Wizard Stage: 'setup' | 'exam' | 'results'
   const [stage, setStage] = useState<'setup' | 'exam' | 'results'>('setup');
-  const [recoverable,setRecoverable]=useState(()=>loadSampleSession());
+  const [recoverable,setRecoverable]=useState(null as ReturnType<typeof loadSampleSession>);
 
   // Setup options
   const [examType, setExamType] = useState('JAMB (UTME)');
@@ -171,7 +173,7 @@ export default function CbtExamWizard() {
   };
 
   const resumeSample=()=>{
-    const saved=loadSampleSession();if(!saved){setRecoverable(null);return;}
+    const saved=loadSampleSession(ownerId);if(!saved){setRecoverable(null);return;}
     setQuestionSource('sample');setExamQuestions(saved.questions);setSelectedSubjects(saved.selectedSubjects);
     setActiveSubject(saved.activeSubject);setCurrentQuestionIndex(saved.currentQuestionIndex);
     setAnswers(saved.answers||{});setFlagged(saved.flagged||[]);setPracticeMode(saved.practiceMode);
@@ -183,7 +185,7 @@ export default function CbtExamWizard() {
   // Start Exam Handler
   const handleStartExam = async () => {
     if (!canStartExam) return;
-    clearSampleSession();setRecoverable(null);
+    clearSampleSession(ownerId);setRecoverable(null);
     if(questionSource==='aloc'&&(!Number.isInteger(historicalYear)||historicalYear<1990||historicalYear>2030)){setProviderError('Select a valid historical question year.');return;}
     setProviderError('');
     let questions:CbtQuestion[]=[];
@@ -237,7 +239,7 @@ export default function CbtExamWizard() {
   useEffect(()=>{submitLatestRef.current=handleForceSubmit;});
   useEffect(()=>{
     if(stage!=='exam'||questionSource!=='sample')return;
-    saveSampleSession({source:'sample',questions:examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,deadline:deadlineRef.current,durationMinutes});
+    saveSampleSession({owner:ownerId,source:'sample',questions:examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,deadline:deadlineRef.current,durationMinutes},ownerId);
   },[stage,questionSource,examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,durationMinutes]);
   // Deadline-based timer also counts time while the browser tab is inactive.
   useEffect(() => {
