@@ -22,7 +22,7 @@ function valid(session,owner){
  const ids=new Set();
  for(const q of session.questions){
   const original=originals.get(q.id);
-  if(!original||ids.has(q.id)||q.subject!==original.subject||q.prompt!==original.prompt||!Array.isArray(q.options)||q.options.length!==original.options.length||!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length)return false;
+  if(!original||ids.has(q.id)||q.subject!==original.subject||q.topic!==original.topic||q.prompt!==original.prompt||q.passage!==original.passage||q.explanation!==original.explanation||!Array.isArray(q.options)||q.options.length!==original.options.length||!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length)return false;
   if(q.options.some(option=>typeof option!=='string')||[...q.options].sort().join('\u0000')!==[...original.options].sort().join('\u0000')||q.options[q.answer]!==original.options[original.answer])return false;
   ids.add(q.id);
  }
