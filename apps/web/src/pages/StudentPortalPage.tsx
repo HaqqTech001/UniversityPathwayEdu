@@ -86,6 +86,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   const [historyLoading,setHistoryLoading]=useState(false);
   const [historyError,setHistoryError]=useState('');
   const applicationId=currentUser?.application?.id;
+  const isAdmitted=currentUser?.application?.status==='approved';
   React.useEffect(()=>{
     if(!isAuthenticated||!applicationId){setApplicationHistory([]);setHistoryError('');return;}
     const token=getStudentToken();
@@ -458,7 +459,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'applications' && (
           <div className="space-y-6">
             <StudentApplicationRegister/>
-            <StudentHostelRequests/>
+            {isAdmitted&&<StudentHostelRequests/>}
             <AdditionalServices/>
             <ExtraServices/>
             <CommonApplicationForm/>
@@ -572,7 +573,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'documents' && (
           <div className="space-y-6">
-            <StudentLearningResources />
+            {isAdmitted?<StudentLearningResources />:<section className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Learning resources unlock after your application has been approved.</section>}
             <StudentExamRegistrations />
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="application-slip-heading">
               <h2 id="application-slip-heading" className="font-serif text-xl font-bold text-[#111A43]">Application Documents</h2>
@@ -595,7 +596,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 5: CBT PRACTICE SIMULATOR
             ========================================================================= */}
-        {dashboardTab === 'cbt' && (
+        {dashboardTab === 'cbt' && !isAdmitted && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h2 className="text-lg font-bold text-[#111A43]">Admission approval required</h2><p className="mt-2 text-sm">You can complete and track your application now. CBT becomes available once UPEC approves your admission.</p><button type="button" onClick={()=>setDashboardTab('applications')} className="mt-4 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">View my application</button></section>}
+        {dashboardTab === 'cbt' && isAdmitted && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
