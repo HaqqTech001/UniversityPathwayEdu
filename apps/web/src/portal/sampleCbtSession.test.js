@@ -89,3 +89,16 @@ test('rejects recovery when active subject has no questions',()=>{
  session.activeSubject='Another Subject';
  assert.equal(saveSampleSession(session,'student-missing-subject'),false);
 });
+
+test('malformed question entries and answer arrays fail recovery safely',()=>{
+ const owner='student-malformed';
+ const nullQuestion=make(owner);
+ nullQuestion.questions=[null];
+ assert.equal(saveSampleSession(nullQuestion,owner),false);
+ const answerArray=make(owner);
+ answerArray.answers=[];
+ assert.equal(saveSampleSession(answerArray,owner),false);
+ const malformedFlag=make(owner);
+ malformedFlag.flagged=[null];
+ assert.equal(saveSampleSession(malformedFlag,owner),false);
+});
