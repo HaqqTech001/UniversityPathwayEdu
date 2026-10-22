@@ -1,3 +1,4 @@
+import {preparePracticePaper} from './practicePaper.js';
 import {shuffledPracticePool,shufflePracticeOptions} from './practiceSelection.js';
 import {getStudentToken} from '../context/AuthContext';
 import {upecAuthApi} from '../lib/upecAuthApi';
@@ -194,7 +195,7 @@ export default function CbtExamWizard() {
           if(distinct.length<5)throw Error('Insufficient usable '+subject+' questions for '+historicalYear+'. Choose another year or the sample demonstration.');
           return shuffledPracticePool(distinct,Math.min(20,distinct.length));
         }));
-        questions=requested.flat();
+        questions=preparePracticePaper(requested,5).questions;
       }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
       finally{setProviderLoading(false);}
     }else{
