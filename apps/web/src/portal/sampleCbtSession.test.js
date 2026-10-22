@@ -77,3 +77,15 @@ test('another user cannot restore the same stored practice session',()=>{
  assert.equal(store.has(otherKey),false);
  clearSampleSession(owner);
 });
+
+test('rejects recovery with a question index outside the active subject',()=>{
+ const session=make('student-question-index');
+ session.currentQuestionIndex=1;
+ assert.equal(saveSampleSession(session,'student-question-index'),false);
+});
+test('rejects recovery when active subject has no questions',()=>{
+ const session=make('student-missing-subject');
+ session.selectedSubjects=[source.subject,'Another Subject'];
+ session.activeSubject='Another Subject';
+ assert.equal(saveSampleSession(session,'student-missing-subject'),false);
+});
