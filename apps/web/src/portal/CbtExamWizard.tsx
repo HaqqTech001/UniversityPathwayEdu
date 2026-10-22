@@ -653,6 +653,18 @@ export default function CbtExamWizard() {
               </p>
             </div>
 
+            {attemptHistory.length>=2&&<section className="rounded-2xl border border-slate-200 bg-white p-5" aria-label="CBT practice progress">
+              <h3 className="text-sm font-extrabold text-[#111A43]">Practice Progress</h3>
+              <p className="mt-1 text-xs text-slate-600">Recent browser-saved practice attempts only. Compare attempts of the same type; these are not official exam records.</p>
+              <div className="mt-4 space-y-2">{attemptHistory.slice(0,8).reverse().map((att,index)=>(
+                <div key={att.id} className="flex items-center gap-3">
+                  <span className="w-12 shrink-0 text-xs text-slate-500">#{index+1}</span>
+                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label={att.examType+' score'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={att.percentage}><div className="h-full rounded-full bg-[#111A43]" style={{width:Math.max(0,Math.min(100,att.percentage))+'%'}}/></div>
+                  <span className="w-11 text-right text-xs font-bold text-[#111A43]">{att.percentage}%</span>
+                </div>
+              ))}</div>
+              <p className="mt-3 text-xs text-slate-600">Last attempt: {attemptHistory[0]?.percentage}% · Previous: {attemptHistory[1]?.percentage}% · Change: {attemptHistory[0]?.percentage-attemptHistory[1]?.percentage>0?'+':''}{attemptHistory[0]?.percentage-attemptHistory[1]?.percentage} points</p>
+            </section>}
             {/* Recent Attempts History */}
             {attemptHistory.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-3">
