@@ -361,6 +361,27 @@ router.get('/applications/list',wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,student_registration_number,submitted_at,subjects').eq('account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({applications:data||[]});
 }));
+router.get('/finance/payments',wrap(async(req,res)=>{
+ // Fetch only invoices owned by the signed-in student before loading payment rows.
+ const [monthlyBills,registrationBills]=await Promise.all([
+  db.from('upec_student_monthly_fees').select('id,programme_code,billing_month').eq('student_account_id',req.actor.sub).limit(300),
+  db.from('upec_registration_invoices').select('id,programme_code,academic_session').eq('student_account_id',req.actor.sub).limit(300)
+ ]);
+ if(monthlyBills.error)throw monthlyBills.error;
+ if(registrationBills.error)throw registrationBills.error;
+ const m=monthlyBills.data||[],g=registrationBills.data||[];
+ const [monthly,registration]=await Promise.all([
+  m.length?db.from('upec_fee_payments').select('id,invoice_id,amount_ngn,reference,recorded_at').in('invoice_id',m.map(x=>x.id)).order('recorded_at',{ascending:false}).limit(150):Promise.resolve({data:[],error:null}),
+  g.length?db.from('upec_registration_payments').select('id,invoice_id,amount_ngn,reference,recorded_at').in('invoice_id',g.map(x=>x.id)).order('recorded_at',{ascending:false}).limit(150):Promise.resolve({data:[],error:null})
+ ]);
+ if(monthly.error)throw monthly.error;if(registration.error)throw registration.error;
+ const monthMap=new Map(m.map(x=>[x.id,x])),regMap=new Map(g.map(x=>[x.id,x]));
+ const payments=[
+  ...(monthly.data||[]).map(x=>({...x,type:'monthly',programme_code:monthMap.get(x.invoice_id)?.programme_code,period:monthMap.get(x.invoice_id)?.billing_month})),
+  ...(registration.data||[]).map(x=>({...x,type:'registration',programme_code:regMap.get(x.invoice_id)?.programme_code,period:regMap.get(x.invoice_id)?.academic_session}))
+ ].sort((a,b)=>Date.parse(b.recorded_at)-Date.parse(a.recorded_at)).slice(0,150);
+ res.json({payments});
+}));
 router.get('/finance/registration-invoices',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_registration_invoices').select('id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({invoices:data||[]});
