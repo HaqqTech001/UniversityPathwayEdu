@@ -17,3 +17,29 @@ test('expired and tampered sample sessions fail validation',()=>{
  const altered=make('student-a');altered.questions=[{...source,prompt:'tampered'}];
  assert.equal(saveSampleSession(altered,'student-a'),false);
 });
+
+test('rejects an answer outside its question option range',()=>{
+ const invalid=make('student-options');
+ invalid.answers[source.id]=source.options.length;
+ assert.equal(saveSampleSession(invalid,'student-options'),false);
+ assert.equal(loadSampleSession('student-options'),null);
+});
+test('rejects duplicate flags but accepts one valid flag',()=>{
+ const duplicated=make('student-flags');
+ duplicated.flagged=[source.id,source.id];
+ assert.equal(saveSampleSession(duplicated,'student-flags'),false);
+ duplicated.flagged=[source.id];
+ assert.equal(saveSampleSession(duplicated,'student-flags'),true);
+ assert.deepEqual(loadSampleSession('student-flags')?.flagged,[source.id]);
+ clearSampleSession('student-flags');
+});
+test('restores a valid shuffled sample question without changing its correct answer',()=>{
+ const shuffled=make('student-shuffle');
+ const original=shuffled.questions[0];
+ const reversedOptions=[...original.options].reverse();
+ shuffled.questions=[{...original,options:reversedOptions,answer:reversedOptions.indexOf(original.options[original.answer])}];
+ shuffled.answers={[source.id]:shuffled.questions[0].answer};
+ assert.equal(saveSampleSession(shuffled,'student-shuffle'),true);
+ assert.equal(loadSampleSession('student-shuffle')?.questions[0].options[shuffled.questions[0].answer],source.options[source.answer]);
+ clearSampleSession('student-shuffle');
+});
