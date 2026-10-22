@@ -1,5 +1,5 @@
 // Only UPEC-owned sample questions can be restored. Provider questions are never cached.
-import {CBT_QUESTION_BANK} from './cbtQuestionBank';
+import {CBT_QUESTION_BANK} from './cbtQuestionBank.ts';
 const KEY='upec.original-cbt-session.v2';
 const storageKey=owner=>KEY+':'+owner;
 const originals=new Map(CBT_QUESTION_BANK.map(q=>[q.id,q]));
