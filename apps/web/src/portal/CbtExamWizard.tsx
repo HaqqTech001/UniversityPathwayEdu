@@ -193,7 +193,6 @@ export default function CbtExamWizard() {
   // Start Exam Handler
   const handleStartExam = async () => {
     if (!canStartExam) return;
-    clearSampleSession(ownerId);setRecoverable(null);
     if(questionSource==='aloc'&&(!Number.isInteger(historicalYear)||historicalYear<1990||historicalYear>2030)){setProviderError('Select a valid historical question year.');return;}
     setProviderError('');
     let questions:CbtQuestion[]=[];
@@ -234,6 +233,8 @@ export default function CbtExamWizard() {
     }
     if(!questions.length){setProviderError('No practice questions are available.');return;}
     if(questionSource==='aloc'&&questions.length<20){setProviderError('Historical drill requires at least 5 valid questions per subject.');return;}
+    // Discard the previous recoverable paper only after a valid new paper has loaded.
+    clearSampleSession(ownerId);setRecoverable(null);
     setExamQuestions(questions.map(q=>shufflePracticeOptions(q)));
     setActiveSubject(selectedSubjects[0]||'Use of English');
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
@@ -261,7 +262,9 @@ export default function CbtExamWizard() {
     timerRef.current=setInterval(tick,1000);
     return()=>{if(timerRef.current)clearInterval(timerRef.current);};
   },[stage]);
-  // Warn users before leaving: provider question licensing has not been cleared for persistent client caching.
+  // A page refresh can restore original sample practice, but licensed provider papers are not cached.
+  // Warn before navigating away so students do not unintentionally lose those answers.
+  Warn users before leaving: provider question licensing has not been cleared for persistent client caching.
   useEffect(()=>{
     if(stage!=='exam')return;
     const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
