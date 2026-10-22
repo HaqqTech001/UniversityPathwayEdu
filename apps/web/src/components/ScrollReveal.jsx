@@ -13,7 +13,7 @@ export default function ScrollReveal({
   className = '',
   as: Tag = 'div',
   threshold = 0.1,
-  once = false,
+  once = true,
 }) {
   const elementRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -82,10 +82,10 @@ export default function ScrollReveal({
   // Instant disappear when not visible, 1000ms (1s) transition & delay when appearing/reappearing
   const transitionStyle = isVisible
     ? {
-        transitionProperty: 'all',
-        transitionDuration: '1000ms',
+        transitionProperty: 'opacity, transform',
+        transitionDuration: '750ms',
         transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        transitionDelay: `${delay + 1000}ms`,
+        transitionDelay: `${delay}ms`,
       }
     : {
         transitionProperty: 'none',
