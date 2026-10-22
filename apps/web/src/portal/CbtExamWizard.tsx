@@ -217,7 +217,7 @@ export default function CbtExamWizard() {
 
   // Timer loop
   useEffect(() => {
-    if (stage !== 'exam' || practiceMode === 'untimed') return;
+    if (stage !== 'exam' || (practiceMode === 'untimed' && !(questionSource==='aloc'&&historicalLength==='full'))) return;
 
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
