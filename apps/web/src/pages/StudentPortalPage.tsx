@@ -65,18 +65,30 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   const { currentUser, isAuthenticated, updateBiodata, refreshStudent } = useAuth();
 
   // Navigation tab state controlled by the Left Navigation Drawer
-  const [dashboardTab, setDashboardTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && ['#cbt','#applications'].includes(window.location.hash)) {
-      return window.location.hash.slice(1);
-    }
-    return 'overview';
-  });
+  const portalTabs = ['overview','profile','applications','documents','cbt','notices','settings'];
+  const tabFromHash = () => {
+    const hash = window.location.hash.slice(1);
+    return portalTabs.includes(hash) ? hash : 'overview';
+  };
+  const [dashboardTab, setDashboardTab] = useState<string>(() =>
+    typeof window === 'undefined' ? 'overview' : tabFromHash()
+  );
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && ['#cbt','#applications'].includes(window.location.hash)) {
-      setDashboardTab(window.location.hash.slice(1));
-    }
+    const onHashChange = () => setDashboardTab(tabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onHashChange);
+    };
   }, []);
+
+  const selectPortalTab = (tab: string) => {
+    if (!portalTabs.includes(tab)) return;
+    setDashboardTab(tab);
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + '#' + tab);
+  };
 
   const [correctionOpen,setCorrectionOpen]=useState(false);
   const [correctionForm,setCorrectionForm]=useState<Record<string,unknown>>({});
@@ -208,7 +220,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   return (
     <StudentPortalLayout
       activeTab={dashboardTab}
-      onTabChange={setDashboardTab}
+      onTabChange={selectPortalTab}
       onNavigate={onNavigate}
     >
       <div className="max-w-6xl mx-auto space-y-6">
