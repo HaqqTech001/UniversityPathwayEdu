@@ -1,4 +1,4 @@
-import {shuffledPracticePool} from './practiceSelection.js';
+import {shuffledPracticePool,shufflePracticeOptions} from './practiceSelection.js';
 import {getStudentToken} from '../context/AuthContext';
 import {upecAuthApi} from '../lib/upecAuthApi';
 import React, { useState, useEffect, useRef } from 'react';
@@ -202,7 +202,7 @@ export default function CbtExamWizard() {
     }
     if(!questions.length){setProviderError('No practice questions are available.');return;}
     if(questionSource==='aloc'&&questions.length<20){setProviderError('Historical drill requires at least 5 valid questions per subject.');return;}
-    setExamQuestions(questions);
+    setExamQuestions(questions.map(q=>shufflePracticeOptions(q)));
     setActiveSubject(selectedSubjects[0]||'Use of English');
     setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
     const totalSecs=practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
