@@ -240,7 +240,29 @@ router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
   if(start+500>=100000)return res.status(422).json({error:'Report exceeds supported invoice count; narrow the month.'});
  }
  const report={invoiceCount,billedNgn:Math.round(billed*100)/100,paidNgn:Math.round(paid*100)/100,outstandingNgn:Math.round(Math.max(0,billed-paid)*100)/100,unpaid,partial,settled,waived,programmes:[...programmes.values()].sort((a,b)=>a.programmeCode.localeCompare(b.programmeCode))};
- res.json({month:month||null,report});
+ // Registration invoices have an independent ledger and must not be mixed with monthly lessons.
+ let registrationQuery=db.from('upec_registration_invoices').select('programme_code,fee_amount_ngn,amount_paid_ngn,status,created_at');
+ if(month)registrationQuery=registrationQuery.gte('created_at',month+'-01T00:00:00Z').lt('created_at',new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString());
+ const registration={invoiceCount:0,billedNgn:0,paidNgn:0,outstandingNgn:0,programmes:[]};
+ const byProgramme=new Map();
+ for(let start=0;start<100000;start+=500){
+  const {data,error}=await registrationQuery.range(start,start+499);
+  if(error)throw error;
+  for(const row of data||[]){
+   const amount=Number(row.fee_amount_ngn),received=Number(row.amount_paid_ngn);
+   if(!Number.isFinite(amount)||!Number.isFinite(received))throw Error('Invalid stored registration fee amount');
+   registration.invoiceCount++;registration.billedNgn+=amount;registration.paidNgn+=received;
+   const code=row.programme_code||'Other',item=byProgramme.get(code)||{programmeCode:code,invoices:0,billedNgn:0,paidNgn:0};
+   item.invoices++;item.billedNgn+=amount;item.paidNgn+=received;byProgramme.set(code,item);
+  }
+  if((data||[]).length<500)break;
+  if(start+500>=100000)return res.status(422).json({error:'Report exceeds supported registration invoice count; narrow the period.'});
+ }
+ registration.billedNgn=Math.round(registration.billedNgn*100)/100;
+ registration.paidNgn=Math.round(registration.paidNgn*100)/100;
+ registration.outstandingNgn=Math.round(Math.max(0,registration.billedNgn-registration.paidNgn)*100)/100;
+ registration.programmes=[...byProgramme.values()].sort((a,b)=>a.programmeCode.localeCompare(b.programmeCode));
+ res.json({month:month||null,report,registration});
 }));
 router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').order('billing_month',{ascending:false}).limit(100);
