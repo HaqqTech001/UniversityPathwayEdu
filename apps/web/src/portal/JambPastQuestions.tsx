@@ -3,11 +3,20 @@ import {getStudentToken} from '../context/AuthContext';
 import {upecAuthApi} from '../lib/upecAuthApi';
 
 type RawQuestion={id:string;text?:string;questionHtml?:string;options?:Record<string,string>;correctAnswer?:string;year?:number};
-const subjects=['mathematics','english','physics','chemistry','biology','government','economics','commerce','geography','history'];
+// Match the UPEC backend allowlist. Each subject/year still depends on actual provider availability.
+const subjects=[
+ ['english','Use of English'],['mathematics','Mathematics'],['physics','Physics'],
+ ['chemistry','Chemistry'],['biology','Biology'],['government','Government'],
+ ['economics','Economics'],['literature-in-english','Literature in English'],
+ ['commerce','Commerce'],['accounting','Principles of Accounts'],
+ ['geography','Geography'],['history','History'],
+ ['crs','Christian Religious Studies'],['irs','Islamic Religious Studies'],
+ ['agricultural-science','Agricultural Science']
+] as const;
 const plain=(text:string)=>text.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
 export default function JambPastQuestions(){
  const [subject,setSubject]=useState('mathematics');
- const [year,setYear]=useState(2024);
+ const [year,setYear]=useState(2025);
  const [questions,setQuestions]=useState<RawQuestion[]>([]);
  const [answers,setAnswers]=useState<Record<string,string>>({});
  const [revealed,setRevealed]=useState<Record<string,boolean>>({});
@@ -41,10 +50,10 @@ export default function JambPastQuestions(){
   finally{setLoading(false);}
  };
  return <section aria-labelledby="past-questions-title" className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-  <div><h3 id="past-questions-title" className="font-serif text-lg font-bold text-[#111a43]">Historical JAMB past questions</h3><p className="mt-2 text-xs leading-6 text-slate-600">Optional third-party practice bank. This is not the official JAMB exam and is separate from the timed CBT simulator. Answers are revealed only when you choose to check your response.</p></div>
+  <div><h3 id="past-questions-title" className="font-serif text-lg font-bold text-[#111a43]">Historical JAMB past questions</h3><p className="mt-2 text-xs leading-6 text-slate-600">Third-party historical JAMB question bank. Choose any listed UTME subject and a year; availability depends on the provider's verified subject/year coverage. The latest advertised ALOC JAMB coverage extends to 2025, not confirmed 2026 questions. This is separate from the official examination. Answers are revealed only when you choose to check your response.</p></div>
   <form onSubmit={fetchQuestions} className="mt-5 flex flex-wrap items-end gap-3">
-   <label className="flex min-w-40 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Subject<select value={subject} onChange={e=>setSubject(e.target.value)} className="rounded-xl border border-slate-300 bg-white p-3">{subjects.map(s=><option value={s} key={s}>{s.replaceAll('-',' ')}</option>)}</select></label>
-   <label className="flex min-w-32 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Examination year<select value={year} onChange={e=>setYear(Number(e.target.value))} className="rounded-xl border border-slate-300 bg-white p-3">{Array.from({length:27},(_,i)=>2026-i).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
+   <label className="flex min-w-40 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Subject<select value={subject} onChange={e=>setSubject(e.target.value)} className="rounded-xl border border-slate-300 bg-white p-3">{subjects.map(([code,label])=><option value={code} key={code}>{label}</option>)}</select></label>
+   <label className="flex min-w-32 flex-1 flex-col gap-2 text-xs font-bold text-[#111a43]">Examination year<select value={year} onChange={e=>setYear(Number(e.target.value))} className="rounded-xl border border-slate-300 bg-white p-3">{Array.from({length:30},(_,i)=>2025-i).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
    <button disabled={loading} type="submit" className="rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{loading?'Loading...':'Load questions'}</button>
   </form>
   {error&&<p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
