@@ -136,3 +136,6 @@ h1, h2, h3, h4, p {
 @keyframes upec-utility-scroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 .upec-utility-ticker:hover{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.upec-utility-ticker{animation:none;max-width:100%;overflow:hidden}}
+
+/* Ticker readability, focusability and continuous movement with motion preference support. */
+.upec-utility-ticker:focus-within{animation-play-state:paused}
