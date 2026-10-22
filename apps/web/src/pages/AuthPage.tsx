@@ -225,20 +225,31 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
       </div>
 
       <style>{`
-        @keyframes upecPromoEnter { from { opacity: .35; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes upecFormEnter { from { opacity: .35; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes upecPromoSwitchRight { from { transform: translateX(-72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes upecPromoSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes upecFormSwitchLeft { from { transform: translateX(72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes upecFormSwitchRight { from { transform: translateX(-72%); opacity: .8; } to { transform: translateX(0); opacity: 1; } }
-        .auth-stage { animation: upecStageAppear 1000ms cubic-bezier(.22,1,.36,1) both; }
-        @keyframes upecStageAppear { from { opacity: 0; transform: translateY(20px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @media (min-width: 768px) {
-          .auth-promo-panel { animation: upecPromoEnter 1000ms cubic-bezier(.22,1,.36,1) both; }
-          .auth-form-panel { animation: upecFormEnter 1000ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-promo-panel { animation: upecPromoSwitchRight 1000ms cubic-bezier(.22,1,.36,1) both; }\n          .auth-stage[data-reversed="true"] .auth-form-panel { animation: upecFormSwitchLeft 1000ms cubic-bezier(.22,1,.36,1) both; }
+        @keyframes upecStageAppear {
+          from { opacity: .4; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        @media (prefers-reduced-motion: reduce) {
-          .auth-stage, .auth-promo-panel, .auth-form-panel { animation: none !important; transition: none !important; }
+        @keyframes upecAuthContentEnter {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .auth-stage { animation: upecStageAppear 700ms cubic-bezier(.22,1,.36,1) both; }
+        .auth-form-panel form { animation: upecAuthContentEnter 550ms cubic-bezier(.22,1,.36,1) both; }
+        @media(min-width:768px) {
+          .auth-promo-panel,.auth-form-panel {
+            transition: transform 800ms cubic-bezier(.22,1,.36,1);
+            will-change: transform;
+          }
+          .auth-stage[data-reversed="true"] .auth-promo-panel { transform: translateX(108.333333%); }
+          .auth-stage[data-reversed="true"] .auth-form-panel { transform: translateX(-92.307692%); }
+        }
+        @media(min-width:1024px) {
+          .auth-stage[data-reversed="true"] .auth-promo-panel { transform: translateX(72.413793%); }
+          .auth-stage[data-reversed="true"] .auth-form-panel { transform: translateX(-138.095238%); }
+        }
+        @media(prefers-reduced-motion:reduce) {
+          .auth-stage,.auth-form-panel form { animation: none !important; }
+          .auth-promo-panel,.auth-form-panel { transition: none !important; }
         }
       `}</style>
       {/* Main Authentication Composition Matching Approved Mockup */}
@@ -247,7 +258,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] ${panelsReversed ? "md:order-2" : "md:order-1"}`} >
+        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] `} >
           
           {/* Top Header section inside left panel */}
           <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
@@ -322,7 +333,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className={`w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0 auth-form-panel ${panelsReversed ? "md:order-1" : "md:order-2"}`}>
+        <div className={`w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0 auth-form-panel `}>
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
