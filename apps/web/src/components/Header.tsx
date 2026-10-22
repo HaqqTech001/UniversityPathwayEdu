@@ -207,7 +207,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
       {/* =========================================================================
           SECTION B: MAIN NAVIGATION BAR
           ========================================================================= */}
-      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-3.5">
+      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo on Left */}
           <a
@@ -216,10 +216,10 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               handleLinkClick('/');
             }}
-            className="shrink-0 transition-opacity hover:opacity-95 w-65 "
+            className="block w-48 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-52 lg:w-56"
           >
             {/* <UniversityPathwayLogo variant="header" /> */}
-            <img src="./images/pathway-logos/pathway-header.png" alt="" width="100%" height="100%" />
+            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-11 w-full object-contain object-left sm:h-12" />
 
             
           </a>
@@ -340,15 +340,16 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
             className="relative w-[85%] max-w-sm bg-white h-full shadow-2xl flex flex-col z-10 animate-drawer-slide-in overflow-hidden"
           >
             {/* Drawer Top Header with Logo and Close Button */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/70">
               <a
                 href="/"
                 onClick={(e) => {
                   e.preventDefault();
                   handleLinkClick('/');
                 }}
+                className="flex min-w-0 flex-1 items-center"
               >
-                <UniversityPathwayLogo variant="compact" />
+                <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-16 w-full max-w-[235px] object-contain object-left" />
               </a>
               <button
                 type="button"
