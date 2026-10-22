@@ -248,7 +248,7 @@ router.post('/finance/registration-invoices/:id/payments',permit('finance.manage
 router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
  const month=typeof req.query.month==='string'?req.query.month:'';
  if(month&&!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month))return res.status(400).json({error:'Month must be YYYY-MM.'});
- let query=db.from('upec_student_monthly_fees').select('programme_code,amount_due_ngn,amount_paid_ngn,status,billing_month');
+ let query=db.from('upec_student_monthly_fees').select('id,programme_code,amount_due_ngn,amount_paid_ngn,status,billing_month').order('id',{ascending:true});
  if(month)query=query.eq('billing_month',month+'-01');
  const programmes=new Map();
  let billed=0,paid=0,invoiceCount=0,unpaid=0,partial=0,settled=0,waived=0;
@@ -269,7 +269,7 @@ router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
  }
  const report={invoiceCount,billedNgn:Math.round(billed*100)/100,paidNgn:Math.round(paid*100)/100,outstandingNgn:Math.round(Math.max(0,billed-paid)*100)/100,unpaid,partial,settled,waived,programmes:[...programmes.values()].sort((a,b)=>a.programmeCode.localeCompare(b.programmeCode))};
  // Registration invoices have an independent ledger and must not be mixed with monthly lessons.
- let registrationQuery=db.from('upec_registration_invoices').select('programme_code,fee_amount_ngn,amount_paid_ngn,status,created_at');
+ let registrationQuery=db.from('upec_registration_invoices').select('id,programme_code,fee_amount_ngn,amount_paid_ngn,status,created_at').order('id',{ascending:true});
  if(month)registrationQuery=registrationQuery.gte('created_at',month+'-01T00:00:00Z').lt('created_at',new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString());
  const registration={invoiceCount:0,billedNgn:0,paidNgn:0,outstandingNgn:0,programmes:[]};
  const byProgramme=new Map();
