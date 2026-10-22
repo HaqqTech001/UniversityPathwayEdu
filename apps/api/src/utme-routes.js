@@ -6,7 +6,7 @@ router.use(requireRole('student'));
 const upstream='https://dev.aloc.com.ng/api/v1';
 const subjects=new Set(['english','use-of-english','mathematics','physics','chemistry','biology','government','economics','literature-in-english','commerce','accounting','geography','history','crs','irs','agricultural-science']);
 const timeoutMs=8000;
-const YEAR_MAX=2025; // Provider documentation advertises historical coverage through 2025; actual per-subject years are discoverable.
+const YEAR_MAX=2030; // API accepts through 2030; actual availability is subject/year-specific.
 const request=async(path)=>{
  const key=process.env.ALOC_API_KEY;
  if(!key)return {unconfigured:true};
