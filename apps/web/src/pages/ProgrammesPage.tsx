@@ -36,7 +36,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         'Complete UTME syllabus breakdown and mastery',
         'Weekly computerized CBT simulations with instant timing analysis',
         'Use of English drills & subject combinations (Sciences, Arts, Commercial)',
-        'Flexible morning, afternoon, and evening coaching sessions',
+        'Morning, afternoon and evening sessions advertised Monday–Saturday; confirm current availability with the centre',
       ],
       duration: '1 Month, 3 Months, or Full Session (up to exam date)',
       feeInfo: 'Current fees are provided by the admissions office.',
@@ -51,10 +51,10 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
       image: '/images/programme_olevel.jpg',
       description: 'Intensive academic preparation for Senior Secondary Certificate Examinations (SSCE) across WAEC (May/June & Nov/Dec GCE), NECO, and technical NABTEB exams.',
       highlights: [
-        'Complete coverage of 9 registered O-Level subjects',
+        'WAEC, NECO and NABTEB preparation for SSCE and GCE candidates',
         'Practical laboratory science demonstrations & theory workshops',
         'Continuous assessment and mock exam conditions',
-        'Individual remedial support for recurring problem topics',
+        'Morning (9 AM–1 PM) and evening (4 PM–7 PM) coaching times advertised; confirm the current timetable',
       ],
       duration: '3 Months, 6 Months, or Full Academic Year',
       feeInfo: 'Current fees are provided by the admissions office.',
@@ -248,6 +248,26 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
               </ScrollReveal>
             );
           })}
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 bg-[#f7f8fc] py-14" aria-labelledby="extra-coaching-title">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <p className="text-xs font-extrabold uppercase tracking-widest text-[#c62839]">Beyond examination programmes</p>
+          <h2 id="extra-coaching-title" className="mt-2 font-serif text-3xl font-extrabold text-[#111A43]">Intensive Extramural &amp; Special Coaching</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">UPEC also advertises flexible academic support outside its formal programme applications. These lessons are requested as a service, not as an examination registration.</p>
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {['Post-JAMB coaching','Holiday & after-school coaching','School of Nursing entrance examination preparation','Private / home lessons','Undergraduate special coaching','Adult education','Computer training'].map(service=>(
+              <div key={service} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-[#111A43] shadow-sm">
+                <CheckCircle2 className="shrink-0 text-[#c62839]" size={19}/>{service}
+              </div>
+            ))}
+          </div>
+          <div className="mt-7 flex flex-wrap items-center gap-4">
+            <a href="tel:09133903600" className="rounded-xl border border-[#111A43] px-5 py-3 text-sm font-bold text-[#111A43] hover:bg-white">Call 09133903600</a>
+            <a href="tel:09134308893" className="rounded-xl border border-[#111A43] px-5 py-3 text-sm font-bold text-[#111A43] hover:bg-white">Call 09134308893</a>
+            <p className="text-xs text-slate-500">Session times, fees and availability require confirmation.</p>
+          </div>
         </div>
       </section>
 
