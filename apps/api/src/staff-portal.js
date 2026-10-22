@@ -193,6 +193,31 @@ router.post('/finance/invoices/:id/payments',permit('finance.manage'),wrap(async
  if(error)throw error;
  res.json({invoice:data});
 }));
+router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
+ const month=typeof req.query.month==='string'?req.query.month:'';
+ if(month&&!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month))return res.status(400).json({error:'Month must be YYYY-MM.'});
+ let query=db.from('upec_student_monthly_fees').select('programme_code,amount_due_ngn,amount_paid_ngn,status,billing_month');
+ if(month)query=query.eq('billing_month',month+'-01');
+ const programmes=new Map();
+ let billed=0,paid=0,invoiceCount=0,unpaid=0,partial=0,settled=0,waived=0;
+ // Cursor by offset to avoid silently truncating totals at default PostgREST page limits.
+ for(let start=0;start<100000;start+=500){
+  const {data,error}=await query.range(start,start+499);
+  if(error)throw error;
+  for(const row of data||[]){
+   const amount=Number(row.amount_due_ngn),received=Number(row.amount_paid_ngn);
+   if(!Number.isFinite(amount)||!Number.isFinite(received))throw Error('Invalid stored fee amount');
+   billed+=amount;paid+=received;invoiceCount++;
+   if(row.status==='unpaid')unpaid++;if(row.status==='partial')partial++;if(row.status==='paid')settled++;if(row.status==='waived')waived++;
+   const code=row.programme_code||'Other',item=programmes.get(code)||{programmeCode:code,invoices:0,billedNgn:0,paidNgn:0};
+   item.invoices++;item.billedNgn+=amount;item.paidNgn+=received;programmes.set(code,item);
+  }
+  if((data||[]).length<500)break;
+  if(start+500>=100000)return res.status(422).json({error:'Report exceeds supported invoice count; narrow the month.'});
+ }
+ const report={invoiceCount,billedNgn:Math.round(billed*100)/100,paidNgn:Math.round(paid*100)/100,outstandingNgn:Math.round(Math.max(0,billed-paid)*100)/100,unpaid,partial,settled,waived,programmes:[...programmes.values()].sort((a,b)=>a.programmeCode.localeCompare(b.programmeCode))};
+ res.json({month:month||null,report});
+}));
 router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').order('billing_month',{ascending:false}).limit(100);
  if(error)throw error;res.json({invoices:data||[]});
