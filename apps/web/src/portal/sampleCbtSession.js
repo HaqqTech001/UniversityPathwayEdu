@@ -10,6 +10,9 @@ function valid(session,owner){
  if(!Array.isArray(session.selectedSubjects)||!Array.isArray(session.flagged)||!session.answers||typeof session.answers!=='object'||Array.isArray(session.answers))return false;
  if(!session.questions.every(q=>q!==null&&typeof q==='object'&&typeof q.id==='string'&&typeof q.subject==='string'))return false;
  if(!Number.isInteger(session.currentQuestionIndex)||session.currentQuestionIndex<0||session.currentQuestionIndex>=session.questions.length)return false;
+ if(!session.selectedSubjects.length||!session.selectedSubjects.every(subject=>typeof subject==='string'&&subject.trim()))return false;
+ if(new Set(session.selectedSubjects).size!==session.selectedSubjects.length)return false;
+ if(!session.questions.every(question=>session.selectedSubjects.includes(question.subject)))return false;
  if(typeof session.activeSubject!=='string'||!session.selectedSubjects.includes(session.activeSubject))return false;
  // Question navigation is indexed within the active subject, not the whole paper.
  const activeCount=session.questions.filter(q=>q?.subject===session.activeSubject).length;
