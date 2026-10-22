@@ -104,7 +104,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     finally { setAuthLoading(false); }
 
     if (res.success) {
-      onNavigate('/student');
+      onNavigate(window.sessionStorage.getItem('upec_selected_programme') ? '/student#applications' : '/student');
     } else {
       setAuthError(res.error || 'Invalid credentials. Please verify your details.');
     }
