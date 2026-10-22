@@ -122,14 +122,16 @@ export default function CbtExamWizard() {
 
   // Results & History
   const [latestAttempt, setLatestAttempt] = useState<ExamAttemptRecord | null>(null);
-  const [attemptHistory, setAttemptHistory] = useState<ExamAttemptRecord[]>(() => {
+  // Browser-local practice history belongs to the signed-in account, not the device.
+  const historyKey = ownerId ? 'upec_cbt_attempt_history_' + ownerId : null;
+  const [attemptHistory, setAttemptHistory] = useState<ExamAttemptRecord[]>([]);
+  useEffect(() => {
+    if (!historyKey) { setAttemptHistory([]); return; }
     try {
-      const saved = localStorage.getItem('upec_cbt_attempt_history');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+      const parsed: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      setAttemptHistory(Array.isArray(parsed) ? parsed.slice(0, 15) as ExamAttemptRecord[] : []);
+    } catch { setAttemptHistory([]); }
+  }, [historyKey]);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deadlineRef = useRef<number | null>(null);
@@ -389,13 +391,14 @@ export default function CbtExamWizard() {
     };
 
     setLatestAttempt(attempt);
-    const updatedHistory = [attempt, ...attemptHistory].slice(0, 15);
-    setAttemptHistory(updatedHistory);
-    try {
-      localStorage.setItem('upec_cbt_attempt_history', JSON.stringify(updatedHistory));
-    } catch {
-      // ignore storage error
-    }
+    setAttemptHistory(previous => {
+      const updated = [attempt, ...previous].slice(0, 15);
+      if (historyKey) {
+        try { localStorage.setItem(historyKey, JSON.stringify(updated)); }
+        catch { /* Browser storage may be disabled. */ }
+      }
+      return updated;
+    });
 
     setStage('results');
     window.scrollTo({ top: 0, behavior: 'smooth' });
