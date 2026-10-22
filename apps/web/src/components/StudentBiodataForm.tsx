@@ -161,8 +161,8 @@ export default function StudentBiodataForm({
   };
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
-    if (saving) return;
     e.preventDefault();
+    if (saving) return;
     if (!formData.declarationConfirmed) {
       setErrors({ declarationConfirmed: 'You must check the confirmation declaration to proceed.' });
       return;
@@ -940,10 +940,11 @@ export default function StudentBiodataForm({
           ) : (
             <button
               type="submit"
+              disabled={saving}
               className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <Save size={15} />
-              <span>Save &amp; Submit Registration File</span>
+              <span>{saving ? "Saving biodata…" : "Save Biodata"}</span>
             </button>
           )}
         </div>
