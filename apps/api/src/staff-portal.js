@@ -307,7 +307,7 @@ router.patch('/services/catalogue/:code',permit('applications.review'),wrap(asyn
  if(error)throw error;res.json({service:data});
 }));
 router.get('/services/requests',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_requests').select('id,student_account_id,service_code,delivery_mode,requested_subject,preferred_schedule,status,staff_notes,created_at').order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('upec_service_requests').select('id,student_account_id,service_code,delivery_mode,requested_subject,preferred_schedule,status,staff_notes,scheduled_at,scheduled_end_at,session_location,created_at').order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({requests:data||[]});
 }));
 router.patch('/services/requests/:id',permit('applications.review'),wrap(async(req,res)=>{
@@ -330,7 +330,7 @@ router.post('/services/fees',permit('finance.manage'),wrap(async(req,res)=>{
 router.patch('/services/requests/:id/schedule',permit('applications.review'),wrap(async(req,res)=>{
  const {startAt,endAt,location,staffAccountId}=req.body||{};
  const start=new Date(startAt),end=new Date(endAt);
- if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start.getTime()>=end.getTime()||typeof location!=='string'||location.trim().length<3||location.length>500||(staffAccountId!==null&&staffAccountId!==undefined&&!/^[0-9a-f-]{36}$/i.test(staffAccountId)))return res.status(400).json({error:'Valid appointment start, end and meeting details required.'});
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start.getTime()<=Date.now()||start.getTime()>=end.getTime()||typeof location!=='string'||location.trim().length<3||location.length>500||(staffAccountId!==null&&staffAccountId!==undefined&&!/^[0-9a-f-]{36}$/i.test(staffAccountId)))return res.status(400).json({error:'Valid appointment start, end and meeting details required.'});
  const {data,error}=await db.from('upec_service_requests').update({scheduled_at:start.toISOString(),scheduled_end_at:end.toISOString(),session_location:location.trim(),assigned_staff_id:staffAccountId||null,status:'confirmed',updated_at:new Date().toISOString()}).eq('id',req.params.id).in('status',['pending','reviewing','confirmed']).select('id,status,scheduled_at,scheduled_end_at,session_location').maybeSingle();
  if(error)throw error;if(!data)return res.status(409).json({error:'Request unavailable for scheduling.'});res.json({request:data});
 }));
