@@ -59,7 +59,7 @@ router.get('/applications/metrics',permit('applications.read'),wrap(async(req,re
  res.json({total:results[0].count??0,...counts});
 }));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
  res.json({applications:data||[]});
 }));
@@ -306,10 +306,12 @@ router.get('/exam-registrations',permit('applications.read'),wrap(async(req,res)
 }));
 router.post('/exam-registrations',permit('applications.review'),wrap(async(req,res)=>{
  const {studentAccountId,examBody,examYear,registrationNumber,examinationNumber,centreName,examDate}=req.body||{};
- if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(studentAccountId||'')||!['JAMB','WAEC','IJMB'].includes(examBody)||!Number.isInteger(examYear)||examYear<2020||examYear>2100||typeof registrationNumber!=='string'||registrationNumber.trim().length<4||registrationNumber.length>100)return res.status(400).json({error:'Invalid external examination registration details.'});
- if(examDate&& !/^\\d{4}-\\d{2}-\\d{2}$/.test(examDate))return res.status(400).json({error:'Invalid exam date.'});
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentAccountId||'')||!['JAMB','WAEC','IJMB'].includes(examBody)||!Number.isInteger(examYear)||examYear<2020||examYear>2100||typeof registrationNumber!=='string'||registrationNumber.trim().length<4||registrationNumber.length>100)return res.status(400).json({error:'Invalid external examination registration details.'});
+ if(examDate&& !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(examDate))return res.status(400).json({error:'Invalid exam date.'});
  const {data:account,error:accountError}=await db.from('local_accounts').select('id').eq('id',studentAccountId).maybeSingle();
  if(accountError)throw accountError;if(!account)return res.status(404).json({error:'Student account not found.'});
+ const {data:linked,error:linkedError}=await db.from('local_student_applications').select('id').eq('account_id',studentAccountId).limit(1);
+ if(linkedError)throw linkedError;if(!linked?.length)return res.status(400).json({error:'Select an account with an existing UPEC programme application.'});
  const {data,error}=await db.from('upec_exam_registrations').insert({student_account_id:studentAccountId,exam_body:examBody,exam_year:examYear,registration_number:registrationNumber.trim(),examination_number:String(examinationNumber||'').trim()||null,centre_name:String(centreName||'').trim()||null,exam_date:examDate||null,recorded_by:req.actor.sub}).select('id,status').single();
  if(error?.code==='23505')return res.status(409).json({error:'This exam registration number is already recorded for that examination and year.'});
  if(error)throw error;res.status(201).json({registration:data});
