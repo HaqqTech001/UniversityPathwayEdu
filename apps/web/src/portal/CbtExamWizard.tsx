@@ -391,8 +391,8 @@ export default function CbtExamWizard() {
       }
     });
 
-    const percent = Math.round((correctCount / totalQuestionsCount) * 100) || 0;
-    const scaledScore = Math.round((correctCount / totalQuestionsCount) * 100);
+    const percent = examQuestions.length > 0 ? Math.round((correctCount / examQuestions.length) * 100) : 0;
+    const scaledScore = percent;
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
