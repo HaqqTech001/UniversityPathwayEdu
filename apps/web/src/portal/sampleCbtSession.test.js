@@ -43,3 +43,37 @@ test('restores a valid shuffled sample question without changing its correct ans
  assert.equal(loadSampleSession('student-shuffle')?.questions[0].options[shuffled.questions[0].answer],source.options[source.answer]);
  clearSampleSession('student-shuffle');
 });
+
+test('stored practice expires before it can be resumed',()=>{
+ const owner='student-expiry';
+ const session=make(owner,Date.now()+1000);
+ assert.equal(saveSampleSession(session,owner),true);
+ session.deadline=Date.now()-1000;
+ const key=[...store.keys()].find(value=>value.endsWith(':'+owner));
+ assert.ok(key);
+ store.set(key,JSON.stringify(session));
+ assert.equal(loadSampleSession(owner),null);
+ assert.equal(store.has(key),false);
+});
+test('tampered browser-storage answers are discarded on recovery',()=>{
+ const owner='student-tamper';
+ assert.equal(saveSampleSession(make(owner),owner),true);
+ const key=[...store.keys()].find(value=>value.endsWith(':'+owner));
+ assert.ok(key);
+ const modified=JSON.parse(store.get(key));
+ modified.answers[source.id]=source.options.length;
+ store.set(key,JSON.stringify(modified));
+ assert.equal(loadSampleSession(owner),null);
+ assert.equal(store.has(key),false);
+});
+test('another user cannot restore the same stored practice session',()=>{
+ const owner='student-owner';
+ assert.equal(saveSampleSession(make(owner),owner),true);
+ const key=[...store.keys()].find(value=>value.endsWith(':'+owner));
+ const stored=store.get(key);
+ const otherKey=key.replace(':'+owner,':student-other');
+ store.set(otherKey,stored);
+ assert.equal(loadSampleSession('student-other'),null);
+ assert.equal(store.has(otherKey),false);
+ clearSampleSession(owner);
+});
