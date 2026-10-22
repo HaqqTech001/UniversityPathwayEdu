@@ -45,7 +45,23 @@ export interface ExamAttemptRecord {
 export default function CbtExamWizard() {
   const { currentUser } = useAuth();
   const ownerId=currentUser?.id;
-  useEffect(()=>{setRecoverable(ownerId?loadSampleSession(ownerId):null);},[ownerId]);
+  const previousOwnerIdRef = useRef(ownerId);
+  useEffect(() => {
+    if (previousOwnerIdRef.current !== ownerId) {
+      // An examination belongs to the signed-in student; never carry its answers
+      // into a different account. The previous student's saved practice remains intact.
+      previousOwnerIdRef.current = ownerId;
+      deadlineRef.current = null;
+      submittingRef.current = false;
+      setStage('setup');
+      setExamQuestions([]);
+      setAnswers({});
+      setFlagged([]);
+      setCurrentQuestionIndex(0);
+      setLatestAttempt(null);
+    }
+    setRecoverable(ownerId ? loadSampleSession(ownerId) : null);
+  }, [ownerId]);
 
   // Wizard Stage: 'setup' | 'exam' | 'results'
   const [stage, setStage] = useState<'setup' | 'exam' | 'results'>('setup');
