@@ -66,15 +66,15 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
 
   // Navigation tab state controlled by the Left Navigation Drawer
   const [dashboardTab, setDashboardTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
-      return 'cbt';
+    if (typeof window !== 'undefined' && ['#cbt','#applications'].includes(window.location.hash)) {
+      return window.location.hash.slice(1);
     }
     return 'overview';
   });
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
-      setDashboardTab('cbt');
+    if (typeof window !== 'undefined' && ['#cbt','#applications'].includes(window.location.hash)) {
+      setDashboardTab(window.location.hash.slice(1));
     }
   }, []);
 
@@ -622,7 +622,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 6: NOTIFICATIONS
             ========================================================================= */}
-        {dashboardTab === 'profile' && <><GuardianContact/><StudentFeeStatement/><StudentPaymentHistory/><StudentRegistrationFees/><StudentMonthlyFees/><ConductAcknowledgement/></>}
+        {dashboardTab === 'profile' && <GuardianContact/>}
+        {dashboardTab === 'documents' && <div className="space-y-6"><StudentFeeStatement/><StudentPaymentHistory/><StudentRegistrationFees/><StudentMonthlyFees/><ConductAcknowledgement/></div>}
         {dashboardTab === 'notices' && <div className="space-y-6"><StudentNotifications/><StudentNotices/><StudentSupportChat/></div>}
 
         {/* Account settings */}
