@@ -381,11 +381,11 @@ export default function PaymentsTabView({
             <div className="mt-3 space-y-2.5 text-xs text-slate-600">
               <div>
                 <strong className="text-[#111A43] block">How long does verification take?</strong>
-                <span className="text-[11px] text-slate-500">24–48 business hours after evidence submission.</span>
+                <span className="text-[11px] text-slate-500">Verification depends on the accounts office; only confirmed payments appear as verified.</span>
               </div>
               <div className="pt-2 border-t border-slate-100">
                 <strong className="text-[#111A43] block">Can fees be paid in instalments?</strong>
-                <span className="text-[11px] text-slate-500">Yes, according to the approved 2-part payment schedule.</span>
+                <span className="text-[11px] text-slate-500">Instalment arrangements depend on your programme and issued fee statement.</span>
               </div>
             </div>
           </div>
