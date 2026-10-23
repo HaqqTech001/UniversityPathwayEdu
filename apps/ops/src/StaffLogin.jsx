@@ -12,9 +12,9 @@ export default function StaffLogin({onSuccess}){
   finally{setBusy(false);}
  };
  return <main className="shell"><section className="panel">
-  <span className="eyebrow">UPEC · STAFF OPERATIONS</span>
+  <span className="eyebrow">University Pathway · STAFF OPERATIONS</span>
   <h1>Staff Sign In</h1>
-  <p>Authorized staff only. Your access is determined by permissions assigned by UPEC administration.</p>
+  <p>Authorized staff only. Your access is determined by permissions assigned by University Pathway administration.</p>
   <form onSubmit={submit} className="staff-form">
    <label>Work email<input required type="email" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>
    <label>Password<input required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>
