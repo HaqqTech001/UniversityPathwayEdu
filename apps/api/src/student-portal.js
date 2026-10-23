@@ -552,15 +552,40 @@ router.post('/support/attachments/upload-url',wrap(async(req,res)=>{
  if(error)throw error;
  res.json({path,uploadUrl:data.signedUrl,token:data.token});
 }));
+const supportFiles=async messages=>{
+ if(!messages.length)return messages;
+ const {data,error}=await db.from('upec_support_attachments').select('id,message_id,file_name,mime_type,size_bytes,position').in('message_id',messages.map(m=>m.id)).order('position');
+ if(error)throw error;
+ return messages.map(m=>({...m,attachments:(data||[]).filter(f=>f.message_id===m.id)}));
+};
 router.get('/support/messages',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:true}).limit(200);
- if(error)throw error;res.json({messages:data||[]});
+ if(error)throw error;res.json({messages:await supportFiles(data||[])});
+}));
+router.get('/support/files/:fileId',wrap(async(req,res)=>{
+ const {data:file,error}=await db.from('upec_support_attachments').select('storage_path,message_id').eq('id',req.params.fileId).maybeSingle();
+ if(error)throw error;if(!file)return res.status(404).json({error:'File not found.'});
+ const {data:message,error:ownerError}=await db.from('upec_support_messages').select('id').eq('id',file.message_id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(ownerError)throw ownerError;if(!message)return res.status(404).json({error:'File not found.'});
+ const {data,error:signError}=await db.storage.from('upec-support-chat').createSignedUrl(file.storage_path,60);
+ if(signError)throw signError;res.json({url:data.signedUrl});
 }));
 router.post('/support/messages',wrap(async(req,res)=>{
- const body=req.body?.body;
- if(typeof body!=='string'||body.trim().length<1||body.length>3000)return res.status(400).json({error:'Enter a message up to 3000 characters.'});
- const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.actor.sub,author_account_id:req.actor.sub,author_role:'student',body:body.trim()}).select('id,author_role,body,created_at').single();
- if(error)throw error;res.status(201).json({message:data});
+ const {body='',attachments=[]}=req.body||{};
+ if(typeof body!=='string'||body.length>3000||!Array.isArray(attachments)||attachments.length>10||(!body.trim()&&!attachments.length))return res.status(400).json({error:'Enter a message or select up to 10 files.'});
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
+ const files=[];
+ for(const f of attachments){
+  if(!f||typeof f.path!=='string'||f.path.split('/').length!==2||!f.path.startsWith(req.actor.sub+'/')||!Object.hasOwn(types,f.mime)||!f.path.endsWith('.'+types[f.mime])||typeof f.name!=='string'||!f.name.trim()||f.name.length>180||!Number.isInteger(f.size)||f.size<1||f.size>20971520||files.some(v=>v.storage_path===f.path))return res.status(400).json({error:'Invalid file in attachment group.'});
+  const {data:stored,error:storageError}=await db.storage.from('upec-support-chat').list(req.actor.sub,{search:f.path.split('/')[1]});
+  if(storageError)throw storageError;
+  if(!(stored||[]).some(v=>v.name===f.path.split('/')[1]&&Number(v.metadata?.size)===f.size))return res.status(400).json({error:'Upload every selected file before sending.'});
+  files.push({storage_path:f.path,file_name:f.name,mime_type:f.mime,size_bytes:f.size,position:files.length});
+ }
+ const {data:message,error}=await db.from('upec_support_messages').insert({student_account_id:req.actor.sub,author_account_id:req.actor.sub,author_role:'student',body:body.trim()}).select('id,author_role,body,created_at').single();
+ if(error)throw error;
+ if(files.length){const {error:fileError}=await db.from('upec_support_attachments').insert(files.map(file=>({...file,message_id:message.id})));if(fileError){await db.from('upec_support_messages').delete().eq('id',message.id);throw fileError;}}
+ res.status(201).json({message:(await supportFiles([message]))[0]});
 }));
 router.get('/exam-registrations',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_exam_registrations').select('id,exam_body,exam_year,registration_number,examination_number,centre_name,exam_date,status,verified_at').eq('student_account_id',req.actor.sub).order('exam_year',{ascending:false}).limit(50);
