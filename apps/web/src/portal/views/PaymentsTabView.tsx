@@ -65,9 +65,6 @@ export default function PaymentsTabView({
   },[receiptReload]);
 
   // Evidence Form State
-  const [evidenceAmount, setEvidenceAmount] = useState('');
-  const [evidenceBank, setEvidenceBank] = useState('');
-  const [evidenceRef, setEvidenceRef] = useState('');
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
   const [evidenceReceiptId,setEvidenceReceiptId]=useState<string|null>(null);
 
@@ -106,9 +103,6 @@ export default function PaymentsTabView({
       setReceiptReload(value=>value+1);
       setEvidenceSuccess('Application payment receipt received for review. Reference: '+confirmed.receipt.id+'. This is not a verified payment.');
       setEvidenceFile(null);
-      setEvidenceAmount('');
-      setEvidenceBank('');
-      setEvidenceRef('');
     }catch(error){setEvidenceSuccess(error instanceof Error?error.message:'Unable to submit receipt.');}
     finally{setEvidenceUploading(false);}
   };
@@ -330,48 +324,6 @@ export default function PaymentsTabView({
               </section>
               <form onSubmit={handleEvidenceSubmit} className="mt-5 space-y-4 max-w-lg">
                 <p className="text-xs font-semibold text-amber-800">This upload is for application payment receipts only. Monthly tuition receipts require a separate finance workflow.</p>
-                <div>
-                  <label className="block text-xs font-bold text-[#111A43] mb-1">
-                    Amount Paid (NGN)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 100000"
-                    value={evidenceAmount}
-                    onChange={(e) => setEvidenceAmount(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#111A43]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#111A43] mb-1">
-                    Bank Used for Transfer
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. GTBank / Access Bank / Kuda"
-                    value={evidenceBank}
-                    onChange={(e) => setEvidenceBank(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#111A43]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#111A43] mb-1">
-                    Bank Transaction Reference / Session ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 000013241023120000123"
-                    value={evidenceRef}
-                    onChange={(e) => setEvidenceRef(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#111A43]"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-xs font-bold text-[#111A43] mb-1">
                     Upload Transfer Screenshot or Receipt (PDF/JPG)
