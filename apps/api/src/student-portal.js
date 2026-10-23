@@ -417,6 +417,39 @@ router.get('/finance/registration-invoices',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_registration_invoices').select('id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;res.json({invoices:data||[]});
 }));
+router.get('/finance/monthly-receipts',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_monthly_payment_evidence').select('id,monthly_fee_id,review_status,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;
+ res.json({receipts:data||[]});
+}));
+router.post('/finance/monthly-receipts/upload-url',wrap(async(req,res)=>{
+ const {monthlyFeeId,mimeType,sizeBytes}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(monthlyFeeId||''))return res.status(400).json({error:'Select a valid monthly fee.'});
+ if(!['application/pdf','image/png','image/jpeg'].includes(mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>5242880)return res.status(400).json({error:'Choose a PDF, JPG or PNG receipt under 5 MB.'});
+ const {data:fee,error:feeError}=await db.from('upec_student_monthly_fees').select('id').eq('id',monthlyFeeId).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(feeError)throw feeError;
+ if(!fee)return res.status(404).json({error:'Monthly fee not found.'});
+ const ext=mimeType==='application/pdf'?'pdf':mimeType==='image/png'?'png':'jpg';
+ const path=req.actor.sub+'/monthly/'+crypto.randomUUID()+'.'+ext;
+ const {data,error}=await db.storage.from('upec-application-payment').createSignedUploadUrl(path);
+ if(error)throw error;
+ res.json({path,signedUrl:data.signedUrl});
+}));
+router.post('/finance/monthly-receipts/confirm',wrap(async(req,res)=>{
+ const {monthlyFeeId,path,mimeType}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(monthlyFeeId||'')||typeof path!=='string'||!/^[-0-9a-f]{36}\\/monthly\\/[-0-9a-f]{36}\\.(pdf|png|jpg)$/i.test(path)||!path.startsWith(req.actor.sub+'/monthly/')||!['application/pdf','image/png','image/jpeg'].includes(mimeType))return res.status(400).json({error:'Invalid receipt submission.'});
+ const {data:fee,error:feeError}=await db.from('upec_student_monthly_fees').select('id').eq('id',monthlyFeeId).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(feeError)throw feeError;
+ if(!fee)return res.status(404).json({error:'Monthly fee not found.'});
+ const name=path.split('/')[2];
+ const {data:files,error:storageError}=await db.storage.from('upec-application-payment').list(req.actor.sub+'/monthly',{search:name,limit:10});
+ if(storageError)throw storageError;
+ const size=Number((files||[]).find(file=>file.name===name)?.metadata?.size);
+ if(!Number.isInteger(size)||size<1||size>5242880)return res.status(409).json({error:'Receipt upload incomplete.'});
+ const {data,error}=await db.from('upec_monthly_payment_evidence').insert({student_account_id:req.actor.sub,monthly_fee_id:monthlyFeeId,storage_path:path,mime_type:mimeType,file_size_bytes:size,review_status:'pending'}).select('id,review_status').single();
+ if(error)throw error;
+ res.status(201).json({receipt:data});
+}));
 router.get('/finance/monthly-fees',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_monthly_fees').select('id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').eq('student_account_id',req.actor.sub).order('billing_month',{ascending:false}).limit(60);
  if(error)throw error;
