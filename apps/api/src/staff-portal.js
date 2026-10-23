@@ -409,6 +409,33 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
 }));
 
 // External examination records are entered by authorized staff only after official registration.
+router.get('/finance/monthly-receipts',permit('finance.manage'),wrap(async(req,res)=>{
+ const status=String(req.query.status||'pending');
+ if(!['pending','approved','rejected','all'].includes(status))return res.status(400).json({error:'Invalid receipt status.'});
+ let query=db.from('upec_monthly_payment_evidence').select('id,student_account_id,monthly_fee_id,review_status,created_at,mime_type,file_size_bytes').order('created_at',{ascending:false}).limit(100);
+ if(status!=='all')query=query.eq('review_status',status);
+ const {data,error}=await query;
+ if(error)throw error;
+ res.json({receipts:data||[]});
+}));
+router.get('/finance/monthly-receipts/:id/preview',permit('finance.manage'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
+ const {data,error}=await db.from('upec_monthly_payment_evidence').select('storage_path').eq('id',req.params.id).maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(404).json({error:'Receipt not found.'});
+ const {data:preview,error:previewError}=await db.storage.from('upec-application-payment').createSignedUrl(data.storage_path,60);
+ if(previewError)throw previewError;
+ res.json({previewUrl:preview.signedUrl,expiresInSeconds:60});
+}));
+router.patch('/finance/monthly-receipts/:id/review',permit('finance.manage'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
+ const status=req.body?.status;
+ if(!['approved','rejected'].includes(status))return res.status(400).json({error:'Status must be approved or rejected.'});
+ const {data,error}=await db.from('upec_monthly_payment_evidence').update({review_status:status}).eq('id',req.params.id).eq('review_status','pending').select('id,review_status').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Receipt not found or already reviewed.'});
+ res.json({receipt:data});
+}));
 router.get('/finance/application-receipts',permit('finance.manage'),wrap(async(req,res)=>{
  const status=String(req.query.status||'pending');
  if(!['pending','approved','rejected','all'].includes(status))return res.status(400).json({error:'Invalid receipt status.'});
