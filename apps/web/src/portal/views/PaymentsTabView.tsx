@@ -60,11 +60,33 @@ export default function PaymentsTabView({
     setTimeout(() => setCopiedAccount(false), 3000);
   };
 
-  const handleEvidenceSubmit = (e: React.FormEvent) => {
+  const [evidenceFile,setEvidenceFile]=useState<File|null>(null);
+  const [evidenceUploading,setEvidenceUploading]=useState(false);
+  const handleEvidenceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEvidenceSuccess('General tuition evidence submission is not yet supported by the finance API. Please contact the accounts office; no receipt was submitted.');
-
-    setTimeout(() => setEvidenceSuccess(''), 6000);
+    setEvidenceSuccess('');
+    if(!evidenceFile){setEvidenceSuccess('Choose a payment receipt before submitting.');return;}
+    if(!['application/pdf','image/jpeg','image/png'].includes(evidenceFile.type)||evidenceFile.size<1||evidenceFile.size>5242880){setEvidenceSuccess('Choose a PDF, JPG or PNG receipt up to 5 MB.');return;}
+    const token=getStudentToken();
+    if(!token){setEvidenceSuccess('Sign in before submitting payment evidence.');return;}
+    setEvidenceUploading(true);
+    try{
+      const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/application-payment';
+      const request=async(path:string,body:object)=>{
+        const response=await fetch(base+path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw Error(data.error||'Payment evidence service rejected the request.');
+        return data;
+      };
+      const signed=await request('/upload-url',{mimeType:evidenceFile.type,sizeBytes:evidenceFile.size});
+      const upload=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':evidenceFile.type},body:evidenceFile});
+      if(!upload.ok)throw Error('Receipt storage upload failed.');
+      const confirmed=await request('/confirm',{path:signed.path,mimeType:evidenceFile.type});
+      if(!confirmed.receipt?.id)throw Error('Receipt was not confirmed by the server.');
+      setEvidenceSuccess('Application payment receipt received for review. Reference: '+confirmed.receipt.id+'. This is not a verified payment.');
+      setEvidenceFile(null);
+    }catch(error){setEvidenceSuccess(error instanceof Error?error.message:'Unable to submit receipt.');}
+    finally{setEvidenceUploading(false);}
   };
 
   return (
@@ -273,6 +295,7 @@ export default function PaymentsTabView({
               )}
 
               <form onSubmit={handleEvidenceSubmit} className="mt-5 space-y-4 max-w-lg">
+                <p className="text-xs font-semibold text-amber-800">This upload is for application payment receipts only. Monthly tuition receipts require a separate finance workflow.</p>
                 <div>
                   <label className="block text-xs font-bold text-[#111A43] mb-1">
                     Amount Paid (NGN)
@@ -320,16 +343,17 @@ export default function PaymentsTabView({
                     Upload Transfer Screenshot or Receipt (PDF/JPG)
                   </label>
                   <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50">
-                    <input type="file" className="text-xs" accept=".pdf,.jpg,.jpeg,.png" />
+                    <input type="file" className="text-xs" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>setEvidenceFile(e.target.files?.[0]||null)} required />
                     <p className="text-[10px] text-slate-400 mt-1">Maximum 5 MB file size</p>
                   </div>
                 </div>
 
                 <button
                   type="submit"
+                  disabled={evidenceUploading}
                   className="px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
                 >
-                  Submit Payment Evidence
+                  {evidenceUploading ? "Uploading receipt…" : "Submit Application Payment Receipt"}
                 </button>
               </form>
             </div>
