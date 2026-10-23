@@ -67,11 +67,11 @@ export default function DocumentsTabView({
     if(!response.ok)throw Error(data.error||'The server could not complete your request.');
     return data;
   };
-  const refreshDocuments=async()=>{
-    if(!applicationId){setRecords([]);setLoadError('');setLoading(false);return;}
+  const refreshDocuments=async():Promise<boolean>=>{
+    if(!applicationId){setRecords([]);setLoadError('');setLoading(false);return true;}
     setLoading(true);setLoadError('');
-    try{const data=await request(api+'/applications/'+encodeURIComponent(applicationId)+'/documents');setRecords(data.documents||[]);}
-    catch(error){setLoadError(error instanceof Error?error.message:'Could not load documents.');setRecords([]);}
+    try{const data=await request(api+'/applications/'+encodeURIComponent(applicationId)+'/documents');setRecords(data.documents||[]);return true;}
+    catch(error){setLoadError(error instanceof Error?error.message:'Could not load documents.');setRecords([]);return false;}
     finally{setLoading(false);}
   };
   useEffect(()=>{void refreshDocuments();},[applicationId]);
@@ -100,8 +100,8 @@ export default function DocumentsTabView({
       if(!upload.ok)throw Error('Storage upload failed ('+upload.status+'). Nothing was confirmed.');
       const confirmed=await request(route+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:signed.path,mimeType:selectedFile.type,documentType:selectedKind,filename:selectedFile.name})});
       if(confirmed?.error)throw Error(confirmed.error);
-      await refreshDocuments();
-      setUploadNotice('Document uploaded and recorded for review.');
+      const refreshed=await refreshDocuments();
+      setUploadNotice(refreshed?'Document uploaded and recorded for review.':'Document confirmed by the server, but the document list could not be refreshed. Use Refresh to check its review status.');
       setSelectedFile(null);if(fileInputRef.current)fileInputRef.current.value='';
     }catch(error){setUploadError(error instanceof Error?error.message:'Document upload failed.');}
     finally{setUploading(false);}
