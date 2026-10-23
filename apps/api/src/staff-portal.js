@@ -421,6 +421,12 @@ router.post('/support/attachments/upload-url',supportAccess,wrap(async(req,res)=
  if(error)throw error;
  res.json({path,uploadUrl:data.signedUrl,token:data.token});
 }));
+router.get('/support/files/:fileId',supportAccess,wrap(async(req,res)=>{
+ const {data:file,error}=await db.from('upec_support_attachments').select('storage_path').eq('id',req.params.fileId).maybeSingle();
+ if(error)throw error;if(!file)return res.status(404).json({error:'Attachment not found.'});
+ const {data,error:signError}=await db.storage.from('upec-support-chat').createSignedUrl(file.storage_path,60);
+ if(signError)throw signError;res.json({url:data.signedUrl});
+}));
 router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('student_account_id,body,created_at,author_role').order('created_at',{ascending:false}).limit(500);
  if(error)throw error;
@@ -429,7 +435,12 @@ router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
 router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId))return res.status(400).json({error:'Invalid student ID.'});
  const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at,attachment_path,attachment_name,attachment_mime,attachment_size').eq('student_account_id',req.params.studentId).order('created_at',{ascending:true}).limit(200);
- if(error)throw error;res.json({messages:data||[]});
+ if(error)throw error;
+ const ids=(data||[]).map(m=>m.id);
+ if(!ids.length)return res.json({messages:[]});
+ const {data:files,error:fileError}=await db.from('upec_support_attachments').select('id,message_id,file_name,mime_type,size_bytes,position').in('message_id',ids).order('position');
+ if(fileError)throw fileError;
+ res.json({messages:data.map(m=>({...m,attachments:(files||[]).filter(f=>f.message_id===m.id)}))});
 }));
 router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
  const {body='',attachmentPath,attachmentName,attachmentMime,attachmentSize}=req.body||{};
