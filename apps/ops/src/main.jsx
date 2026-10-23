@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import StaffLogin from './StaffLogin';
+import PortalToasts from './PortalToasts';
 import StaffDashboard from './StaffDashboard';
 import {getOpsToken,clearOpsToken,opsRequest} from './api';
 import './style.css';
@@ -21,4 +22,4 @@ function App(){
  if(!profile)return <StaffLogin onSuccess={verify}/>;
  return <StaffDashboard profile={profile} onLogout={()=>setProfile(null)}/>;
 }
-createRoot(document.getElementById('root')).render(<React.StrictMode><App/></React.StrictMode>);
+createRoot(document.getElementById('root')).render(<React.StrictMode><App/><PortalToasts/></React.StrictMode>);
