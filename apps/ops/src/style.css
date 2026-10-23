@@ -81,3 +81,8 @@
 @keyframes pathwayToastEnter{from{opacity:0;transform:translate(24px,-8px)}to{opacity:1;transform:translate(0,0)}}
 @keyframes pathwayToastDrain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){.pathway-ops-toast{animation:none}}
+
+/* Staff login branding: Vite ops uses plain CSS, not Tailwind utilities. */
+.staff-login-logo{width:100%;display:flex;justify-content:center;align-items:center;margin:0 auto 20px;overflow:hidden}
+.staff-login-logo img{display:block;width:auto!important;max-width:min(100%,260px)!important;max-height:76px!important;height:auto!important;object-fit:contain}
+@media(max-width:600px){.staff-login-logo img{max-width:min(100%,210px)!important;max-height:64px!important}}
