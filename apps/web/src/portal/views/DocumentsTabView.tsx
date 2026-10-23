@@ -30,7 +30,7 @@ interface DocumentItem {
   category: 'Academic' | 'Identification' | 'Institutional';
   type: string;
   required: boolean;
-  status: 'verified' | 'under_review' | 'not_uploaded';
+  status: 'verified' | 'under_review' | 'rejected' | 'not_uploaded';
   filename?: string;
   filesize?: string;
   uploadedAt?: string;
@@ -77,7 +77,7 @@ export default function DocumentsTabView({
   useEffect(()=>{void refreshDocuments();},[applicationId]);
   const documents:DocumentItem[]=requirements.map(item=>{
     const match=records.find(record=>record.document_type===item.type);
-    return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':'under_review',
+    return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':match.review_status==='rejected'?'rejected':'under_review',
       filename:match?.original_filename,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
   });
   const handleFileSelect=(f?:File)=>{
@@ -243,6 +243,7 @@ export default function DocumentsTabView({
                     )}
 
                     {doc.filename && <button type="button" onClick={()=>void viewDocument(doc.type)} className="px-3 py-1.5 text-xs font-bold text-[#2456a0] hover:underline">View</button>}
+                    {doc.status === 'rejected' && <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">Rejected</span>}
                     {/* Action Button */}
                     {doc.status === 'not_uploaded' ? (
                       <button
@@ -293,7 +294,7 @@ export default function DocumentsTabView({
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {item.status === 'verified' ? 'Verified' : 'In Review'}
+                      {item.status === 'verified' ? 'Verified' : item.status === 'rejected' ? 'Rejected' : 'In Review'}
                     </span>
                   </div>
                   <strong className="text-xs font-bold text-[#111A43] block truncate">
