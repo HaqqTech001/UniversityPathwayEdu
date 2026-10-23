@@ -64,6 +64,27 @@ export default function PaymentsTabView({
     return ()=>controller.abort();
   },[receiptReload]);
 
+  const [feeSummary,setFeeSummary]=useState<{total:number;paid:number;count:number}|null>(null);
+  const [feeSummaryError,setFeeSummaryError]=useState('');
+  useEffect(()=>{
+    const token=getStudentToken();
+    if(!token){setFeeSummaryError('Sign in to view your fee summary.');return;}
+    const controller=new AbortController();
+    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');
+    const headers={Authorization:'Bearer '+token};
+    Promise.all(['/api/student/finance/registration-invoices','/api/student/finance/monthly-fees'].map(async path=>{
+      const response=await fetch(base+path,{headers,signal:controller.signal});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(data.error||'Could not load programme fees.');
+      return data;
+    })).then(([registration,monthly])=>{
+      const invoices=[...(registration.invoices||[]).map((x:any)=>({charge:Number(x.fee_amount_ngn),paid:Number(x.amount_paid_ngn)})),...(monthly.fees||[]).map((x:any)=>({charge:Number(x.amount_due_ngn),paid:Number(x.amount_paid_ngn)}))];
+      if(!controller.signal.aborted)setFeeSummary({total:invoices.reduce((n,x)=>n+(Number.isFinite(x.charge)?x.charge:0),0),paid:invoices.reduce((n,x)=>n+(Number.isFinite(x.paid)?x.paid:0),0),count:invoices.length});
+    }).catch(error=>{if(!controller.signal.aborted)setFeeSummaryError(error instanceof Error?error.message:'Unable to load fee summary.');});
+    return ()=>controller.abort();
+  },[]);
+  const formatNaira=(amount:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:2}).format(amount);
+
   // Evidence Form State
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
   const [evidenceReceiptId,setEvidenceReceiptId]=useState<string|null>(null);
@@ -139,10 +160,10 @@ export default function PaymentsTabView({
             Total Programme Fees
           </span>
           <strong className="text-2xl font-black text-[#111A43] block mt-1">
-            Not available
+            {feeSummaryError?'Unavailable':feeSummary===null?'Loading…':feeSummary.count===0?'No invoices':formatNaira(feeSummary.total)}
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Programme fee statement pending
+            {feeSummaryError||'Issued registration and monthly invoices'}
           </span>
         </div>
 
@@ -153,11 +174,11 @@ export default function PaymentsTabView({
               Amount Paid
             </span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-              Awaiting statement
+              {feeSummary?.count ? 'Verified records' : 'Awaiting invoices'}
             </span>
           </div>
           <strong className="text-2xl font-black text-emerald-700 block mt-1">
-            Not available
+            {feeSummaryError?'Unavailable':feeSummary===null?'Loading…':feeSummary.count===0?'No invoices':formatNaira(feeSummary.paid)}
           </strong>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
             <div className="bg-emerald-500 h-full rounded-full w-0" />
@@ -170,10 +191,10 @@ export default function PaymentsTabView({
             Outstanding Balance
           </span>
           <strong className="text-2xl font-black text-[#c62839] block mt-1">
-            Not available
+            {feeSummaryError?'Unavailable':feeSummary===null?'Loading…':feeSummary.count===0?'No invoices':formatNaira(Math.max(0,feeSummary.total-feeSummary.paid))}
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Balance requires issued statement
+            {feeSummaryError||'Based on issued invoices'}
           </span>
         </div>
 
