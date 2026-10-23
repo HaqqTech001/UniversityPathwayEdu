@@ -25,7 +25,16 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(attempts.error)throw attempts.error;
  const scores=new Map();
  for(const attempt of attempts.data||[])if(!scores.has(attempt.student_account_id))scores.set(attempt.student_account_id,attempt);
- let queued=0,skipped=0;
+ let queued=0,skipped=0,studentsNotified=0;
+ for(const studentId of ids){
+  const attempt=scores.get(studentId);
+  if(mode==='performance'&&(!attempt||attempt.score==null||Number(attempt.total_questions)<=0))continue;
+  const title=mode==='performance'?'Your CBT assessment result is available':'CBT assessment schedule update';
+  const body=mode==='performance'?'Your recorded score for '+exam.data.title+' is '+attempt.score+' out of '+attempt.total_questions+'.':'Your assessment '+exam.data.title+' is scheduled to open '+(exam.data.opens_at||'at a time to be confirmed by the academic office')+'.';
+  const saved=await db.from('upec_cbt_student_notifications').upsert({student_account_id:studentId,assessment_id:exam.data.id,notification_key:'cbt:'+exam.data.id+':'+mode+':'+(attempt?.submitted_at||'schedule'),title,body},{onConflict:'student_account_id,notification_key',ignoreDuplicates:true});
+  if(saved.error)throw saved.error;
+  studentsNotified++;
+ }
  for(const guardian of guardians.data||[]){
   const result=scores.get(guardian.student_account_id);
   if(!guardian.email||(mode==='performance'&&(!result||result.score==null||!Number.isFinite(Number(result.score))||!Number.isFinite(Number(result.total_questions))||Number(result.total_questions)<=0))){skipped++;continue;}
@@ -34,6 +43,6 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
   await queueEmail({key:'guardian-cbt:'+req.params.id+':'+mode+':'+guardian.student_account_id+':'+(result?.submitted_at||'schedule'),to:guardian.email,subject:'Your Ward’s '+(mode==='performance'?'Assessment Performance':'Examination Schedule')+' — University Pathway Educational Consult',text:'Dear '+(guardian.guardian_name||'Parent/Guardian')+',\n\nWe are writing regarding '+name+' and '+exam.data.title+'.\n'+detail+'\n\nFor enquiries, contact our academic office.\n\nUniversity Pathway Educational Consult'});
   queued++;
  }
- res.json({queued,skipped});
+ res.json({queued,skipped,studentsNotified});
 }));
 export default router;
