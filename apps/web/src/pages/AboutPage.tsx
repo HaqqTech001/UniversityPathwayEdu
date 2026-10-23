@@ -397,7 +397,7 @@ export default function AboutPage({ onNavigate }: PageProps) {
       </section>
 
       {/* =========================================================================
-          SECTION 6: WHY PARENTS & STUDENTS CHOOSE UPEC
+          SECTION 6: WHY PARENTS & STUDENTS CHOOSE UNIVERSITY PATHWAY
           ========================================================================= */}
       <section className="py-20 bg-[#f8fafd] border-y border-slate-200/60">
         <div className="max-w-7xl mx-auto px-5 sm:px-8">
@@ -405,7 +405,7 @@ export default function AboutPage({ onNavigate }: PageProps) {
             <div className="lg:col-span-5 space-y-6">
               <p className="text-[#c62839] text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
                 <span className="w-6 h-0.5 bg-[#c62839] inline-block" />
-                THE UPEC ADVANTAGE
+                THE PATHWAY ADVANTAGE
               </p>
               <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#0b1a42] leading-tight">
                 Why Choose University Pathway?
