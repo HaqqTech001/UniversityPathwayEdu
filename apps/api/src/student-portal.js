@@ -148,7 +148,7 @@ router.get('/notifications',wrap(async(req,res)=>{
   const days=[7,3,0,-3].filter(n=>f.due_on===dayShift(today,n));
   return days.map(n=>({key:'payment:'+f.id+':'+n,title:n===-3?'Lesson fee overdue by 3 days':n===0?'Lesson fee due today':'Lesson fee due in '+n+' days',body:'Programme: '+f.programme_code+'. Outstanding balance: ₦'+(Number(f.amount_due_ngn)-Number(f.amount_paid_ngn)).toLocaleString('en-NG')+'. Due date: '+f.due_on+'. If you have paid, contact Accounts to verify your record.',createdAt:new Date().toISOString(),type:'fees'}));
  });
- const feeEvents=(feeRates.data||[]).map(rate=>({key:'fee:'+rate.id,title:'Monthly lesson fee update — '+rate.programme_code,body:'New monthly rate: ₦'+Number(rate.monthly_amount_ngn).toLocaleString('en-NG')+'. Effective from '+rate.effective_month+'. Contact UPEC Accounts for details. Existing bills are unchanged.',createdAt:rate.created_at,type:'fees'}));
+ const feeEvents=(feeRates.data||[]).map(rate=>({key:'fee:'+rate.id,title:'Monthly lesson fee update — '+rate.programme_code,body:'New monthly rate: ₦'+Number(rate.monthly_amount_ngn).toLocaleString('en-NG')+'. Effective from '+rate.effective_month+'. Contact our Accounts Office for details. Existing bills are unchanged.',createdAt:rate.created_at,type:'fees'}));
  const events=[
   ...dueEvents,
   ...feeEvents,
