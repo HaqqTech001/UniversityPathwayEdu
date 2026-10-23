@@ -19,7 +19,7 @@ export default function PortalToasts(){
  },[]);
  const accent={success:'#0e9f62',error:'#d12f45',warning:'#d49322',info:'#245fca'};
  return <div aria-live="polite" className="pathway-ops-toast-stack">
-  {items.map(item=><div key={item.id} role={item.type==='error'?'alert':'status'} className="pathway-ops-toast" style={{animation:'pathway-toast-in 280ms ease-out both'}}>
+  {items.map(item=><div key={item.id} role={item.type==='error'?'alert':'status'} className="pathway-ops-toast" style={{animation:'pathway-toast-in 280ms ease-out both',backgroundColor:({success:'#ecfff5',error:'#fff0f1',warning:'#fff7df',info:'#edf4ff'})[item.type],border:'1px solid '+accent[item.type],borderRadius:'16px'}}>
    <div className="flex items-start gap-3"><span className="mt-0.5 font-extrabold" style={{color:accent[item.type]}}>{item.type==='success'?'✓':item.type==='error'?'!':item.type==='warning'?'⚠':'i'}</span><div className="min-w-0 flex-1"><strong className="block text-sm capitalize text-[#111A43]">{item.type}</strong><p className="mt-0.5 break-words text-sm text-slate-600">{item.message}</p></div><button type="button" aria-label="Dismiss notification" className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={()=>setItems(old=>old.filter(x=>x.id!==item.id))}>×</button></div>
    <div className="pathway-ops-toast-bar" style={{backgroundColor:accent[item.type],transformOrigin:'left',animationDuration:item.duration+'ms'}}/>
   </div>)}
