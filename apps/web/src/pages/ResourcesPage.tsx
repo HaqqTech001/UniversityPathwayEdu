@@ -75,7 +75,7 @@ const resourcesList: ResourceItem[] = [
     category: 'jamb',
     categoryLabel: 'JAMB (UTME)',
     badgeColor: 'text-[#c62839] bg-red-50 border-red-200',
-    provider: 'UPEC English Faculty, Ilorin',
+    provider: 'University Pathway English Faculty, Ilorin',
     subject: 'Use of English (Compulsory for All Candidates)',
     format: 'Candidate Study Guide',
     session: '2025 UTME Cohort',
@@ -115,7 +115,7 @@ const resourcesList: ResourceItem[] = [
     category: 'olevel',
     categoryLabel: 'O’Level (WAEC/NECO)',
     badgeColor: 'text-blue-700 bg-blue-50 border-blue-200',
-    provider: 'National Examinations Council / UPEC Faculty',
+    provider: 'National Examinations Council / University Pathway Faculty',
     subject: 'Physics, Chemistry, Biology & Further Mathematics',
     format: 'Syllabus Summary Guide',
     session: '2024/2025 Academic Cycle',
@@ -134,7 +134,7 @@ const resourcesList: ResourceItem[] = [
     category: 'alevel',
     categoryLabel: 'A’Level (JUPEB/IJMB)',
     badgeColor: 'text-amber-800 bg-amber-50 border-amber-200',
-    provider: 'UPEC Advanced Studies Desk',
+    provider: 'University Pathway Advanced Studies Desk',
     subject: 'Science, Arts, Law & Social Sciences Combinations',
     format: 'Direct Entry Academic Guide',
     session: '2024/2025 Session',
@@ -209,7 +209,7 @@ const resourcesList: ResourceItem[] = [
   },
   {
     id: 'upec-academic-prospectus',
-    title: 'UPEC 2025/2026 Academic Prospectus & Programme Guide',
+    title: 'University Pathway 2025/2026 Academic Prospectus & Programme Guide',
     category: 'timetable',
     categoryLabel: 'Timetables & Guides',
     badgeColor: 'text-purple-800 bg-purple-50 border-purple-200',
@@ -232,7 +232,7 @@ const resourcesList: ResourceItem[] = [
     category: 'timetable',
     categoryLabel: 'Timetables & Guides',
     badgeColor: 'text-purple-800 bg-purple-50 border-purple-200',
-    provider: 'UPEC Academic Administration',
+    provider: 'University Pathway Academic Administration',
     subject: 'Morning, Afternoon & Weekend Cohorts',
     format: 'Schedule Bulletin',
     session: 'Current Term',
@@ -252,7 +252,7 @@ const resourcesList: ResourceItem[] = [
     category: 'jamb',
     categoryLabel: 'JAMB (UTME)',
     badgeColor: 'text-[#c62839] bg-red-50 border-red-200',
-    provider: 'UPEC Guidance & Admissions Desk',
+    provider: 'University Pathway Guidance & Admissions Desk',
     subject: 'Federal, State & Private Universities in Nigeria',
     format: 'Advisory Compilation',
     session: '2025/2026 Session',
@@ -271,7 +271,7 @@ const resourcesList: ResourceItem[] = [
     category: 'olevel',
     categoryLabel: 'O’Level (WAEC/NECO)',
     badgeColor: 'text-blue-700 bg-blue-50 border-blue-200',
-    provider: 'UPEC Library Resource Centre',
+    provider: 'University Pathway Library Resource Centre',
     subject: 'Past Question Archives (Science, Arts & Commercial)',
     format: 'Physical Reference Pack',
     session: 'Sawmill Main Centre Reference',
@@ -370,11 +370,11 @@ export default function ResourcesPage({ onNavigate }: PageProps) {
       return;
     }
 
-    // Draft email enquiry to verified UPEC address
+    // Draft email enquiry to verified University Pathway address
     const recipient = 'unipathway2020@gmail.com';
     const subject = `[Academic Resource Enquiry] ${requestForm.exam} - ${trimmedName}`;
     const bodyLines = [
-      'Dear UPEC Academic Resource Desk,',
+      'Dear University Pathway Academic Resource Desk,',
       '',
       'I would like to enquire about syllabus and academic study materials.',
       '',
@@ -387,7 +387,7 @@ export default function ResourcesPage({ onNavigate }: PageProps) {
       trimmedDetails,
       '',
       '---',
-      'Enquiry drafted via University Pathway Educational Consult (UPEC) Public Resource Centre',
+      'Enquiry drafted via University Pathway Educational Consult (University Pathway) Public Resource Centre',
     ].join('\n');
 
     const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;
