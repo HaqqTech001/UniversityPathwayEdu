@@ -149,7 +149,10 @@ router.get('/notifications',wrap(async(req,res)=>{
   return days.map(n=>({key:'payment:'+f.id+':'+n,title:n===-3?'Lesson fee overdue by 3 days':n===0?'Lesson fee due today':'Lesson fee due in '+n+' days',body:'Programme: '+f.programme_code+'. Outstanding balance: ₦'+(Number(f.amount_due_ngn)-Number(f.amount_paid_ngn)).toLocaleString('en-NG')+'. Due date: '+f.due_on+'. If you have paid, contact Accounts to verify your record.',createdAt:new Date().toISOString(),type:'fees'}));
  });
  const feeEvents=(feeRates.data||[]).map(rate=>({key:'fee:'+rate.id,title:'Monthly lesson fee update — '+rate.programme_code,body:'New monthly rate: ₦'+Number(rate.monthly_amount_ngn).toLocaleString('en-NG')+'. Effective from '+rate.effective_month+'. Contact our Accounts Office for details. Existing bills are unchanged.',createdAt:rate.created_at,type:'fees'}));
+ const cbtMessages=await db.from('upec_cbt_student_notifications').select('notification_key,title,body,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:false}).limit(50);
+ if(cbtMessages.error)throw cbtMessages.error;
  const events=[
+  ...(cbtMessages.data||[]).map(n=>({key:n.notification_key,title:n.title,body:n.body,createdAt:n.created_at,type:'examination'})),
   ...dueEvents,
   ...feeEvents,
   ...(notices.data||[]).map(n=>({key:'notice:'+n.id,title:n.title,body:n.body,createdAt:n.published_at,type:'notice'})),
@@ -161,10 +164,14 @@ router.get('/notifications',wrap(async(req,res)=>{
 }));
 router.post('/notifications/read',wrap(async(req,res)=>{
  const key=req.body?.key;
- if(typeof key!=='string'||key.length>140||! /^(notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14}|fee:[0-9a-f-]{36}|payment:[0-9a-f-]{36}:(0|3|7|-3))$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
+ if(typeof key!=='string'||key.length>140||! /^(cbt:[0-9a-f-]{36}:(schedule|performance):([0-9a-zA-Z:.-]+)|notice:[0-9a-f-]{36}|review:[0-9a-f-]{36}|exam:[0-9a-f-]{36}:[0-9]{12,14}|fee:[0-9a-f-]{36}|payment:[0-9a-f-]{36}:(0|3|7|-3))$/i.test(key))return res.status(400).json({error:'Invalid notification.'});
  // Authorize against the same private feed; never allow arbitrary read markers.
  const [type,id]=key.split(':');
- if(type==='notice'){
+ if(type==='cbt'){
+  const message=await db.from('upec_cbt_student_notifications').select('id').eq('student_account_id',req.actor.sub).eq('notification_key',key).maybeSingle();
+  if(message.error)throw message.error;
+  if(!message.data)return res.status(404).json({error:'Notification unavailable.'});
+ }else if(type==='notice'){
   const result=await db.from('upec_notices').select('id').eq('id',id).eq('status','published').maybeSingle();
   if(result.error)throw result.error;if(!result.data)return res.status(404).json({error:'Notification unavailable.'});
  }else if(type==='review'){
