@@ -47,6 +47,23 @@ export default function PaymentsTabView({
   },[]);
 
 
+  const [receiptRecords,setReceiptRecords]=useState<Array<{id:string;review_status:string;created_at:string;application_id:string|null}>>([]);
+  const [receiptError,setReceiptError]=useState('');
+  const [receiptLoading,setReceiptLoading]=useState(true);
+  const [receiptReload,setReceiptReload]=useState(0);
+  useEffect(()=>{
+    const token=getStudentToken();
+    if(!token){setReceiptLoading(false);setReceiptError('Sign in to see your receipts.');return;}
+    const controller=new AbortController();
+    setReceiptLoading(true);
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/application-payment/receipts',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Could not load receipts.');return data;})
+      .then(data=>{setReceiptRecords(data.receipts||[]);setReceiptError('');})
+      .catch(error=>{if(!controller.signal.aborted)setReceiptError(error instanceof Error?error.message:'Could not load receipts.');})
+      .finally(()=>{if(!controller.signal.aborted)setReceiptLoading(false);});
+    return ()=>controller.abort();
+  },[receiptReload]);
+
   // Evidence Form State
   const [evidenceAmount, setEvidenceAmount] = useState('');
   const [evidenceBank, setEvidenceBank] = useState('');
@@ -86,6 +103,7 @@ export default function PaymentsTabView({
       const confirmed=await request('/confirm',{path:signed.path,mimeType:evidenceFile.type});
       if(!confirmed.receipt?.id)throw Error('Receipt was not confirmed by the server.');
       setEvidenceReceiptId(confirmed.receipt.id);
+      setReceiptReload(value=>value+1);
       setEvidenceSuccess('Application payment receipt received for review. Reference: '+confirmed.receipt.id+'. This is not a verified payment.');
       setEvidenceFile(null);
       setEvidenceAmount('');
@@ -300,6 +318,16 @@ export default function PaymentsTabView({
                 </div>
               )}
 
+              <section className="mt-5 rounded-xl border border-slate-200 p-4" aria-label="Submitted application payment receipts">
+                <h3 className="text-xs font-bold text-[#111A43] mb-2">Your submitted application receipts</h3>
+                {receiptLoading ? <p className="text-xs text-slate-600">Loading receipts…</p> :
+                  receiptError ? <p role="alert" className="text-xs text-red-700">{receiptError}</p> :
+                  receiptRecords.length===0 ? <p className="text-xs text-slate-600">No application receipts submitted yet.</p> :
+                  <ul className="space-y-2">{receiptRecords.map(receipt=><li key={receipt.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-xs">
+                    <span className="font-mono break-all">{receipt.id}</span>
+                    <span className="font-bold capitalize">{receipt.review_status.replace(/_/g,' ')}</span>
+                  </li>)}</ul>}
+              </section>
               <form onSubmit={handleEvidenceSubmit} className="mt-5 space-y-4 max-w-lg">
                 <p className="text-xs font-semibold text-amber-800">This upload is for application payment receipts only. Monthly tuition receipts require a separate finance workflow.</p>
                 <div>
