@@ -4,8 +4,8 @@ function compose({name,studentName,programme,oldAmount,newAmount,effectiveMonth,
  const subject='Important Notice: Monthly Lesson Fee Adjustment — '+programme;
  const greeting=name?'Dear '+name+',':guardian?'Dear Parent/Guardian,':'Dear Student,';
  const introduction=guardian
- ?'We hope this message finds you and your family well. The management of University Pathway Educational Consult (UPEC) is writing to formally notify you of an adjustment to the monthly lesson fees for your ward, '+studentName+'.'
- :'We hope this message finds you well. The management of University Pathway Educational Consult (UPEC) is writing to inform you of an adjustment to the monthly lesson fees for your registered programme.';
+ ?'We hope this message finds you and your family well. The management of University Pathway Educational Consult is writing to formally notify you of an adjustment to the monthly lesson fees for your ward, '+studentName+'.'
+ :'We hope this message finds you well. The management of University Pathway Educational Consult is writing to inform you of an adjustment to the monthly lesson fees for your registered programme.';
  const lines=[greeting,'','NOTICE OF MONTHLY LESSON FEE ADJUSTMENT','',introduction,'',
  'Student: '+studentName,'Registered programme: '+programme,
  'Previous monthly lesson fee: '+(oldAmount===null?'Not previously set':moneyNGN(oldAmount)),
@@ -15,7 +15,7 @@ function compose({name,studentName,programme,oldAmount,newAmount,effectiveMonth,
  'We understand that adjustments to educational expenses require planning. We appreciate your understanding and continued commitment to quality education.',
  'If you need clarification, kindly contact the UPEC Admissions & Accounts Office through the institution’s official channels. Please use only officially confirmed payment instructions.','',
  'Thank you for your continued trust in University Pathway Educational Consult.','',
- 'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)','23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State.'];
+ 'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult','23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State.'];
  return {subject,text:lines.join('\n')};
 }
 export function lessonFeeChangeEmail(input){return compose({...input,guardian:true});}
