@@ -137,48 +137,11 @@ export default function CbtTabView({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
           {/* LEFT COLUMN: Subjects, Active Test Banner, Question Grid Preview, History */}
           <div className="space-y-6">
-            {/* Active Practice Continuation Card (From Mockup) */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#111A43] via-[#162758] to-[#1c3275] rounded-2xl p-6 text-white shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-[#f0bb5b] text-[11px] font-bold border border-red-500/30">
-                    <Clock size={12} />
-                    <span>In-Progress Practice Session</span>
-                  </span>
-                  <h2 className="mt-2 text-lg font-black">
-                    Full Mock Examination #3 (UTME 4 Subjects)
-                  </h2>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Progress: 18 of 60 questions answered · English, Biology, Chemistry, Physics
-                  </p>
-
-                  <div className="mt-4 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowFullWizard(true)}
-                      className="px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
-                    >
-                      <Play size={14} fill="white" />
-                      <span>Resume Examination</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Circular Timer Widget */}
-                <div className="flex items-center gap-4 bg-white/10 rounded-2xl p-4 backdrop-blur-xs border border-white/10 self-start sm:self-center">
-                  <div className="text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-300 block">
-                      Time Remaining
-                    </span>
-                    <strong className="text-2xl font-black text-white font-mono block mt-0.5">
-                      58:42
-                    </strong>
-                    <span className="text-[10px] text-emerald-400 font-semibold">
-                      Timer Active
-                    </span>
-                  </div>
-                </div>
-              </div>
+            {/* Never display invented in-progress exams or countdowns. */}
+            <div className="rounded-2xl bg-gradient-to-r from-[#111A43] to-[#1c3275] p-6 text-white shadow-md">
+              <h2 className="text-lg font-black">Ready for CBT practice?</h2>
+              <p className="mt-2 text-sm text-slate-200">Start a practice session to view your real questions, timer and progress.</p>
+              <button type="button" onClick={() => setShowFullWizard(true)} className="mt-4 rounded-xl bg-[#c62839] px-4 py-2 text-sm font-bold text-white">Start Practice</button>
             </div>
 
             {/* Subject Selector Grid */}
@@ -187,7 +150,7 @@ export default function CbtTabView({
                 <h2 className="text-sm font-extrabold text-[#111A43]">
                   Select Subject for Individual Practice Drill
                 </h2>
-                <span className="text-xs text-slate-400">Authentic Curriculum Bank</span>
+                <span className="text-xs text-slate-400">Choose a practice subject</span>
               </div>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -232,7 +195,7 @@ export default function CbtTabView({
                 <h3 className="text-sm font-extrabold text-[#111A43]">
                   Recent Practice History &amp; Diagnostics
                 </h3>
-                <span className="text-xs text-slate-400">Past 30 Days</span>
+                <span className="text-xs text-slate-400">Saved results</span>
               </div>
 
               {historyLoading && <p role="status" className="text-sm text-slate-600">Loading assessment results…</p>}
