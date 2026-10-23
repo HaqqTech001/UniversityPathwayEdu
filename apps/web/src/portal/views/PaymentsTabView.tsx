@@ -342,10 +342,21 @@ export default function PaymentsTabView({
                   <label className="block text-xs font-bold text-[#111A43] mb-1">
                     Upload Transfer Screenshot or Receipt (PDF/JPG)
                   </label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50">
-                    <input type="file" className="text-xs" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>setEvidenceFile(e.target.files?.[0]||null)} required />
-                    <p className="text-[10px] text-slate-400 mt-1">Maximum 5 MB file size</p>
-                  </div>
+                  <label
+                    className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 text-center cursor-pointer hover:border-red-600 hover:bg-red-50"
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const file = event.dataTransfer.files?.[0];
+                      if (file) setEvidenceFile(file);
+                    }}
+                  >
+                    <UploadCloud size={28} className="text-red-700" />
+                    <span className="text-xs font-bold">{evidenceFile?.name || 'Drag and drop your receipt here'}</span>
+                    <span className="text-xs text-slate-600">or Browse files from your device</span>
+                    <span className="text-xs text-slate-500">PDF, JPG, PNG - up to 5 MB</span>
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" aria-label="Browse payment receipt files" onChange={(event) => setEvidenceFile(event.target.files?.[0] || null)} />
+                  </label>
                 </div>
 
                 <button
