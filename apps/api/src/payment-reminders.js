@@ -27,29 +27,29 @@ export async function queueMonthlyPaymentReminders(){
   const remaining=[7,3,0,-3].find(days=>relativeDate(today,days)===bill.due_on);
   if(remaining===undefined)continue;
   const stage=remaining===-3?'overdue by three days':remaining===0?'due today':remaining===3?'due in three days':'due in one week';
-  const subject='UPEC Monthly Lesson Fee Reminder — '+stage;
+  const subject='Monthly Lesson Fee Reminder — University Pathway Educational Consult — '+stage;
   const text=['Dear '+(account.full_name||'Student')+',','','MONTHLY LESSON FEE REMINDER','',
-   'We hope this message finds you well. This is a courteous reminder from University Pathway Educational Consult (UPEC) regarding the upcoming payment for your registered programme.','',
+   'We hope this message finds you well. This is a courteous reminder from University Pathway Educational Consult regarding the upcoming payment for your registered programme.','',
    'Programme: '+bill.programme_code,'Monthly charge: '+currency(bill.amount_due_ngn),'Amount already recorded: '+currency(bill.amount_paid_ngn),
    'Outstanding balance: '+currency(outstanding),'Payment due date: '+bill.due_on,'',
    remaining===-3?'The recorded payment deadline passed three days ago, and an outstanding balance remains.':remaining===0?'The recorded payment due date is today.':'The payment due date is approaching in '+remaining+' days.',
    'If you have already paid and your payment is not reflected in your student portal, please contact the Accounts Office with your payment reference so your record can be reviewed.','',
-   'For clarification, kindly contact the UPEC Admissions & Accounts Office through our official channels. Please use only officially confirmed payment instructions.','',
+   'For clarification, kindly contact the Admissions & Accounts Office through our official channels. Please use only officially confirmed payment instructions.','',
    'Thank you for your cooperation and continued commitment to your studies.','',
-   'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)','23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State.'].join('\n');
+   'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult','23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State.'].join('\n');
   if(canEmailStudent){await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':student',to:account.email,subject,text});queued++;}
   const guardian=verifiedGuardian;
   if(guardian?.email&&guardian.verified_at){
    const guardianText=['Dear '+(guardian.guardian_name||'Parent/Guardian')+',','','MONTHLY LESSON FEE PAYMENT REMINDER','',
-    'We hope this message finds you and your family well. University Pathway Educational Consult (UPEC) would like to respectfully remind you of the outstanding monthly lesson fee for your child/ward, '+(account.full_name||'our student')+'.','',
+    'We hope this message finds you and your family well. University Pathway Educational Consult would like to respectfully remind you of the outstanding monthly lesson fee for your child/ward, '+(account.full_name||'our student')+'.','',
     'Registered programme: '+bill.programme_code,'Monthly lesson fee: '+currency(bill.amount_due_ngn),
     'Payment already recorded: '+currency(bill.amount_paid_ngn),'Outstanding balance: '+currency(outstanding),
     'Payment due date: '+bill.due_on,'',
     remaining===-3?'The recorded payment deadline passed three days ago, and an outstanding balance remains.':remaining===0?'The fee is due today.':'The due date is approaching in '+remaining+' days.',
     'If you have already paid, please contact our Accounts Office with the payment reference for verification. Use only the official payment information provided by the institution.','',
     'Thank you for your understanding and continued support of your ward’s education.','',
-    'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)'].join('\n');
-   await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':guardian',to:guardian.email,subject:'UPEC Reminder: Your Ward’s Monthly Lesson Fee — '+stage,text:guardianText});
+    'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult'].join('\n');
+   await queueEmail({key:'fee-due:'+bill.id+':'+remaining+':guardian',to:guardian.email,subject:'Your Ward’s Monthly Lesson Fee — University Pathway Educational Consult — '+stage,text:guardianText});
    queued++;
   }
  }
