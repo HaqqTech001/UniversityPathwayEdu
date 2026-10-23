@@ -48,160 +48,69 @@ export default function DocumentsTabView({
   const [uploadNotice, setUploadNotice] = useState('');
   const [uploadError, setUploadError] = useState('');
 
-  // Standard required documents list aligned with UPEC standards
-  const [documents, setDocuments] = useState<DocumentItem[]>([
-    {
-      id: 'doc-1',
-      name: "O'Level Result (WAEC / NECO / NABTEB)",
-      category: 'Academic',
-      type: 'academic_result',
-      required: true,
-      status: 'verified',
-      filename: 'waec_result_amina_yusuf.pdf',
-      filesize: '1.4 MB',
-      uploadedAt: '18 Oct 2026',
-    },
-    {
-      id: 'doc-2',
-      name: 'Birth Certificate / Age Declaration',
-      category: 'Identification',
-      type: 'identification',
-      required: true,
-      status: 'under_review',
-      filename: 'birth_cert_scan.jpg',
-      filesize: '2.1 MB',
-      uploadedAt: '21 Oct 2026',
-    },
-    {
-      id: 'doc-3',
-      name: 'Passport Photograph',
-      category: 'Identification',
-      type: 'identification',
-      required: true,
-      status: 'verified',
-      filename: 'passport_white_bg.png',
-      filesize: '820 KB',
-      uploadedAt: '15 Oct 2026',
-    },
-    {
-      id: 'doc-4',
-      name: 'Secondary School Testimonial',
-      category: 'Academic',
-      type: 'certificate',
-      required: true,
-      status: 'not_uploaded',
-    },
-    {
-      id: 'doc-5',
-      name: 'Local Government Identification Letter',
-      category: 'Identification',
-      type: 'identification',
-      required: true,
-      status: 'not_uploaded',
-    },
-    {
-      id: 'doc-6',
-      name: 'JAMB / UTME Result Slip (Optional)',
-      category: 'Academic',
-      type: 'other',
-      required: false,
-      status: 'not_uploaded',
-    },
-  ]);
-
-  const applicationId = currentUser.application?.id;
-
-  // Real backend document fetch if available
-  useEffect(() => {
-    if (!applicationId) return;
-    const token = getStudentToken();
-    if (!token) return;
-    const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api/student';
-    fetch(base + `/applications/${applicationId}/documents`, {
-      headers: { Authorization: 'Bearer ' + token },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.documents && data.documents.length > 0) {
-          // Merge real backend docs into view list
-          setDocuments((prev) => {
-            const next = [...prev];
-            data.documents.forEach((d: { id: string; original_filename: string; document_type: string; review_status: string }) => {
-              const match = next.find((item) => item.type === d.document_type || item.name.toLowerCase().includes(d.document_type.replace(/_/g, ' ')));
-              if (match) {
-                match.status = d.review_status === 'verified' ? 'verified' : d.review_status === 'rejected' ? 'not_uploaded' : 'under_review';
-                match.filename = d.original_filename;
-                match.uploadedAt = 'Recent';
-              }
-            });
-            return next;
-          });
-        }
-      })
-      .catch(() => {});
-  }, [applicationId]);
-
-  const handleFileSelect = (f?: File) => {
-    if (!f) return;
-    setUploadError('');
-    setUploadNotice('');
-    if (f.size > 5 * 1024 * 1024) {
-      setUploadError('File must be smaller than 5 MB.');
-      return;
+  // Document requirements are labels, never fabricated uploaded records.
+  const requirements: Array<Pick<DocumentItem,'id'|'name'|'category'|'type'|'required'>> = [
+    {id:'academic',name:"O'Level Result (WAEC / NECO / NABTEB)",category:'Academic',type:'academic_result',required:true},
+    {id:'birth',name:'Birth Certificate / Age Declaration',category:'Identification',type:'identification',required:true},
+    {id:'testimonial',name:'Secondary School Testimonial',category:'Academic',type:'certificate',required:true},
+    {id:'other',name:'Other Supporting Document',category:'Institutional',type:'other',required:false},
+  ];
+  const [records,setRecords]=useState<Array<{id:string;document_type:string;original_filename:string;review_status:string;review_note?:string;created_at:string}>>([]);
+  const [loading,setLoading]=useState(false);
+  const [loadError,setLoadError]=useState('');
+  const applicationId=currentUser.application?.id;
+  const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student';
+  const authenticatedHeaders=()=>{const token=getStudentToken();if(!token)throw Error('Please sign in again.');return {Authorization:'Bearer '+token};};
+  const request=async(url:string,options:RequestInit={})=>{
+    const response=await fetch(url,{...options,headers:{...authenticatedHeaders(),...(options.headers||{})}});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(data.error||'The server could not complete your request.');
+    return data;
+  };
+  const refreshDocuments=async()=>{
+    if(!applicationId){setRecords([]);return;}
+    setLoading(true);setLoadError('');
+    try{const data=await request(api+'/applications/'+encodeURIComponent(applicationId)+'/documents');setRecords(data.documents||[]);}
+    catch(error){setLoadError(error instanceof Error?error.message:'Could not load documents.');setRecords([]);}
+    finally{setLoading(false);}
+  };
+  useEffect(()=>{void refreshDocuments();},[applicationId]);
+  const documents:DocumentItem[]=requirements.map(item=>{
+    const match=records.find(record=>record.document_type===item.type);
+    return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':'under_review',
+      filename:match?.original_filename,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
+  });
+  const handleFileSelect=(f?:File)=>{
+    if(!f)return;
+    setUploadError('');setUploadNotice('');
+    if(!['application/pdf','image/jpeg','image/png'].includes(f.type)||f.size>5*1024*1024||f.size===0){
+      setUploadError('Select a PDF, JPG or PNG file up to 5 MB.');return;
     }
     setSelectedFile(f);
   };
-
-  const handleUploadSubmit = async () => {
-    if (!selectedFile) return;
-    setUploading(true);
-    setUploadError('');
-    setUploadNotice('');
-
-    try {
-      const token = getStudentToken();
-      if (token && applicationId) {
-        const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api/student';
-        const route = `/applications/${applicationId}/documents`;
-        const signedRes = await fetch(base + route + '/upload-url', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mimeType: selectedFile.type, sizeBytes: selectedFile.size }),
-        });
-        if (signedRes.ok) {
-          const signed = await signedRes.json();
-          await fetch(signed.signedUrl, { method: 'PUT', headers: { 'Content-Type': selectedFile.type }, body: selectedFile });
-          await fetch(base + route + '/confirm', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: signed.path, mimeType: selectedFile.type, documentType: selectedKind, filename: selectedFile.name }),
-          });
-        }
-      }
-
-      // Update state locally for immediate feedback
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.type === selectedKind
-            ? {
-                ...doc,
-                status: 'under_review',
-                filename: selectedFile.name,
-                filesize: `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`,
-                uploadedAt: 'Just now',
-              }
-            : doc
-        )
-      );
-
-      setUploadNotice(`"${selectedFile.name}" has been uploaded securely and queued for admissions review.`);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (e) {
-      setUploadError('Upload failed. Please ensure the file is under 5MB and try again.');
-    } finally {
-      setUploading(false);
-    }
+  const handleUploadSubmit=async()=>{
+    if(!selectedFile)return;
+    if(!applicationId){setUploadError('Submit a programme application before uploading documents.');return;}
+    setUploading(true);setUploadError('');setUploadNotice('');
+    try{
+      const route=api+'/applications/'+encodeURIComponent(applicationId)+'/documents';
+      const signed=await request(route+'/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mimeType:selectedFile.type,sizeBytes:selectedFile.size})});
+      const upload=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':selectedFile.type},body:selectedFile});
+      if(!upload.ok)throw Error('Storage upload failed ('+upload.status+'). Nothing was confirmed.');
+      await request(route+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:signed.path,mimeType:selectedFile.type,documentType:selectedKind,filename:selectedFile.name})});
+      await refreshDocuments();
+      setUploadNotice('Document uploaded and recorded for review.');
+      setSelectedFile(null);if(fileInputRef.current)fileInputRef.current.value='';
+    }catch(error){setUploadError(error instanceof Error?error.message:'Document upload failed.');}
+    finally{setUploading(false);}
+  };
+  const viewDocument=async(type:string)=>{
+    const record=records.find(entry=>entry.document_type===type);
+    if(!record)return;
+    try{
+      const result=await request(api+'/documents/'+encodeURIComponent(record.id)+'/view');
+      window.open(result.url,'_blank','noopener,noreferrer');
+    }catch(error){setUploadError(error instanceof Error?error.message:'Unable to open document.');}
   };
 
   // Filter items
@@ -268,6 +177,8 @@ export default function DocumentsTabView({
             ))}
           </div>
 
+          {loading && <p role="status" className="text-sm text-slate-600">Loading documents from server…</p>}
+          {loadError && <p role="alert" className="text-sm text-red-700">{loadError}</p>}
           {/* Documents Table / List */}
           <div className="bg-white rounded-2xl border border-[#dce5f0] shadow-xs overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
@@ -302,7 +213,7 @@ export default function DocumentsTabView({
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {doc.filename ? (
-                          <span className="font-mono text-slate-700">{doc.filename} · {doc.filesize} · {doc.uploadedAt}</span>
+                          <span className="font-mono text-slate-700">{doc.filename} · {doc.uploadedAt || '—'}</span>
                         ) : (
                           'PDF, JPG or PNG up to 5 MB'
                         )}
@@ -331,6 +242,7 @@ export default function DocumentsTabView({
                       </span>
                     )}
 
+                    {doc.filename && <button type="button" onClick={()=>void viewDocument(doc.type)} className="px-3 py-1.5 text-xs font-bold text-[#2456a0] hover:underline">View</button>}
                     {/* Action Button */}
                     {doc.status === 'not_uploaded' ? (
                       <button
@@ -388,11 +300,11 @@ export default function DocumentsTabView({
                     {item.name}
                   </strong>
                   <p className="text-[11px] text-slate-500 font-mono mt-1 truncate">
-                    {item.filename || 'uploaded_scan.pdf'}
+                    {item.filename || 'No filename'}
                   </p>
                   <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>{item.filesize || '1.2 MB'}</span>
-                    <span>{item.uploadedAt || 'Oct 2026'}</span>
+                    <span>{item.filesize || '—'}</span>
+                    <span>{item.uploadedAt || '—'}</span>
                   </div>
                 </div>
               ))}
