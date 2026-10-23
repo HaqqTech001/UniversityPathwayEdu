@@ -234,11 +234,11 @@ export default function ApplicationsTabView({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
                 {/* Step 1 */}
                 <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className={`w-8 h-8 rounded-full ${currentUser.biodata.completedAt ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs`}>
+                  <div className={`w-8 h-8 rounded-full ${Boolean(currentUser.biodata.surname && currentUser.biodata.firstName && currentUser.biodata.dateOfBirth && currentUser.biodata.address) ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs`}>
                     <CheckCircle2 size={16} />
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">1. Biodata</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">{currentUser.biodata.completedAt ? 'Completed' : 'Not completed'}</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">{Boolean(currentUser.biodata.surname && currentUser.biodata.firstName && currentUser.biodata.dateOfBirth && currentUser.biodata.address) ? 'Completed' : 'Not completed'}</span>
                 </div>
 
                 {/* Step 2 */}
