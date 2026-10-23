@@ -434,7 +434,17 @@ router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)
 router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
  const {body='',attachmentPath,attachmentName,attachmentMime,attachmentSize}=req.body||{};
  if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.length>3000||(!body.trim()&&!attachmentPath))return res.status(400).json({error:'Invalid message.'});
- const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()}).select('id,author_role,body,created_at').single();
+ const record={student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()};
+ if(attachmentPath){
+  const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
+  if(typeof attachmentPath!=='string'||attachmentPath.split('/').length!==2||!attachmentPath.startsWith(req.actor.sub+'/')||!Object.hasOwn(types,attachmentMime)||!attachmentPath.endsWith('.'+types[attachmentMime])||typeof attachmentName!=='string'||attachmentName.length>180||!Number.isInteger(attachmentSize)||attachmentSize<1||attachmentSize>20971520)return res.status(400).json({error:'Invalid attachment.'});
+  const {data:files,error:listError}=await db.storage.from('upec-support-chat').list(req.actor.sub,{search:attachmentPath.split('/')[1]});
+  if(listError)throw listError;
+  const file=(files||[]).find(f=>f.name===attachmentPath.split('/')[1]);
+  if(!file||file.metadata?.size!==attachmentSize)return res.status(400).json({error:'Upload the file before sending.'});
+  Object.assign(record,{attachment_path:attachmentPath,attachment_name:attachmentName,attachment_mime:attachmentMime,attachment_size:attachmentSize});
+ }
+ const {data,error}=await db.from('upec_support_messages').insert(record).select('id,author_role,body,created_at,attachment_path,attachment_name,attachment_mime,attachment_size').single();
  if(error)throw error;res.status(201).json({message:data});
 }));
 
