@@ -62,7 +62,7 @@ export default function PaymentsTabView({
 
   const handleEvidenceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setEvidenceSuccess('Payment evidence upload is not yet connected. No evidence has been submitted.');
+    setEvidenceSuccess('General tuition evidence submission is not yet supported by the finance API. Please contact the accounts office; no receipt was submitted.');
 
     setTimeout(() => setEvidenceSuccess(''), 6000);
   };
@@ -356,9 +356,9 @@ export default function PaymentsTabView({
               </h3>
             </div>
             <div className="mt-3 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-[#111A43]">
-              <strong className="block text-amber-900 font-bold mb-1">Second Tuition Instalment</strong>
+              <strong className="block text-amber-900 font-bold mb-1">Payment Schedule</strong>
               <p className="text-slate-700 leading-relaxed">
-                The balance of Not available for the first semester is due by <strong>November 15, 2026</strong>. Late clearance incurs administrative review.
+                Your next payment date and outstanding balance will appear on your issued fee statement. Contact the accounts office if you need clarification.
               </p>
             </div>
           </div>
