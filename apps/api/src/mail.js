@@ -40,6 +40,7 @@ export function getMailer() {
 export async function sendEmail({ to, subject, text, html }) {
   if (!to || !subject || (!text && !html)) throw new Error('Missing email fields');
   const sender = required('MAIL_FROM');
+  if (!html && text) html = '<html><body><div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;color:#111A43"><h2>University Pathway Educational Consult</h2><hr style="border-color:#C62839"><div style="white-space:pre-line;line-height:1.6">'+text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div></body></html>';
   return getMailer().sendMail({
     from: { name: process.env.MAIL_FROM_NAME || 'University Pathway Educational Consult', address: sender },
     to, subject, text, ...(html ? { html } : {}),
