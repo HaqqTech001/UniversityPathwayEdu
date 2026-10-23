@@ -20,7 +20,7 @@ export default function StudentSupportChat(){
    headers:{Authorization:'Bearer '+token,...(body===undefined?{}:{'Content-Type':'application/json'})},
    ...(body===undefined?{}:{body:JSON.stringify({body})})
   });
-  const data=await response.json();
+  const data=await response.json().catch(()=>({error:'Support service returned an invalid response.'}));
   if(!response.ok)throw Error(data.error||'Chat unavailable.');
   return data;
  };
@@ -30,7 +30,7 @@ export default function StudentSupportChat(){
    const data=await request();
    if(mounted.current){setMessages(data.messages||[]);setError('');}
   }catch(e){
-   if(mounted.current&&!silent)setError(e instanceof Error?e.message:'Unable to load messages.');
+   if(mounted.current)setError(e instanceof Error?e.message:'Unable to load messages.');
   }finally{
    if(mounted.current){setLoading(false);if(!silent)setRefreshing(false);}
   }
