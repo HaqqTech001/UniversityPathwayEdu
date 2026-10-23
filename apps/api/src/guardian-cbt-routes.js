@@ -14,6 +14,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(eligibility.error)throw eligibility.error;
  const ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
  if(!ids.length)return res.json({queued:0,skipped:0});
+ if(ids.length===500)return res.status(409).json({error:'Recipient list may be incomplete. Refine the assessment audience before sending.'});
  const guardians=await db.from('upec_guardian_contacts').select('student_account_id,guardian_name,email').in('student_account_id',ids).not('verified_at','is',null);
  if(guardians.error)throw guardians.error;
  const students=await db.from('local_accounts').select('id,full_name').in('id',ids);
@@ -26,7 +27,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  let queued=0,skipped=0;
  for(const guardian of guardians.data||[]){
   const result=scores.get(guardian.student_account_id);
-  if(!guardian.email||(mode==='performance'&&(!result||result.score==null||Number(result.total_questions)<=0))){skipped++;continue;}
+  if(!guardian.email||(mode==='performance'&&(!result||result.score==null||!Number.isFinite(Number(result.score))||!Number.isFinite(Number(result.total_questions))||Number(result.total_questions)<=0))){skipped++;continue;}
   const name=names.get(guardian.student_account_id)||'your ward';
   const detail=mode==='performance'?'Recorded score: '+result.score+' out of '+result.total_questions+'.':'Scheduled opening: '+(exam.data.opens_at||'Contact the academic office for details')+'.';
   await queueEmail({key:'guardian-cbt:'+req.params.id+':'+mode+':'+guardian.student_account_id+':'+(result?.submitted_at||'schedule'),to:guardian.email,subject:'Your Ward’s '+(mode==='performance'?'Assessment Performance':'Examination Schedule')+' — University Pathway Educational Consult',text:'Dear '+(guardian.guardian_name||'Parent/Guardian')+',\n\nWe are writing regarding '+name+' and '+exam.data.title+'.\n'+detail+'\n\nFor enquiries, contact our academic office.\n\nUniversity Pathway Educational Consult'});
