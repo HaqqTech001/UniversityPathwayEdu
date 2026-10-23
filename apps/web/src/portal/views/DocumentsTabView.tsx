@@ -58,6 +58,7 @@ export default function DocumentsTabView({
   const [records,setRecords]=useState<Array<{id:string;document_type:string;original_filename:string;review_status:string;review_note?:string;created_at:string}>>([]);
   const [loading,setLoading]=useState(false);
   const [loadError,setLoadError]=useState('');
+  const [viewError,setViewError]=useState('');
   const [lastRefresh,setLastRefresh]=useState(0);
   const applicationId=currentUser.application?.id;
   const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student';
@@ -110,11 +111,19 @@ export default function DocumentsTabView({
   const viewDocument=async(type:string)=>{
     const record=records.filter(entry=>entry.document_type===type).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())[0];
     if(!record)return;
+    setViewError('');
+    // Open synchronously in the click event to avoid browser popup blockers.
+    const preview=window.open('about:blank','_blank');
+    if(!preview){setViewError('Your browser blocked the preview window. Allow popups for this site and try again.');return;}
     try{
+      preview.opener=null;
       const result=await request(api+'/documents/'+encodeURIComponent(record.id)+'/view');
       if(typeof result.url!=='string'||!/^https:\/\//i.test(result.url))throw Error('A secure document preview link was not returned.');
-      window.open(result.url,'_blank','noopener,noreferrer');
-    }catch(error){setUploadError(error instanceof Error?error.message:'Unable to open document.');}
+      preview.location.replace(result.url);
+    }catch(error){
+      preview.close();
+      setViewError(error instanceof Error?error.message:'Unable to open document.');
+    }
   };
 
   // Filter items
@@ -183,6 +192,7 @@ export default function DocumentsTabView({
           </div>
 
           {loading && <p role="status" className="text-sm text-slate-600">Loading documents from server…</p>}
+          {viewError && <p role="alert" className="text-sm text-red-700">{viewError}</p>}
           {loadError && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-red-700"><span>{loadError}</span><button type="button" disabled={loading} onClick={()=>setLastRefresh(n=>n+1)} className="rounded-lg border border-red-300 px-3 py-1.5 font-semibold disabled:opacity-50">Retry loading</button></div>}
           {!loading&&!loadError&&records.length===0&&applicationId&&<p className="text-sm text-slate-600">No documents have been submitted for this application yet.</p>}
           {/* Documents Table / List */}
