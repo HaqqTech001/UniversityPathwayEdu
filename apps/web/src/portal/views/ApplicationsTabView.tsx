@@ -82,7 +82,7 @@ export default function ApplicationsTabView({
         </div>
       </div>
 
-      {showRegisterNew && <ProgrammeEnrollment />}
+      {showRegisterNew && <ProgrammeEnrollment onClose={()=>setShowRegisterNew(false)} />}
 
       {/* Main Grid: Left (Current application & details), Right (Deadlines, Actions & Updates) */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
