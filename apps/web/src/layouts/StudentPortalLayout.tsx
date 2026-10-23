@@ -102,7 +102,7 @@ export default function StudentPortalLayout({
           COMPACT PORTAL TOP BAR
           ========================================================================= */}
       <header className="sticky top-0 z-40 bg-[#08163b] text-white border-b border-[#0f2150] shadow-sm">
-        <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="mx-auto flex min-h-[64px] items-center justify-between gap-3 px-3 py-2 sm:px-5 lg:min-h-[70px] lg:px-6">
           {/* Left: Hamburger & Institution Branding */}
           <div className="flex items-center gap-3">
             {/* Hamburger button for Drawer */}
@@ -185,8 +185,8 @@ export default function StudentPortalLayout({
       <div className="flex-1 flex relative">
         {/* DESKTOP LEFT SIDEBAR */}
         <aside
-          className={`hidden lg:flex flex-col bg-[#0b1a42] text-white transition-all duration-300 border-r border-[#152a5e] shrink-0 sticky top-[57px] h-[calc(100vh-57px)] ${
-            isDesktopCollapsed ? 'w-20' : 'w-64'
+          className={`hidden lg:flex flex-col bg-[#0b1a42] text-white transition-all duration-300 border-r border-[#152a5e] shrink-0 sticky top-[70px] h-[calc(100vh-70px)] ${
+            isDesktopCollapsed ? 'w-[76px]' : 'w-[248px] xl:w-[260px]'
           }`}
         >
           {/* Collapse/Expand Toggle Header */}
@@ -358,7 +358,7 @@ export default function StudentPortalLayout({
         )}
 
         {/* DEDICATED MAIN CONTENT AREA */}
-        <main className="flex-1 min-w-0 p-3 sm:p-5 lg:p-7 xl:p-9 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-6 lg:px-6 lg:py-7 xl:px-8">
           {children}
         </main>
       </div>
