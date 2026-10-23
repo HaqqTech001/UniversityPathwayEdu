@@ -79,8 +79,8 @@ export default function StudentSupportChat(){
   if(!sent.ok)throw Error('Attachment upload failed.');
   return {path:info.path,name:selected.name,mime:selected.type,size:selected.size};
  };
- const openAttachment=async(id:string)=>{
-  try{const token=getStudentToken();const response=await fetch(base+'/api/student/support/attachments/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token}});const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to open attachment.');window.open(result.url,'_blank','noopener,noreferrer');}
+ const openAttachment=async(id:string,grouped=false)=>{
+  try{const token=getStudentToken();const response=await fetch(base+'/api/student/support/'+(grouped?'files/':'attachments/')+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token}});const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to open attachment.');window.open(result.url,'_blank','noopener,noreferrer');}
   catch(e){setError(e instanceof Error?e.message:'Unable to open attachment.');}
  };
  useEffect(()=>{
