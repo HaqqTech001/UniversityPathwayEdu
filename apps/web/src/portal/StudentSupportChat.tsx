@@ -15,6 +15,7 @@ export default function StudentSupportChat(){
  const [draft,setDraft]=useState('');
  const [file,setFile]=useState<File|null>(null);
  const [files,setFiles]=useState<File[]>([]);
+ const [localPreviews,setLocalPreviews]=useState<Record<string,string>>({});
  const [uploadedFiles,setUploadedFiles]=useState<Map<File,Upload>>(new Map());
  const uploadedRef=useRef<{file:File;upload:Upload}|null>(null);
  const [dragging,setDragging]=useState(false);
@@ -64,6 +65,12 @@ export default function StudentSupportChat(){
   return ()=>{mounted.current=false;window.clearInterval(timer);};
  },[]);
  useEffect(()=>{const el=historyRef.current;if(el&&shouldStickToBottom.current)el.scrollTop=el.scrollHeight;},[messages.length]);
+ useEffect(()=>{
+  const previews:Record<string,string>={};
+  for(const item of files)if(item.type.startsWith('image/')||item.type.startsWith('video/'))previews[item.name+'|'+item.size+'|'+item.lastModified]=URL.createObjectURL(item);
+  setLocalPreviews(previews);
+  return()=>Object.values(previews).forEach(url=>URL.revokeObjectURL(url));
+ },[files]);
  const selectFiles=(selected:File[])=>{
   const next=[...files];for(const f of selected){if(next.length>=10){setError('Maximum 10 files per message.');break;}if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(f.type)||f.size<1||f.size>20971520||f.name.length>180){setError('Files must be JPG, PNG, WebP, PDF or MP4, up to 20 MB each.');continue;}if(!next.some(x=>x.name===f.name&&x.size===f.size&&x.lastModified===f.lastModified))next.push(f);}setFiles(next);
  };
@@ -125,7 +132,7 @@ export default function StudentSupportChat(){
    <div ref={endRef}/>
   </div>
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-  {files.length>0&&<div className="mt-2 shrink-0 rounded-xl border border-slate-200 bg-[#f7f8fc] p-2"><p className="mb-2 text-xs font-bold text-[#111A43]">{files.length}/10 files selected</p><div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{files.map((item,i)=><div key={i} className="flex min-w-0 items-center gap-2 rounded-lg bg-white p-2 text-xs"><span aria-hidden="true">{item.type.startsWith('image/')?'🖼️':item.type.startsWith('video/')?'▶️':'📄'}</span><span className="min-w-0 flex-1 truncate" title={item.name}>{item.name}</span><button type="button" aria-label={'Remove '+item.name} className="font-bold text-[#c62839]" onClick={()=>{setFiles(v=>v.filter(f=>f!==item));setUploadedFiles(v=>{const n=new Map(v);n.delete(item);return n;});}}>×</button></div>)}</div></div>}
+  {files.length>0&&<div className="mt-2 shrink-0 rounded-xl border border-slate-200 bg-[#f7f8fc] p-2"><p className="mb-2 text-xs font-bold text-[#111A43]">{files.length}/10 files selected</p><div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{files.map((item,i)=><div key={i} className="flex min-w-0 items-center gap-2 rounded-lg bg-white p-2 text-xs">{localPreviews[item.name+'|'+item.size+'|'+item.lastModified]?<span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">{item.type.startsWith('image/')?<img src={localPreviews[item.name+'|'+item.size+'|'+item.lastModified]} alt="" className="h-full w-full object-cover"/>:<><video src={localPreviews[item.name+'|'+item.size+'|'+item.lastModified]} muted preload="metadata" className="h-full w-full object-cover"/><span className="absolute inset-0 flex items-center justify-center text-white">▶</span></>}</span>:<span aria-hidden="true">📄</span>}<span className="min-w-0 flex-1 truncate" title={item.name}>{item.name}</span><button type="button" aria-label={'Remove '+item.name} className="font-bold text-[#c62839]" onClick={()=>{setFiles(v=>v.filter(f=>f!==item));setUploadedFiles(v=>{const n=new Map(v);n.delete(item);return n;});}}>×</button></div>)}</div></div>}
   {false&&file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>{setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';}} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
   <form onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);selectFiles(Array.from(e.dataTransfer.files));}} className={'mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end '+(dragging?'rounded-xl ring-2 ring-[#c62839]':'')} onSubmit={send}>
    <label className="min-w-0 flex-1 text-xs font-bold text-[#111A43]">Your message
