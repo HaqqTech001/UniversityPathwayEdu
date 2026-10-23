@@ -77,7 +77,7 @@ export default function StaffDashboard({profile,onLogout}){
  };
  const openReview=(item,status)=>{setReview({...item,status});setReviewNote('');setError('');};
  return <main className="workspace">
-  <header className="workspace-header"><div><span className="eyebrow">UPEC · OPERATIONS</span><h1>Staff Desk</h1><p>Role: {profile.role?.replaceAll('_',' ')}</p></div><button onClick={()=>{clearOpsToken();onLogout();}}>Sign out</button></header>
+  <header className="workspace-header"><div><span className="eyebrow">UNIVERSITY PATHWAY · OPERATIONS</span><h1>Staff Desk</h1><p>Role: {profile.role?.replaceAll('_',' ')}</p></div><button onClick={()=>{clearOpsToken();onLogout();}}>Sign out</button></header>
   <section className="workspace-content">
    {canRead&&!loading&&!error&&metrics&&<div className="ops-metrics"><article><span>Total applications</span><strong>{metrics.total}</strong></article><article><span>Submitted</span><strong>{metrics.submitted}</strong></article><article><span>Under review</span><strong>{metrics.under_review}</strong></article><article><span>Approved</span><strong>{metrics.approved}</strong></article></div>}
    <h2>Applications</h2>
