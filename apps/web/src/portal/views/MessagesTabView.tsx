@@ -49,69 +49,18 @@ export default function MessagesTabView({
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const threads: Thread[] = [
-    {
-      id: 'admissions',
-      name: 'Admissions Support Office',
-      department: 'Admissions & Clearance Registry',
-      lastMessage: 'Received! Our admissions officer is currently reviewing your uploaded certificate.',
-      time: '10:45 AM',
-      unreadCount: 2,
-      online: true,
-      avatarBg: 'bg-[#111A43]',
-    },
-    {
-      id: 'academic',
-      name: 'Academic Guidance & Advising',
-      department: 'Syllabus & Faculty Support',
-      lastMessage: 'Please check the revised lecture timetable published on the notice board.',
-      time: 'Yesterday',
-      online: false,
-      avatarBg: 'bg-[#2456a0]',
-    },
-    {
-      id: 'finance',
-      name: 'Finance & Billing Desk',
-      department: 'Student Accounts & Tuition',
-      lastMessage: 'Your first instalment payment evidence has been recorded.',
-      time: '3 days ago',
-      online: true,
-      avatarBg: 'bg-[#c62839]',
-    },
-    {
-      id: 'cbt_desk',
-      name: 'CBT Technical Helpdesk',
-      department: 'Examination Software & Simulator',
-      lastMessage: 'Your simulation mock exam environment is configured.',
-      time: '1 week ago',
-      online: false,
-      avatarBg: 'bg-[#6b46c1]',
-    },
-  ];
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'm1',
-      author: 'support',
-      authorName: 'Admissions Officer (Mrs. B. Adeleke)',
-      body: `Hello ${currentUser.biodata.firstName || 'Student'}, we noticed your O'Level result upload was clear and has been marked as verified. Please ensure you also submit your birth certificate before Friday.`,
-      time: '10:15 AM',
-    },
-    {
-      id: 'm2',
-      author: 'student',
-      authorName: currentUser.fullName,
-      body: 'Thank you for the update! I have uploaded the birth certificate just now. Kindly review when possible.',
-      time: '10:32 AM',
-    },
-    {
-      id: 'm3',
-      author: 'support',
-      authorName: 'Admissions Officer (Mrs. B. Adeleke)',
-      body: 'Received! Our admissions officer is currently reviewing your uploaded certificate. Let us know if you need any assistance with your subject selection.',
-      time: '10:45 AM',
-    },
-  ]);
+  const threads: Thread[] = [{
+    id: 'admissions',
+    name: 'Student Support',
+    department: 'Support messages',
+    lastMessage: '',
+    time: '',
+    unreadCount: 0,
+    online: false,
+    avatarBg: 'bg-[#111A43]',
+  }];
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sendError, setSendError] = useState('');
 
   // Real backend sync with support endpoint
   useEffect(() => {
@@ -155,22 +104,24 @@ export default function MessagesTabView({
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, newMsg]);
-    setDraft('');
+    setSendError('');
 
     // Try sending to real backend
     try {
       const token = getStudentToken();
       if (token) {
         const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
-        await fetch(base + '/api/student/support/messages', {
+        const response = await fetch(base + '/api/student/support/messages', {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ body: text }),
         });
-      }
+        if (!response.ok) throw new Error('Support service rejected the message');
+        setMessages((prev) => [...prev, newMsg]);
+        setDraft('');
+      } else { throw new Error('You must sign in before sending a message'); }
     } catch (e) {
-      // Message kept in local state
+      setSendError('Your message was not sent. Please try again.');
     } finally {
       setSending(false);
     }
@@ -193,11 +144,12 @@ export default function MessagesTabView({
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Admissions Desk Online</span>
+            <span>Student support</span>
           </span>
         </div>
       </div>
 
+      {sendError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{sendError}</p>}
       {/* Two-Column Chat Card (Matching Mockup) */}
       <div className="bg-white rounded-2xl border border-[#dce5f0] shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-[320px_1fr] min-h-[580px]">
         {/* LEFT COLUMN: Threads & Departments List */}
