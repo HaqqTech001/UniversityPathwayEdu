@@ -2,7 +2,8 @@ import {useEffect,useRef,useState} from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {getStudentToken} from '../context/AuthContext';
 
-type Message={id:string;author_role:string;body:string;created_at:string;attachment_path?:string;attachment_name?:string;attachment_mime?:string;attachment_size?:number};
+type ChatFile={id:string;file_name:string;mime_type:string;size_bytes:number};
+type Message={attachments?:ChatFile[];id:string;author_role:string;body:string;created_at:string;attachment_path?:string;attachment_name?:string;attachment_mime?:string;attachment_size?:number};
 type Upload={path:string;name:string;mime:string;size:number};
 const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
 export default function StudentSupportChat(){
@@ -12,6 +13,8 @@ export default function StudentSupportChat(){
  const previewRequests=useRef(new Set<string>());
  const [draft,setDraft]=useState('');
  const [file,setFile]=useState<File|null>(null);
+ const [files,setFiles]=useState<File[]>([]);
+ const [uploadedFiles,setUploadedFiles]=useState<Map<File,Upload>>(new Map());
  const uploadedRef=useRef<{file:File;upload:Upload}|null>(null);
  const [dragging,setDragging]=useState(false);
  const fileRef=useRef<HTMLInputElement|null>(null);
@@ -28,7 +31,7 @@ export default function StudentSupportChat(){
  const mounted=useRef(true);
  useEffect(()=>{if(!emojiOpen)return;const close=(event:PointerEvent)=>{if(emojiRef.current&&!emojiRef.current.contains(event.target as Node))setEmojiOpen(false);};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setEmojiOpen(false);};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};},[emojiOpen]);
  const shouldStickToBottom=useRef(true);
- const request=async(payload?:{body:string;attachmentPath?:string;attachmentName?:string;attachmentMime?:string;attachmentSize?:number})=>{
+ const request=async(payload?:{body:string;attachmentPath?:string;attachmentName?:string;attachmentMime?:string;attachmentSize?:number;attachments?:{path:string;name:string;mime:string;size:number}[]})=>{
   const token=getStudentToken();
   if(!token)throw Error('Sign in again to use support chat.');
   const response=await fetch(base+'/api/student/support/messages',{
@@ -60,6 +63,9 @@ export default function StudentSupportChat(){
   return ()=>{mounted.current=false;window.clearInterval(timer);};
  },[]);
  useEffect(()=>{const el=historyRef.current;if(el&&shouldStickToBottom.current)el.scrollTop=el.scrollHeight;},[messages.length]);
+ const selectFiles=(selected:File[])=>{
+  const next=[...files];for(const f of selected){if(next.length>=10){setError('Maximum 10 files per message.');break;}if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(f.type)||f.size<1||f.size>20971520||f.name.length>180){setError('Files must be JPG, PNG, WebP, PDF or MP4, up to 20 MB each.');continue;}if(!next.some(x=>x.name===f.name&&x.size===f.size&&x.lastModified===f.lastModified))next.push(f);}setFiles(next);
+ };
  const selectFile=(selected?:File)=>{
   if(!selected)return;
   if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(selected.type)||selected.size>20971520||selected.size<1||selected.name.length>180){setError('Select a JPG, PNG, WebP, PDF or MP4 file up to 20 MB.');return;}
@@ -88,15 +94,15 @@ export default function StudentSupportChat(){
  const send=async(e:React.FormEvent)=>{
   e.preventDefault();
   const message=draft.trim();
-  if((!message&&!file)||sending)return;
+  if((!message&&!files.length)||sending)return;
   setSending(true);setError('');
   try{
    if(file)setUploadProgress('uploading');
-   const attachment=file?(uploadedRef.current?.file===file?uploadedRef.current.upload:await upload(file)):null;
-   if(file&&attachment)uploadedRef.current={file,upload:attachment};
+   const attachments:Upload[]=[];
+   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);}
    setUploadProgress('sending');
-   await request({body:message,...(attachment?{attachmentPath:attachment.path,attachmentName:attachment.name,attachmentMime:attachment.mime,attachmentSize:attachment.size}:{})});
-   if(mounted.current){setDraft('');setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';await refresh(true);}
+   await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))} as never);
+   if(mounted.current){setDraft('');setFile(null);setFiles([]);setUploadedFiles(new Map());uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
    if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
   }finally{if(mounted.current){setSending(false);setUploadProgress('idle');}}
@@ -111,14 +117,15 @@ export default function StudentSupportChat(){
    <div ref={endRef}/>
   </div>
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-  {file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>{setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';}} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
-  <form onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);selectFile(e.dataTransfer.files[0]);}} className={'mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end '+(dragging?'rounded-xl ring-2 ring-[#c62839]':'')} onSubmit={send}>
+  {files.length>0&&<div className="mt-2 shrink-0 rounded-xl border border-slate-200 bg-[#f7f8fc] p-2"><p className="mb-2 text-xs font-bold text-[#111A43]">{files.length}/10 files selected</p><div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{files.map((item,i)=><div key={i} className="flex min-w-0 items-center gap-2 rounded-lg bg-white p-2 text-xs"><span aria-hidden="true">{item.type.startsWith('image/')?'🖼️':item.type.startsWith('video/')?'▶️':'📄'}</span><span className="min-w-0 flex-1 truncate" title={item.name}>{item.name}</span><button type="button" aria-label={'Remove '+item.name} className="font-bold text-[#c62839]" onClick={()=>{setFiles(v=>v.filter(f=>f!==item));setUploadedFiles(v=>{const n=new Map(v);n.delete(item);return n;});}}>×</button></div>)}</div></div>}
+  {false&&file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>{setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';}} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
+  <form onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);selectFiles(Array.from(e.dataTransfer.files));}} className={'mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end '+(dragging?'rounded-xl ring-2 ring-[#c62839]':'')} onSubmit={send}>
    <label className="min-w-0 flex-1 text-xs font-bold text-[#111A43]">Your message
     <textarea ref={inputRef} maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
    </label>
-   <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4" className="hidden" onChange={e=>selectFile(e.target.files?.[0])}/><button type="button" onClick={()=>fileRef.current?.click()} className="min-h-11 self-end rounded-xl border border-slate-300 px-3 text-sm font-bold" aria-label="Attach file">📎 Attach</button>
+   <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4" className="hidden" multiple onChange={e=>{selectFiles(Array.from(e.target.files||[]));e.target.value='';}}/><button type="button" onClick={()=>fileRef.current?.click()} className="min-h-11 self-end rounded-xl border border-slate-300 px-3 text-sm font-bold" aria-label="Attach file">📎 Attach</button>
    <div ref={emojiRef} className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl shadow-xl"><EmojiPicker width="min(320px, calc(100vw - 3rem))" height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
-   <button type="submit" disabled={sending||(!draft.trim()&&!file)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploadProgress==='uploading'?'Uploading…':sending?'Sending…':'Send message'}</button>
+   <button type="submit" disabled={sending||(!draft.trim()&&!files.length)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploadProgress==='uploading'?'Uploading…':sending?'Sending…':'Send message'}</button>
   </form>
   <p className="mt-2 text-xs text-slate-500">Enter to send · Shift + Enter for a new line</p>
  </section>;
