@@ -26,7 +26,7 @@ export async function processEmailOutbox(){
     }
     const money=n=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(Number(n));
     const recorded=money(bill.amount_paid_ngn),balance=money(Number(bill.amount_due_ngn)-Number(bill.amount_paid_ngn));
-    deliveryText=deliveryText.replace(/(Amount already recorded:|Payment already recorded:)\\s*[^\\n]*/g,'$1 '+recorded).replace(/(Outstanding balance:)\\s*[^\\n]*/g,'$1 '+balance);
+    deliveryText=deliveryText.replace(/(Amount already recorded:|Payment already recorded:)\s*[^\n]*/g,'$1 '+recorded).replace(/(Outstanding balance:)\s*[^\n]*/g,'$1 '+balance);
    }
    await sendEmail({to:item.recipient,subject:item.subject,text:deliveryText});
    const {error:updateError}=await db.from('upec_email_outbox').update({status:'sent',sent_at:new Date().toISOString(),claimed_until:null,last_error:null}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
