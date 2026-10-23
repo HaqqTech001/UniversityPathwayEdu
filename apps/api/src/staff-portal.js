@@ -297,13 +297,13 @@ router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
  if(error)throw error;res.json({invoices:data||[]});
 }));
 router.get('/services/catalogue',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,active,allow_online,allow_physical,offerings').order('name');
+ const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,active,allow_online,allow_physical').order('name');
  if(error)throw error;res.json({services:data||[]});
 }));
 router.patch('/services/catalogue/:code',permit('applications.review'),wrap(async(req,res)=>{
- const code=req.params.code,{name,description,active,allowOnline,allowPhysical,offerings}=req.body||{};
- if(!['extramural_lessons','educational_consultation'].includes(code)||typeof name!=='string'||name.trim().length<3||name.length>120||typeof description!=='string'||description.length>1000||typeof active!=='boolean'||typeof allowOnline!=='boolean'||typeof allowPhysical!=='boolean'||!Array.isArray(offerings)||offerings.length>30||offerings.some(x=>typeof x!=='string'||!x.trim()||x.length>120)||new Set(offerings.map(x=>x.trim().toLowerCase())).size!==offerings.length)return res.status(400).json({error:'Provide a valid service catalogue configuration.'});
- const {data,error}=await db.from('upec_service_catalogue').update({name:name.trim(),description:description.trim(),active,allow_online:allowOnline,allow_physical:allowPhysical,offerings:offerings.map(x=>x.trim()),updated_at:new Date().toISOString()}).eq('code',code).select('code,name,description,active,allow_online,allow_physical,offerings').single();
+ const code=req.params.code,{name,description,active,allowOnline,allowPhysical}=req.body||{};
+ if(!['extramural_lessons','educational_consultation'].includes(code)||typeof name!=='string'||name.trim().length<3||name.length>120||typeof description!=='string'||description.length>1000||typeof active!=='boolean'||typeof allowOnline!=='boolean'||typeof allowPhysical!=='boolean')return res.status(400).json({error:'Provide a valid service catalogue configuration.'});
+ const {data,error}=await db.from('upec_service_catalogue').update({name:name.trim(),description:description.trim(),active,allow_online:allowOnline,allow_physical:allowPhysical,updated_at:new Date().toISOString()}).eq('code',code).select('code,name,description,active,allow_online,allow_physical').single();
  if(error)throw error;res.json({service:data});
 }));
 router.get('/services/requests',permit('applications.read'),wrap(async(req,res)=>{
