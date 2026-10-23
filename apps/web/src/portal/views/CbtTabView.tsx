@@ -37,18 +37,14 @@ export default function CbtTabView({
   const [selectedSubTab, setSelectedSubTab] = useState<'practice' | 'past_questions' | 'assessments'>('practice');
 
   const subjects = [
-    { id: 'eng', name: 'Use of English', questions: 60, time: '40 mins', score: '78%' },
-    { id: 'mth', name: 'Mathematics', questions: 40, time: '45 mins', score: '72%' },
-    { id: 'phy', name: 'Physics', questions: 40, time: '40 mins', score: '68%' },
-    { id: 'chm', name: 'Chemistry', questions: 40, time: '40 mins', score: '75%' },
-    { id: 'bio', name: 'Biology', questions: 40, time: '40 mins', score: '82%' },
+    { id: 'eng', name: 'Use of English', questions: 60, time: '40 mins', score: '—' },
+    { id: 'mth', name: 'Mathematics', questions: 40, time: '45 mins', score: '—' },
+    { id: 'phy', name: 'Physics', questions: 40, time: '40 mins', score: '—' },
+    { id: 'chm', name: 'Chemistry', questions: 40, time: '40 mins', score: '—' },
+    { id: 'bio', name: 'Biology', questions: 40, time: '40 mins', score: '—' },
   ];
 
-  const recentHistory = [
-    { id: 'h1', date: '21 Oct 2026', test: 'Full Mock Exam #2', subject: 'JAMB UTME 4-in-1', score: '274 / 400', pct: '68.5%', status: 'Passed' },
-    { id: 'h2', date: '19 Oct 2026', test: 'Subject Speed Drill', subject: 'Use of English', score: '52 / 60', pct: '86.7%', status: 'Excellent' },
-    { id: 'h3', date: '16 Oct 2026', test: 'Diagnostic Test', subject: 'Physics & Chemistry', score: '64 / 80', pct: '80.0%', status: 'Passed' },
-  ];
+  const recentHistory: Array<{id:string;date:string;test:string;subject:string;score:string;pct:string;status:string}> = []; // Populated only from authenticated assessment history.
 
   return (
     <div className="space-y-6">
