@@ -136,6 +136,7 @@ export default function ApplicationsTabView({
                       <span className="capitalize">{k.replace(/([A-Z])/g, ' $1')}</span>
                       <input
                         value={String(v)}
+                        disabled={correctionBusy}
                         maxLength={500}
                         onChange={(e) => setCorrectionForm((prev) => ({ ...prev, [k]: e.target.value }))}
                         className="mt-1 block w-full rounded-xl border border-slate-300 p-2.5 font-normal text-xs"
@@ -143,12 +144,13 @@ export default function ApplicationsTabView({
                     </label>
                   ))}
                 {correctionMessage && (
-                  <p className="text-xs text-red-600 font-semibold">{correctionMessage}</p>
+                  <p role="status" className="text-xs text-slate-700 font-semibold">{correctionMessage}</p>
                 )}
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setCorrectionOpen(false)}
+                    disabled={correctionBusy}
                     className="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold text-[#111A43]"
                   >
                     Cancel
@@ -389,7 +391,7 @@ export default function ApplicationsTabView({
                 Required Next Actions
               </h3>
             </div>
-            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">{!hasApplication ? 'Start a new programme application to see your admission tasks.' : application?.status==='action_required' ? 'Your application requires correction. Open the correction form to review the requested changes.' : isAdmitted ? 'Your application has been approved. Check your documents and official notices for next steps.' : 'Check your status history and official notices for updates from admissions.'}</div>
+            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">{!hasApplication ? 'Start a new programme application to see your admission tasks.' : application?.status==='action_required' ? 'Your application requires correction. Open the correction form to review the requested changes.' : isAdmitted ? 'Your application has been approved. Check your documents and official notices for next steps.' : isRejected ? 'Your application was not approved. Review the recorded decision and contact admissions if you need clarification.' : 'Check your status history and official notices for updates from admissions.'}</div>
           </div>
 
           {/* Need Assistance */}
