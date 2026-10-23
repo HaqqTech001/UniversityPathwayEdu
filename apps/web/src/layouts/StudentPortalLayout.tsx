@@ -39,7 +39,7 @@ export const STUDENT_PORTAL_NAV_ITEMS: PortalNavItem[] = [
   { id: 'cbt', label: 'CBT Practice', icon: BookOpenCheck },
   { id: 'resources', label: 'Learning Resources', icon: BookOpen },
   { id: 'notices', label: 'Notice Board', icon: Bell },
-  { id: 'messages', label: 'Messages', icon: Mail, badge: '2' },
+  { id: 'messages', label: 'Messages', icon: Mail },
   { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
