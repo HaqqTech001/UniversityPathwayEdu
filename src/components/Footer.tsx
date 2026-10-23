@@ -62,21 +62,22 @@ export default function Footer({ onNavigate }: FooterProps) {
                   ),
                 },
                 {
-                  name: 'TikTok',
+                  name: 'LinkedIn',
                   icon: (
                     <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M16.7 2c.2 2.3 1.5 3.8 3.8 4v3.5a8.2 8.2 0 0 1-3.8-1v6.3a6.7 6.7 0 1 1-6.7-6.7c.4 0 .8 0 1.2.1v3.6a3.2 3.2 0 1 0 2 3V2h3.5Z" />
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                     </svg>
                   ),
                 },
               ].map((s) => (
-                <span
+                <a
                   key={s.name}
+                  href="#social"
                   aria-label={s.name}
                   className="w-8 h-8 rounded-full border border-white/20 hover:border-[#d5a75b] hover:text-[#d5a75b] flex items-center justify-center transition-colors text-slate-300"
                 >
                   {s.icon}
-                </span>
+                </a>
               ))}
             </div>
           </div>
@@ -177,7 +178,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             <a href="#terms" className="hover:text-slate-200 transition-colors">Terms of Service</a>
             <span>|</span>
             <span className="text-slate-400">
-              Designed by <a href="https://wa.me/2349124448745?text=Hello%20HaqqTech%2C%20I%27d%20like%20to%20enquire%20about%20your%20web%20development%20and%20software%20services." target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-200 underline-offset-4 hover:text-[#d5a75b] hover:underline">HaqqTech</a>
+              Designed by <strong className="text-slate-200 font-semibold">HaqqTech</strong>
             </span>
           </div>
         </div>
