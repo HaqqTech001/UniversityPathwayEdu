@@ -52,6 +52,7 @@ export default function PaymentsTabView({
   const [evidenceBank, setEvidenceBank] = useState('');
   const [evidenceRef, setEvidenceRef] = useState('');
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
+  const [evidenceReceiptId,setEvidenceReceiptId]=useState<string|null>(null);
 
 
   const copyToClipboard = (text: string) => {
@@ -65,6 +66,7 @@ export default function PaymentsTabView({
   const handleEvidenceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEvidenceSuccess('');
+    setEvidenceReceiptId(null);
     if(!evidenceFile){setEvidenceSuccess('Choose a payment receipt before submitting.');return;}
     if(!['application/pdf','image/jpeg','image/png'].includes(evidenceFile.type)||evidenceFile.size<1||evidenceFile.size>5242880){setEvidenceSuccess('Choose a PDF, JPG or PNG receipt up to 5 MB.');return;}
     const token=getStudentToken();
@@ -83,8 +85,12 @@ export default function PaymentsTabView({
       if(!upload.ok)throw Error('Receipt storage upload failed.');
       const confirmed=await request('/confirm',{path:signed.path,mimeType:evidenceFile.type});
       if(!confirmed.receipt?.id)throw Error('Receipt was not confirmed by the server.');
+      setEvidenceReceiptId(confirmed.receipt.id);
       setEvidenceSuccess('Application payment receipt received for review. Reference: '+confirmed.receipt.id+'. This is not a verified payment.');
       setEvidenceFile(null);
+      setEvidenceAmount('');
+      setEvidenceBank('');
+      setEvidenceRef('');
     }catch(error){setEvidenceSuccess(error instanceof Error?error.message:'Unable to submit receipt.');}
     finally{setEvidenceUploading(false);}
   };
