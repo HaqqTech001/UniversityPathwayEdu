@@ -427,7 +427,7 @@ export default function CbtExamWizard() {
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
-      examType: questionSource==='aloc'?(historicalLength==='full'?'Full-length UTME-style historical mock (':'JAMB historical practice (')+historicalYear+', third-party)':'UPEC original sample practice',
+      examType: questionSource==='aloc'?(historicalLength==='full'?'Full-length UTME-style historical mock (':'JAMB historical practice (')+historicalYear+', third-party)':'Original sample practice',
       mode: questionSource==='aloc'&&historicalLength==='full'?'Timed full mock':practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
@@ -604,8 +604,8 @@ export default function CbtExamWizard() {
               {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
-            {recoverable&&<div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><h3 className="font-bold text-[#111A43]">Resume saved UPEC sample practice?</h3><p className="mt-2 text-sm">A previous sample practice session was saved on this browser. The original deadline still applies.</p><div className="mt-3 flex gap-3"><button type="button" onClick={resumeSample} className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Resume practice</button><button type="button" onClick={()=>{clearSampleSession(ownerId);setRecoverable(null);}} className="rounded-lg border border-slate-300 px-4 py-2">Discard</button></div></div>}
-            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">UPEC original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><label className="block text-sm font-bold">Practice length<select value={historicalLength} onChange={e=>setHistoricalLength(e.target.value as 'drill'|'full')} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="drill">Short historical practice drill</option><option value="full">Full UTME-style mock · 180 questions · 120 minutes</option></select></label><p className="text-xs text-amber-900">{historicalLength==='full'?'Requires 60 unique, valid English questions and 40 for each other subject. No paper starts if the provider has insufficient coverage. Fixed 120-minute timer. This is practice, not an official JAMB exam.':'Short practice drill using historical questions. Counts vary by provider availability; this is not a full UTME paper.'}</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
+            {recoverable&&<div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><h3 className="font-bold text-[#111A43]">Resume saved sample practice?</h3><p className="mt-2 text-sm">A previous sample practice session was saved on this browser. The original deadline still applies.</p><div className="mt-3 flex gap-3"><button type="button" onClick={resumeSample} className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Resume practice</button><button type="button" onClick={()=>{clearSampleSession(ownerId);setRecoverable(null);}} className="rounded-lg border border-slate-300 px-4 py-2">Discard</button></div></div>}
+            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">Original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><label className="block text-sm font-bold">Practice length<select value={historicalLength} onChange={e=>setHistoricalLength(e.target.value as 'drill'|'full')} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="drill">Short historical practice drill</option><option value="full">Full UTME-style mock · 180 questions · 120 minutes</option></select></label><p className="text-xs text-amber-900">{historicalLength==='full'?'Requires 60 unique, valid English questions and 40 for each other subject. No paper starts if the provider has insufficient coverage. Fixed 120-minute timer. This is practice, not an official JAMB exam.':'Short practice drill using historical questions. Counts vary by provider availability; this is not a full UTME paper.'}</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
             {/* 4. Duration Setting for Timed Mode */}
             {practiceMode === 'timed' && !(questionSource==='aloc'&&historicalLength==='full') && (
               <div>
@@ -850,7 +850,7 @@ export default function CbtExamWizard() {
         </header>
 
         <div className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-white p-3 text-xs text-slate-700">
-          <span className="font-bold">UPEC practice exam · {currentUser?.fullName || 'Candidate'}</span>
+          <span className="font-bold">Practice exam · {currentUser?.fullName || 'Candidate'}</span>
           <span>Answered {totalAnsweredCount}/{totalQuestionsCount}</span>
           <span className="ml-auto font-semibold">{cameraEnabled ? 'Camera preview on · Not recording' : 'Camera off · Not recording'}</span>
           <button type="button" onClick={cameraEnabled ? stopCamera : enableCamera} className="rounded bg-slate-800 px-3 py-2 font-bold text-white">{cameraEnabled ? 'Turn off camera' : 'Enable camera preview'}</button>
@@ -1239,7 +1239,7 @@ export default function CbtExamWizard() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
-              UPEC PRACTICE CBT EVALUATION REPORT
+              PRACTICE CBT EVALUATION REPORT
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white">
               Examination Performance Sheet
