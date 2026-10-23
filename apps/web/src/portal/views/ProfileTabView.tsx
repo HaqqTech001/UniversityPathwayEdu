@@ -100,10 +100,10 @@ export default function ProfileTabView({
               {currentUser.fullName}
             </h2>
             <p className="text-xs font-mono font-bold text-slate-500 mt-0.5">
-              ID: {currentUser.regNumber || currentUser.application?.referenceNumber || 'UPEC/2026/0148'}
+              ID: {currentUser.regNumber || currentUser.application?.referenceNumber || 'Not issued'}
             </p>
             <span className="inline-block mt-2 px-3 py-1 rounded-full bg-[#eef3ff] text-[#2456a0] text-xs font-bold">
-              {currentUser.biodata.targetExam || currentUser.application?.programme || 'IJMB Programme'}
+              {currentUser.biodata.targetExam || currentUser.application?.programme || 'Not selected'}
             </span>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-3">
@@ -138,7 +138,7 @@ export default function ProfileTabView({
                   <span className="text-xs font-semibold text-slate-700">Email Address</span>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  {currentUser.isEmailVerified ? 'Verified' : 'Verified'}
+                  {currentUser.isEmailVerified ? 'Verified' : 'Not verified'}
                 </span>
               </div>
 
@@ -150,7 +150,7 @@ export default function ProfileTabView({
                   <span className="text-xs font-semibold text-slate-700">Phone Contact</span>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  Verified
+                  Not confirmed
                 </span>
               </div>
 
@@ -162,7 +162,7 @@ export default function ProfileTabView({
                   <span className="text-xs font-semibold text-slate-700">Identity Documents</span>
                 </div>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.application ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
-                  {currentUser.application ? 'Verified' : 'Under Review'}
+                  {currentUser.application ? 'Submitted' : 'Not submitted'}
                 </span>
               </div>
 
@@ -174,7 +174,7 @@ export default function ProfileTabView({
                   <span className="text-xs font-semibold text-slate-700">Student Biodata</span>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  Completed
+                  {currentUser.profileCompleted ? 'Completed' : 'Incomplete'}
                 </span>
               </div>
             </div>
