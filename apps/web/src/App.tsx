@@ -58,6 +58,26 @@ export default function App() {
     }
   };
 
+  // Compatibility redirects for links/bookmarks created before the student route split.
+  const legacyAuthRoutes: Record<string, string> = {
+    '/login': '/student/login',
+    '/signin': '/student/login',
+    '/register': '/student/register',
+    '/signup': '/student/register',
+    '/forgot-password': '/student/forgot-password',
+    '/reset-password': '/student/reset-password',
+    '/portal': '/student/portal',
+  };
+  if (legacyAuthRoutes[currentPath]) {
+    const destination = legacyAuthRoutes[currentPath];
+    window.history.replaceState({}, '', destination + window.location.search + window.location.hash);
+    if (destination === '/student/login') return <AuthPage initialMode="signin" onNavigate={navigate} />;
+    if (destination === '/student/register') return <AuthPage initialMode="register" onNavigate={navigate} />;
+    if (destination === '/student/forgot-password') return <AuthPage initialMode="forgot-password" onNavigate={navigate} />;
+    if (destination === '/student/reset-password') return <AuthPage initialMode="reset-password" onNavigate={navigate} />;
+    return <StudentPortalPage onNavigate={navigate} />;
+  }
+
   // ROUTING WITH THREE COMPLETELY DISTINCT LAYOUT SYSTEMS (Directive 1)
   // System B: AuthLayout / AuthPage for student authentication flows
   if (currentPath === '/student/login') {
