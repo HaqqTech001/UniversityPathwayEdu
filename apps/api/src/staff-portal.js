@@ -443,20 +443,21 @@ router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)
  res.json({messages:data.map(m=>({...m,attachments:(files||[]).filter(f=>f.message_id===m.id)}))});
 }));
 router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
- const {body='',attachmentPath,attachmentName,attachmentMime,attachmentSize}=req.body||{};
- if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.length>3000||(!body.trim()&&!attachmentPath))return res.status(400).json({error:'Invalid message.'});
- const record={student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()};
- if(attachmentPath){
-  const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
-  if(typeof attachmentPath!=='string'||attachmentPath.split('/').length!==2||!attachmentPath.startsWith(req.actor.sub+'/')||!Object.hasOwn(types,attachmentMime)||!attachmentPath.endsWith('.'+types[attachmentMime])||typeof attachmentName!=='string'||attachmentName.length>180||!Number.isInteger(attachmentSize)||attachmentSize<1||attachmentSize>20971520)return res.status(400).json({error:'Invalid attachment.'});
-  const {data:files,error:listError}=await db.storage.from('upec-support-chat').list(req.actor.sub,{search:attachmentPath.split('/')[1]});
-  if(listError)throw listError;
-  const file=(files||[]).find(f=>f.name===attachmentPath.split('/')[1]);
-  if(!file||file.metadata?.size!==attachmentSize)return res.status(400).json({error:'Upload the file before sending.'});
-  Object.assign(record,{attachment_path:attachmentPath,attachment_name:attachmentName,attachment_mime:attachmentMime,attachment_size:attachmentSize});
+ const {body='',attachments=[]}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.length>3000||!Array.isArray(attachments)||attachments.length>10||(!body.trim()&&!attachments.length))return res.status(400).json({error:'Enter a message or select up to 10 files.'});
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
+ const files=[];
+ for(const f of attachments){
+  if(!f||typeof f.path!=='string'||f.path.split('/').length!==2||!f.path.startsWith(req.actor.sub+'/')||!Object.hasOwn(types,f.mime)||!f.path.endsWith('.'+types[f.mime])||typeof f.name!=='string'||!f.name.trim()||f.name.length>180||!Number.isInteger(f.size)||f.size<1||f.size>20971520||files.some(v=>v.storage_path===f.path))return res.status(400).json({error:'Invalid attachment in group.'});
+  const {data:stored,error:storageError}=await db.storage.from('upec-support-chat').list(req.actor.sub,{search:f.path.split('/')[1]});
+  if(storageError)throw storageError;
+  if(!(stored||[]).some(v=>v.name===f.path.split('/')[1]&&Number(v.metadata?.size)===f.size))return res.status(400).json({error:'Upload every file before sending.'});
+  files.push({storage_path:f.path,file_name:f.name,mime_type:f.mime,size_bytes:f.size,position:files.length});
  }
- const {data,error}=await db.from('upec_support_messages').insert(record).select('id,author_role,body,created_at,attachment_path,attachment_name,attachment_mime,attachment_size').single();
- if(error)throw error;res.status(201).json({message:data});
+ const {data:message,error}=await db.from('upec_support_messages').insert({student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()}).select('id,author_role,body,created_at').single();
+ if(error)throw error;
+ if(files.length){const {error:fileError}=await db.from('upec_support_attachments').insert(files.map(file=>({...file,message_id:message.id})));if(fileError){await db.from('upec_support_messages').delete().eq('id',message.id);throw fileError;}}
+ res.status(201).json({message:{...message,attachments:files}});
 }));
 
 // External examination records are entered by authorized staff only after official registration.
