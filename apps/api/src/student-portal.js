@@ -559,7 +559,7 @@ const supportFiles=async messages=>{
  return messages.map(m=>({...m,attachments:(data||[]).filter(f=>f.message_id===m.id)}));
 };
 router.get('/support/messages',wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:true}).limit(200);
+ const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at,attachment_path,attachment_name,attachment_mime,attachment_size').eq('student_account_id',req.actor.sub).order('created_at',{ascending:true}).limit(200);
  if(error)throw error;res.json({messages:await supportFiles(data||[])});
 }));
 router.get('/support/files/:fileId',wrap(async(req,res)=>{
