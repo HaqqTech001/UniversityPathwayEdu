@@ -71,3 +71,13 @@
 .assessment-question-row{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #edf1f7;line-height:1.5}
 .assessment-question-row input[type="checkbox"]{width:18px;min-width:18px;height:18px;margin-top:3px;accent-color:#c62839}
 .assessment-question-row span{min-width:0;overflow-wrap:anywhere;font-weight:500}
+
+/* Shared staff feedback toast, rendered independent of Tailwind utilities. */
+.pathway-ops-toast-stack{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:12px;width:min(380px,calc(100vw - 24px));pointer-events:none}
+.pathway-ops-toast{position:relative;overflow:hidden;border:1px solid #dde4ef;border-radius:14px;background:#fff;box-shadow:0 12px 40px rgba(6,15,38,.18);padding:14px 18px;color:#111a43;pointer-events:auto;animation:pathwayToastEnter .28s ease-out both}
+.pathway-ops-toast p{margin:4px 0 0;font-size:13px;color:#475569;overflow-wrap:anywhere}
+.pathway-ops-toast button{float:right;border:0;background:transparent;color:#64748b;cursor:pointer;font-size:22px}
+.pathway-ops-toast-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;transform-origin:left;animation-name:pathwayToastDrain;animation-timing-function:linear;animation-fill-mode:forwards}
+@keyframes pathwayToastEnter{from{opacity:0;transform:translate(24px,-8px)}to{opacity:1;transform:translate(0,0)}}
+@keyframes pathwayToastDrain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){.pathway-ops-toast{animation:none}}
