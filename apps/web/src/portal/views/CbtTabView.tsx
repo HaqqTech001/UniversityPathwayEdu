@@ -245,7 +245,7 @@ export default function CbtTabView({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Overall Average</span>
-                    <strong className="text-lg font-black text-[#111A43]">74.5%</strong>
+                    <strong className="text-lg font-black text-[#111A43]">{recentHistory.length ? (recentHistory.reduce((sum,item)=>sum+Number.parseFloat(item.pct||'0'),0)/recentHistory.length).toFixed(1)+'%' : '—'}</strong>
                   </div>
                   <span className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
                     <TrendingUp size={18} />
@@ -255,7 +255,7 @@ export default function CbtTabView({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Accuracy Rate</span>
-                    <strong className="text-lg font-black text-[#111A43]">82.1%</strong>
+                    <strong className="text-lg font-black text-[#111A43]">{recentHistory.length ? (recentHistory.reduce((sum,item)=>sum+Number.parseFloat(item.pct||'0'),0)/recentHistory.length).toFixed(1)+'%' : '—'}</strong>
                   </div>
                   <span className="p-2 rounded-lg bg-blue-100 text-[#2456a0]">
                     <CheckCircle2 size={18} />
@@ -265,7 +265,7 @@ export default function CbtTabView({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Completed Drills</span>
-                    <strong className="text-lg font-black text-[#111A43]">14 Tests</strong>
+                    <strong className="text-lg font-black text-[#111A43]">{recentHistory.length+' Tests'}</strong>
                   </div>
                   <span className="p-2 rounded-lg bg-purple-100 text-purple-700">
                     <Award size={18} />
@@ -287,21 +287,9 @@ export default function CbtTabView({
               </p>
             </div>
 
-            {/* CBT Announcements */}
-            <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                <Calendar size={18} className="text-[#c62839]" />
-                <h3 className="text-sm font-extrabold text-[#111A43]">
-                  Upcoming CBT Events
-                </h3>
-              </div>
-              <div className="mt-3 space-y-2.5 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] font-bold text-[#c62839] uppercase block">Saturday, 8 Nov 2026</span>
-                  <strong className="text-xs font-bold text-[#111A43] block mt-0.5">Statewide UTME Simulation Mock</strong>
-                  <p className="text-[11px] text-slate-500 mt-1">Simulated 400-mark nationwide ranking exam.</p>
-                </div>
-              </div>
+            <div className="rounded-2xl border border-[#dce5f0] bg-white p-6 shadow-xs">
+              <h3 className="text-sm font-extrabold text-[#111A43]">Upcoming CBT Events</h3>
+              <p className="mt-3 text-xs text-slate-600">No verified upcoming CBT events have been published here.</p>
             </div>
           </div>
         </div>
