@@ -11,6 +11,17 @@ export async function processEmailOutbox(){
  const results={claimed:(data||[]).length,sent:0,failed:0};
  for(const item of data||[]){
   try{
+   const paymentKey=/^fee-due:([0-9a-f-]{36}):(-?3|0|7):(student|guardian)$/i.exec(item.dedupe_key);
+   if(paymentKey){
+    const {data:bill,error:billError}=await db.from('upec_student_monthly_fees').select('status,amount_due_ngn,amount_paid_ngn').eq('id',paymentKey[1]).maybeSingle();
+    if(billError)throw billError;
+    if(!bill||!['unpaid','partial'].includes(bill.status)||Number(bill.amount_paid_ngn)>=Number(bill.amount_due_ngn)){
+     const cancelled=await db.from('upec_email_outbox').update({status:'cancelled',claimed_until:null,last_error:'Payment settled or invoice no longer payable before delivery'}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
+     if(cancelled.error)throw cancelled.error;
+     results.cancelled=(results.cancelled||0)+1;
+     continue;
+    }
+   }
    await sendEmail({to:item.recipient,subject:item.subject,text:item.body});
    const {error:updateError}=await db.from('upec_email_outbox').update({status:'sent',sent_at:new Date().toISOString(),claimed_until:null,last_error:null}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
    if(updateError)throw updateError;results.sent++;
