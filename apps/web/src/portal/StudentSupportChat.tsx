@@ -19,6 +19,7 @@ export default function StudentSupportChat(){
  const inputRef=useRef<HTMLTextAreaElement|null>(null);
  const [error,setError]=useState('');
  const [sending,setSending]=useState(false);
+ const [uploadProgress,setUploadProgress]=useState<'idle'|'uploading'|'sending'>('idle');
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
  const endRef=useRef<HTMLDivElement|null>(null);
@@ -67,7 +68,7 @@ export default function StudentSupportChat(){
   const token=getStudentToken();if(!token)throw Error('Sign in again.');
   const signed=await fetch(base+'/api/student/support/attachments/upload-url',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:selected.name,mimeType:selected.type,sizeBytes:selected.size})});
   const info=await signed.json();if(!signed.ok)throw Error(info.error||'Unable to prepare attachment.');
-  const sent=await fetch(info.uploadUrl,{method:'PUT',headers:{'Content-Type':selected.type},body:selected});
+  const sent=await fetch(info.uploadUrl,{method:'PUT',headers:{'Content-Type':selected.type,'x-upsert':'false'},body:selected});
   if(!sent.ok)throw Error('Attachment upload failed.');
   return {path:info.path,name:selected.name,mime:selected.type,size:selected.size};
  };
@@ -89,12 +90,14 @@ export default function StudentSupportChat(){
   if((!message&&!file)||sending)return;
   setSending(true);setError('');
   try{
+   if(file)setUploadProgress('uploading');
    const attachment=file?await upload(file):null;
+   setUploadProgress('sending');
    await request({body:message,...(attachment?{attachmentPath:attachment.path,attachmentName:attachment.name,attachmentMime:attachment.mime,attachmentSize:attachment.size}:{})});
    if(mounted.current){setDraft('');setFile(null);if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
    if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
-  }finally{if(mounted.current)setSending(false);}
+  }finally{if(mounted.current){setSending(false);setUploadProgress('idle');}}
  };
  return <section className="flex h-[min(75dvh,720px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-7" aria-label="Student support conversation">
   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -113,7 +116,7 @@ export default function StudentSupportChat(){
    </label>
    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4" className="hidden" onChange={e=>selectFile(e.target.files?.[0])}/><button type="button" onClick={()=>fileRef.current?.click()} className="min-h-11 self-end rounded-xl border border-slate-300 px-3 text-sm font-bold" aria-label="Attach file">📎 Attach</button>
    <div ref={emojiRef} className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl shadow-xl"><EmojiPicker width="min(320px, calc(100vw - 3rem))" height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
-   <button type="submit" disabled={sending||(!draft.trim()&&!file)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{sending?'Sending…':'Send message'}</button>
+   <button type="submit" disabled={sending||(!draft.trim()&&!file)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploadProgress==='uploading'?'Uploading…':sending?'Sending…':'Send message'}</button>
   </form>
   <p className="mt-2 text-xs text-slate-500">Enter to send · Shift + Enter for a new line</p>
  </section>;
