@@ -70,7 +70,7 @@ export default function PaymentsTabView({
     const token=getStudentToken();
     if(!token){setFeeSummaryError('Sign in to view your fee summary.');return;}
     const controller=new AbortController();
-    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'');
+    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
     const headers={Authorization:'Bearer '+token};
     Promise.all(['/api/student/finance/registration-invoices','/api/student/finance/monthly-fees'].map(async path=>{
       const response=await fetch(base+path,{headers,signal:controller.signal});
