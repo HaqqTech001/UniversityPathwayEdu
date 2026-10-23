@@ -434,7 +434,7 @@ router.patch('/finance/monthly-receipts/:id/review',permit('finance.manage'),wra
  const {data,error}=await db.from('upec_monthly_payment_evidence').update({review_status:status}).eq('id',req.params.id).eq('review_status','pending').select('id,review_status').maybeSingle();
  if(error)throw error;
  if(!data)return res.status(409).json({error:'Receipt not found or already reviewed.'});
- res.json({receipt:data});
+ res.json({receipt:data,paymentRecorded:false,message:'Reviewing a receipt does not record payment. Finance must separately verify the bank transfer and post the payment to the matching invoice.'});
 }));
 router.get('/finance/application-receipts',permit('finance.manage'),wrap(async(req,res)=>{
  const status=String(req.query.status||'pending');
