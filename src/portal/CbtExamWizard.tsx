@@ -1,3 +1,8 @@
+import {saveSampleSession,loadSampleSession,clearSampleSession} from './sampleCbtSession.js';
+import {preparePracticePaper} from './practicePaper.js';
+import {shuffledPracticePool,shufflePracticeOptions} from './practiceSelection.js';
+import {getStudentToken} from '../context/AuthContext';
+import {upecAuthApi} from '../lib/upecAuthApi';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock,
@@ -39,9 +44,30 @@ export interface ExamAttemptRecord {
 
 export default function CbtExamWizard() {
   const { currentUser } = useAuth();
+  const ownerId=currentUser?.id;
+  const previousOwnerIdRef = useRef(ownerId);
+  const activeExamOwnerRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (previousOwnerIdRef.current !== ownerId) {
+      // An examination belongs to the signed-in student; never carry its answers
+      // into a different account. The previous student's saved practice remains intact.
+      previousOwnerIdRef.current = ownerId;
+      deadlineRef.current = null;
+      activeExamOwnerRef.current = undefined;
+      submittingRef.current = false;
+      setStage('setup');
+      setExamQuestions([]);
+      setAnswers({});
+      setFlagged([]);
+      setCurrentQuestionIndex(0);
+      setLatestAttempt(null);
+    }
+    setRecoverable(ownerId ? loadSampleSession(ownerId) : null);
+  }, [ownerId]);
 
   // Wizard Stage: 'setup' | 'exam' | 'results'
   const [stage, setStage] = useState<'setup' | 'exam' | 'results'>('setup');
+  const [recoverable,setRecoverable]=useState(null as ReturnType<typeof loadSampleSession>);
 
   // Setup options
   const [examType, setExamType] = useState('JAMB (UTME)');
@@ -52,6 +78,11 @@ export default function CbtExamWizard() {
     'Chemistry',
     'Physics',
   ]);
+  const [questionSource,setQuestionSource]=useState<'sample'|'aloc'>('sample');
+  const [historicalYear,setHistoricalYear]=useState(2025);
+  const [historicalLength,setHistoricalLength]=useState<'drill'|'full'>('drill');
+  const [providerLoading,setProviderLoading]=useState(false);
+  const [providerError,setProviderError]=useState('');
   const [durationMinutes, setDurationMinutes] = useState(15); // 15 mins for realistic mini-mock
 
   // Examination state
@@ -109,16 +140,43 @@ export default function CbtExamWizard() {
 
   // Results & History
   const [latestAttempt, setLatestAttempt] = useState<ExamAttemptRecord | null>(null);
-  const [attemptHistory, setAttemptHistory] = useState<ExamAttemptRecord[]>(() => {
+  // Browser-local practice history belongs to the signed-in account, not the device.
+  const historyKey = ownerId ? 'upec_cbt_attempt_history_' + ownerId : null;
+  const [attemptHistory, setAttemptHistory] = useState<ExamAttemptRecord[]>([]);
+  useEffect(() => {
+    setHistoryLoadedFor(null);
+    if (!historyKey) { setAttemptHistory([]); return; }
     try {
-      const saved = localStorage.getItem('upec_cbt_attempt_history');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+      const parsed: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      // Ignore corrupt or obsolete browser records rather than crashing results rendering.
+      const safe = Array.isArray(parsed) ? parsed.filter((record): record is ExamAttemptRecord =>
+        record !== null && typeof record === 'object' &&
+        typeof record.id === 'string' && typeof record.examType === 'string' &&
+        typeof record.mode === 'string' && Array.isArray(record.subjects) &&
+        record.subjects.every((subject: unknown) => typeof subject === 'string') &&
+        typeof record.score === 'number' && Number.isFinite(record.score) &&
+        typeof record.totalScore === 'number' && Number.isFinite(record.totalScore) &&
+        typeof record.percentage === 'number' && Number.isFinite(record.percentage) &&
+        typeof record.date === 'string' &&
+        record.subjectBreakdown !== null && typeof record.subjectBreakdown === 'object'
+      ).slice(0, 15) : [];
+      setAttemptHistory(safe);
+      setHistoryLoadedFor(historyKey);
+    } catch { setAttemptHistory([]); setHistoryLoadedFor(historyKey); }
+  }, [historyKey]);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [historyLoadedFor, setHistoryLoadedFor] = useState<string | null>(null);
+  useEffect(() => {
+    // Never persist an earlier account's in-memory results into a new account's key.
+    if (!historyKey || historyLoadedFor !== historyKey) return;
+    try { localStorage.setItem(historyKey, JSON.stringify(attemptHistory)); }
+    catch { /* Browser storage may be disabled or full. */ }
+  }, [historyKey, historyLoadedFor, attemptHistory]);
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const deadlineRef = useRef<number | null>(null);
+  const submittingRef = useRef(false);
+  const submitLatestRef = useRef<()=>void>(()=>{});
 
   const availableSubjectsList = [
     'Use of English', 'Mathematics', 'Biology', 'Chemistry', 'Physics',
@@ -130,7 +188,7 @@ export default function CbtExamWizard() {
   ];
   const subjectsWithQuestions = new Set(CBT_QUESTION_BANK.map(question => question.subject));
   const unavailableSubjects = selectedSubjects.filter(subject => !subjectsWithQuestions.has(subject));
-  const canStartExam = selectedSubjects.length === 4 && unavailableSubjects.length === 0;
+  const canStartExam = selectedSubjects.length === 4 && (questionSource==='aloc'||unavailableSubjects.length===0) && !providerLoading;
 
   // Filter current subject's questions
   const currentSubjectQuestions = examQuestions.filter(
@@ -141,6 +199,14 @@ export default function CbtExamWizard() {
   // Subject questions count & answered count
   const totalQuestionsCount = examQuestions.length;
   const totalAnsweredCount = Object.keys(answers).length;
+  const topicBreakdown=examQuestions.reduce<Record<string,{subject:string;topic:string;total:number;answered:number;correct:number}>>((acc,q)=>{
+    const key=q.subject+'::'+(q.topic||'General');
+    const item=acc[key]??{subject:q.subject,topic:q.topic||'General',total:0,answered:0,correct:0};
+    item.total++;if(answers[q.id]!==undefined)item.answered++;if(answers[q.id]===q.answer)item.correct++;
+    acc[key]=item;return acc;
+  },{});
+  const revisionTopics=Object.values(topicBreakdown).sort((a,b)=>(a.correct/a.total)-(b.correct/b.total));
+
 
   // Toggle subject selection during setup
   const toggleSubject = (sub: string) => {
@@ -156,59 +222,119 @@ export default function CbtExamWizard() {
     }
   };
 
+  const resumeSample=()=>{
+    const saved=loadSampleSession(ownerId);if(!saved){setRecoverable(null);return;}
+    setQuestionSource('sample');setExamQuestions(saved.questions);setSelectedSubjects(saved.selectedSubjects);
+    setActiveSubject(saved.activeSubject);setCurrentQuestionIndex(saved.currentQuestionIndex);
+    setAnswers(saved.answers||{});setFlagged(saved.flagged||[]);setPracticeMode(saved.practiceMode);
+    setDurationMinutes(saved.durationMinutes||15);
+    activeExamOwnerRef.current=ownerId;
+    deadlineRef.current=saved.deadline;submittingRef.current=false;
+    setTimeRemaining(saved.deadline===null?0:Math.max(0,Math.ceil((saved.deadline-Date.now())/1000)));
+    setRecoverable(null);setStage('exam');
+  };
   // Start Exam Handler
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
     if (!canStartExam) return;
-    const questions = CBT_QUESTION_BANK.filter((q) =>
-      selectedSubjects.includes(q.subject)
-    );
-    setExamQuestions(questions);
-    setActiveSubject(selectedSubjects[0] || 'Use of English');
-    setCurrentQuestionIndex(0);
-    setAnswers({});
-    setFlagged([]);
-    const totalSecs =
-      practiceMode === 'speed'
-        ? selectedSubjects.length * 2 * 60
-        : durationMinutes * 60;
-    setTimeRemaining(totalSecs);
-    setStage('exam');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if(questionSource==='aloc'&&(!Number.isInteger(historicalYear)||historicalYear<1990||historicalYear>2030)){setProviderError('Select a valid historical question year.');return;}
+    setProviderError('');
+    let questions:CbtQuestion[]=[];
+    if(questionSource==='aloc'){
+      setProviderLoading(true);
+      try{
+        const token=getStudentToken();if(!token)throw Error('Please sign in again.');
+        const aliases:Record<string,string>={'Use of English':'english','Agricultural Science':'agricultural-science','Literature in English':'literature-in-english','Christian Religious Studies':'crs','Islamic Religious Studies':'irs'};
+        const requested=await Promise.all(selectedSubjects.map(async subject=>{
+          const code=aliases[subject]||subject.toLowerCase().replaceAll(' ','-');
+          const collected:any[]=[];let cursor:string|undefined=undefined;
+          for(let page=0;page<(historicalLength==='full'?8:4);page++){
+            const result=await upecAuthApi.utmePracticeQuestions(token,code,historicalYear,cursor,30);
+            collected.push(...(Array.isArray(result.questions)?result.questions:[]));
+            const next=result.pagination?.nextCursor;
+            if(collected.length>= (historicalLength==='full'?(subject==='Use of English'?100:70):60))break;
+            if(!next||typeof next!=='string'||next===cursor)break;
+            cursor=next;
+          }
+          const items=collected.map((raw:any)=>{
+            const options=['a','b','c','d'].map(k=>raw.options?.[k]??raw.options?.[k.toUpperCase()]);
+            const answer='abcd'.indexOf(String(raw.correctAnswer||'').toLowerCase());
+            if(!raw.id||!String(raw.text||raw.questionHtml||'').trim()||options.some(v=>typeof v!=='string'||!v.trim())||answer<0)return null;
+            return {id:String(raw.id),subject,topic:'Historical UTME '+historicalYear,prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:'This provider tier does not include worked solutions.'} as CbtQuestion;
+          }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
+          const distinct=[...new Map(items.map(q=>[q.id,q])).values()];
+          const required=historicalLength==='full'?(subject==='Use of English'?60:40):5;
+          if(distinct.length<required)throw Error(subject+' returned '+distinct.length+' valid distinct questions; '+required+' required for '+(historicalLength==='full'?'a full mock':'a drill')+'. Try a different historical year.');
+          return shuffledPracticePool(distinct,historicalLength==='full'?required:Math.min(20,distinct.length));
+        }));
+        const paper=preparePracticePaper(requested,historicalLength==='full'?40:5);
+        if(historicalLength==='full'&&!paper.isFullUtme)throw Error('Full UTME mock cannot start: all 180 questions must be present (60 English and 40 each for three subjects).');
+        questions=paper.questions;
+      }catch(error){setProviderError(error instanceof Error?error.message:'Unable to load historical questions.');return;}
+      finally{setProviderLoading(false);}
+    }else{
+      questions=selectedSubjects.flatMap(subject=>shuffledPracticePool(CBT_QUESTION_BANK.filter(q=>q.subject===subject)));
+    }
+    if(!questions.length){setProviderError('No practice questions are available.');return;}
+    if(questionSource==='aloc'&&questions.length<20){setProviderError('Historical drill requires at least 5 valid questions per subject.');return;}
+    // Discard the previous recoverable paper only after a valid new paper has loaded.
+    clearSampleSession(ownerId);setRecoverable(null);
+    setExamQuestions(questions.map(q=>shufflePracticeOptions(q)));
+    setActiveSubject(selectedSubjects[0]||'Use of English');
+    setCurrentQuestionIndex(0);setAnswers({});setFlagged([]);
+    const totalSecs=questionSource==='aloc'&&historicalLength==='full'?120*60:practiceMode==='speed'?selectedSubjects.length*2*60:durationMinutes*60;
+    deadlineRef.current=practiceMode==='untimed'&&!(questionSource==='aloc'&&historicalLength==='full')?null:Date.now()+totalSecs*1000;
+    activeExamOwnerRef.current=ownerId;
+    submittingRef.current=false;
+    setTimeRemaining(totalSecs);setStage('exam');window.scrollTo({top:0,behavior:'smooth'});
   };
 
-  // Timer loop
+  // Keep the current submission function available to the interval after answer changes.
+  useEffect(()=>{submitLatestRef.current=handleForceSubmit;});
+  useEffect(()=>{
+    if(stage!=='exam'||questionSource!=='sample'||!ownerId||activeExamOwnerRef.current!==ownerId)return;
+    saveSampleSession({owner:ownerId,source:'sample',questions:examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,deadline:deadlineRef.current,durationMinutes},ownerId);
+  },[stage,questionSource,examQuestions,answers,flagged,selectedSubjects,activeSubject,currentQuestionIndex,practiceMode,durationMinutes]);
+  // Deadline-based timer also counts time while the browser tab is inactive.
   useEffect(() => {
-    if (stage !== 'exam' || practiceMode === 'untimed') return;
-
-    timerRef.current = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleForceSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+    if(stage!=='exam'||deadlineRef.current===null)return;
+    const tick=()=>{
+      const remaining=Math.max(0,Math.ceil((deadlineRef.current!-Date.now())/1000));
+      setTimeRemaining(remaining);
+      if(remaining===0&&!submittingRef.current){submitLatestRef.current();}
     };
-  }, [stage, practiceMode]);
+    tick();
+    timerRef.current=setInterval(tick,1000);
+    // Background tabs may throttle intervals; refresh immediately on return.
+    const onVisible=()=>{if(document.visibilityState==='visible')tick();};
+    document.addEventListener('visibilitychange',onVisible);
+    window.addEventListener('focus',tick);
+    window.addEventListener('pageshow',tick);
+    return()=>{
+      if(timerRef.current){clearInterval(timerRef.current);timerRef.current=null;}
+      document.removeEventListener('visibilitychange',onVisible);
+      window.removeEventListener('focus',tick);
+      window.removeEventListener('pageshow',tick);
+    };
+  },[stage]);
+  // A page refresh can restore original sample practice, but licensed provider papers are not cached.
+  // Warn before navigating away so students do not unintentionally lose those answers.
+  // Provider question licensing has not been cleared for persistent client caching.
+  useEffect(()=>{
+    if(stage!=='exam')return;
+    const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
+    window.addEventListener('beforeunload',warn);
+    return()=>window.removeEventListener('beforeunload',warn);
+  },[stage]);
 
   // Keyboard Shortcuts (A, B, C, D, P, N, S, R, F)
   useEffect(() => {
     if (stage !== 'exam') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if focus is inside an input or textarea
-      if (
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(
-          (e.target as HTMLElement).tagName
-        )
-      ) {
-        return;
-      }
+      // Shortcuts must not override browser commands or interactive controls.
+      if (e.altKey || e.ctrlKey || e.metaKey || e.repeat || e.isComposing) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [contenteditable="true"], [role="dialog"]')) return;
 
       if (isSubmitModalOpen) {
         const key = e.key.toUpperCase();
@@ -221,13 +347,18 @@ export default function CbtExamWizard() {
 
       if (['A', 'B', 'C', 'D'].includes(key) && activeQuestion) {
         const optionIndex = key.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
-        setAnswers((prev) => ({ ...prev, [activeQuestion.id]: optionIndex }));
+        if (optionIndex < activeQuestion.options.length) {
+          e.preventDefault();
+          setAnswers((prev) => ({ ...prev, [activeQuestion.id]: optionIndex }));
+        }
       } else if (key === 'P' || e.key === 'ArrowLeft') {
+        e.preventDefault();
         // Previous
         if (currentQuestionIndex > 0) {
           setCurrentQuestionIndex((prev) => prev - 1);
         }
       } else if (key === 'N' || e.key === 'ArrowRight') {
+        e.preventDefault();
         // Next
         if (currentQuestionIndex < currentSubjectQuestions.length - 1) {
           setCurrentQuestionIndex((prev) => prev + 1);
@@ -265,6 +396,11 @@ export default function CbtExamWizard() {
 
   // Grade and Finalize Exam
   const handleForceSubmit = () => {
+    if(submittingRef.current||!ownerId||activeExamOwnerRef.current!==ownerId)return;
+    clearSampleSession(ownerId);setRecoverable(null);
+    submittingRef.current=true;
+    activeExamOwnerRef.current=undefined;
+    deadlineRef.current=null;
     stopCamera();
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     if (timerRef.current) clearInterval(timerRef.current);
@@ -286,16 +422,16 @@ export default function CbtExamWizard() {
       }
     });
 
-    const percent = Math.round((correctCount / totalQuestionsCount) * 100) || 0;
-    const scaledScore = Math.round((correctCount / totalQuestionsCount) * 400);
+    const percent = examQuestions.length > 0 ? Math.round((correctCount / examQuestions.length) * 100) : 0;
+    const scaledScore = percent;
 
     const attempt: ExamAttemptRecord = {
       id: `ATT-${Date.now()}`,
-      examType,
-      mode: practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
+      examType: questionSource==='aloc'?(historicalLength==='full'?'Full-length UTME-style historical mock (':'JAMB historical practice (')+historicalYear+', third-party)':'Original sample practice',
+      mode: questionSource==='aloc'&&historicalLength==='full'?'Timed full mock':practiceMode === 'timed' ? 'Timed Exam' : practiceMode === 'speed' ? 'Speed Drill' : 'Topic Practice',
       subjects: selectedSubjects,
       score: scaledScore,
-      totalScore: 400,
+      totalScore: 100,
       percentage: percent,
       date: new Date().toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -308,13 +444,8 @@ export default function CbtExamWizard() {
     };
 
     setLatestAttempt(attempt);
-    const updatedHistory = [attempt, ...attemptHistory].slice(0, 15);
-    setAttemptHistory(updatedHistory);
-    try {
-      localStorage.setItem('upec_cbt_attempt_history', JSON.stringify(updatedHistory));
-    } catch {
-      // ignore storage error
-    }
+    // Keep React state updates pure; persistence happens in the account-specific effect.
+    setAttemptHistory(previous => [attempt, ...previous].slice(0, 15));
 
     setStage('results');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -473,8 +604,10 @@ export default function CbtExamWizard() {
               {!canStartExam && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">{selectedSubjects.length !== 4 ? 'Select exactly four subjects, including Use of English.' : 'Questions are not yet available for: ' + unavailableSubjects.join(', ') + '. Select available subjects to practise.'}</p>}
             </div>
 
+            {recoverable&&<div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><h3 className="font-bold text-[#111A43]">Resume saved sample practice?</h3><p className="mt-2 text-sm">A previous sample practice session was saved on this browser. The original deadline still applies.</p><div className="mt-3 flex gap-3"><button type="button" onClick={resumeSample} className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Resume practice</button><button type="button" onClick={()=>{clearSampleSession(ownerId);setRecoverable(null);}} className="rounded-lg border border-slate-300 px-4 py-2">Discard</button></div></div>}
+            <div className="rounded-xl border border-slate-200 bg-[#f7f8fc] p-4 space-y-3"><label className="block text-sm font-bold text-[#111A43]">Practice question source<select className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3" value={questionSource} onChange={e=>{setQuestionSource(e.target.value as 'sample'|'aloc');setProviderError('');}}><option value="sample">Original sample questions</option><option value="aloc">ALOC historical JAMB questions (provider required)</option></select></label>{questionSource==='aloc'&&<><label className="block text-sm font-bold">Historical question year<input className="mt-2 block w-full rounded-lg border border-slate-300 p-3" type="number" min="1990" max="2030" value={historicalYear} onChange={e=>setHistoricalYear(Number(e.target.value))}/></label><label className="block text-sm font-bold">Practice length<select value={historicalLength} onChange={e=>setHistoricalLength(e.target.value as 'drill'|'full')} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"><option value="drill">Short historical practice drill</option><option value="full">Full UTME-style mock · 180 questions · 120 minutes</option></select></label><p className="text-xs text-amber-900">{historicalLength==='full'?'Requires 60 unique, valid English questions and 40 for each other subject. No paper starts if the provider has insufficient coverage. Fixed 120-minute timer. This is practice, not an official JAMB exam.':'Short practice drill using historical questions. Counts vary by provider availability; this is not a full UTME paper.'}</p></>}{providerError&&<p role="alert" className="text-sm text-red-700">{providerError}</p>}</div>
             {/* 4. Duration Setting for Timed Mode */}
-            {practiceMode === 'timed' && (
+            {practiceMode === 'timed' && !(questionSource==='aloc'&&historicalLength==='full') && (
               <div>
                 <label className="block text-xs font-bold text-[#0b1a42] uppercase tracking-wider mb-2">
                   4. Session Time Duration
@@ -509,7 +642,7 @@ export default function CbtExamWizard() {
 
               <button
                 type="button"
-                onClick={handleStartExam}
+                onClick={()=>void handleStartExam()}
                 disabled={!canStartExam}
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -574,6 +707,18 @@ export default function CbtExamWizard() {
               </p>
             </div>
 
+            {attemptHistory.length>=2&&<section className="rounded-2xl border border-slate-200 bg-white p-5" aria-label="CBT practice progress">
+              <h3 className="text-sm font-extrabold text-[#111A43]">Practice Progress</h3>
+              <p className="mt-1 text-xs text-slate-600">Recent browser-saved practice attempts only. Compare attempts of the same type; these are not official exam records.</p>
+              <div className="mt-4 space-y-2">{attemptHistory.slice(0,8).reverse().map((att,index)=>(
+                <div key={att.id} className="flex items-center gap-3">
+                  <span className="w-12 shrink-0 text-xs text-slate-500">#{index+1}</span>
+                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label={att.examType+' score'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={att.percentage}><div className="h-full rounded-full bg-[#111A43]" style={{width:Math.max(0,Math.min(100,att.percentage))+'%'}}/></div>
+                  <span className="w-11 text-right text-xs font-bold text-[#111A43]">{att.percentage}%</span>
+                </div>
+              ))}</div>
+              <p className="mt-3 text-xs text-slate-600">Last attempt: {attemptHistory[0]?.percentage}% · Previous: {attemptHistory[1]?.percentage}% · Change: {attemptHistory[0]?.percentage-attemptHistory[1]?.percentage>0?'+':''}{attemptHistory[0]?.percentage-attemptHistory[1]?.percentage} points</p>
+            </section>}
             {/* Recent Attempts History */}
             {attemptHistory.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-3">
@@ -594,7 +739,7 @@ export default function CbtExamWizard() {
                       className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between"
                     >
                       <div>
-                        <p className="font-bold text-[#0b1a42]">{att.score} / 400</p>
+                        <p className="font-bold text-[#0b1a42]">{att.score} / {att.totalScore}</p>
                         <p className="text-[10px] text-slate-400">{att.date}</p>
                       </div>
                       <span
@@ -705,7 +850,7 @@ export default function CbtExamWizard() {
         </header>
 
         <div className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-white p-3 text-xs text-slate-700">
-          <span className="font-bold">UPEC practice exam · {currentUser?.fullName || 'Candidate'}</span>
+          <span className="font-bold">Practice exam · {currentUser?.fullName || 'Candidate'}</span>
           <span>Answered {totalAnsweredCount}/{totalQuestionsCount}</span>
           <span className="ml-auto font-semibold">{cameraEnabled ? 'Camera preview on · Not recording' : 'Camera off · Not recording'}</span>
           <button type="button" onClick={cameraEnabled ? stopCamera : enableCamera} className="rounded bg-slate-800 px-3 py-2 font-bold text-white">{cameraEnabled ? 'Turn off camera' : 'Enable camera preview'}</button>
@@ -1094,7 +1239,7 @@ export default function CbtExamWizard() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f0bb5b] block mb-1">
-              UPEC PRACTICE CBT EVALUATION REPORT
+              PRACTICE CBT EVALUATION REPORT
             </span>
             <h1 className="font-serif text-2xl sm:text-3xl font-black text-white">
               Examination Performance Sheet
@@ -1109,7 +1254,7 @@ export default function CbtExamWizard() {
               Aggregate Score
             </span>
             <p className="font-serif text-3xl sm:text-4xl font-black text-[#f0bb5b] mt-0.5">
-              {latestAttempt?.score} / 400
+              {latestAttempt?.score} / {latestAttempt?.totalScore}
             </p>
             <span className="text-[10px] font-bold text-emerald-300">
               {latestAttempt?.percentage}% Overall Mastery
@@ -1118,6 +1263,19 @@ export default function CbtExamWizard() {
         </div>
       </div>
 
+      {/* Revision priorities from the submitted practice paper. */}
+      {revisionTopics.length>0&&<section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <h3 className="font-serif text-lg font-extrabold text-[#111A43]">Topic Performance & Revision Priorities</h3>
+        <p className="mt-2 text-xs text-slate-600">Lowest-scoring topics appear first. Historical papers without topic metadata are grouped under their source year; this is a practice report, not an official result.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {revisionTopics.map(t=>{const pct=Math.round(t.correct/t.total*100);return <div key={t.subject+'::'+t.topic} className="rounded-xl border border-slate-200 bg-[#F7F8FC] p-4">
+            <div className="flex items-center justify-between gap-3"><strong className="text-sm text-[#111A43]">{t.subject} · {t.topic}</strong><span className="text-sm font-bold">{pct}%</span></div>
+            <p className="mt-1 text-xs text-slate-600">{t.correct}/{t.total} correct · {t.answered} attempted</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-[#C62839]" style={{width:pct+'%'}}/></div>
+            <p className="mt-2 text-xs text-slate-600">{pct<60?'Priority: review this topic before your next attempt.':'Keep practising to maintain this result.'}</p>
+          </div>})}
+        </div>
+      </section>}
       {/* Subject-by-Subject Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {latestAttempt &&

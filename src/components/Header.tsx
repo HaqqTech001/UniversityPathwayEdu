@@ -132,58 +132,22 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
           ========================================================================= */}
       <div className="bg-[#081436] text-white py-1.5 px-3 sm:px-6 md:px-8 border-b border-[#0f2150] h-9 flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between text-[11px] sm:text-[12px] text-slate-200">
-          {/* Left contact info: marquee on mobile, static row on desktop */}
-          <div className="flex-1 overflow-hidden relative mr-4">
-            <div className="sm:hidden overflow-hidden whitespace-nowrap">
-              <div className="animate-marquee text-slate-200 font-medium inline-flex">
-                <span className="inline-flex items-center gap-6 pr-6">
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={12} className="text-[#e5b05c] shrink-0" />
-                    23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Phone size={12} className="text-[#e5b05c] shrink-0" />
-                    09133903600 | 09166664266
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Mail size={12} className="text-[#e5b05c] shrink-0" />
-                    unipathway2020@gmail.com
-                  </span>
-                </span>
-                <span className="inline-flex items-center gap-6 pr-6">
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={12} className="text-[#e5b05c] shrink-0" />
-                    23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Phone size={12} className="text-[#e5b05c] shrink-0" />
-                    09133903600 | 09166664266
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Mail size={12} className="text-[#e5b05c] shrink-0" />
-                    unipathway2020@gmail.com
-                  </span>
-                </span>
+          {/* Continuous, clipped headline-style ticker on all viewport sizes. */}
+          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="University Pathway contact information">
+            <div className="overflow-hidden">
+              <div className="upec-utility-ticker">
+                {[0,1].map(copy=><div key={copy} aria-hidden={copy===1} className="upec-utility-ticker__group">
+                  <a href="https://www.google.com/maps/search/?api=1&query=23%20Olaiya%20Street%2C%20Sawmill%20Garage%2C%20Ilorin%2C%20Kwara%20State%2C%20Nigeria" target="_blank" rel="noopener noreferrer" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Open University Pathway address in Google Maps"><MapPin size={12} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</a>
+                  <a href="tel:+2349133903600" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Call 09133903600"><Phone size={12} className="text-[#e5b05c]"/>09133903600</a>
+                  <a href="tel:+2349166664266" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Call 09166664266"><Phone size={12} className="text-[#e5b05c]"/>09166664266</a>
+                  <a href="mailto:unipathway2020@gmail.com" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Email University Pathway"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</a>
+                </div>)}
               </div>
             </div>
 
-            <div className="hidden sm:flex flex-wrap items-center gap-x-6 font-medium truncate">
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <MapPin size={13} className="text-[#e5b05c] shrink-0" />
-                <span className="truncate">23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <Phone size={13} className="text-[#e5b05c] shrink-0" />
-                <a href="tel:09133903600">09133903600</a> | <a href="tel:09166664266">09166664266</a>
-              </span>
-              <span className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
-                <Mail size={13} className="text-[#e5b05c] shrink-0" />
-                <a href="mailto:unipathway2020@gmail.com">unipathway2020@gmail.com</a>
-              </span>
-            </div>
           </div>
 
-          {/* Right Social Media Icons (Mockup arrangement: Facebook, Twitter/X, Instagram, LinkedIn) */}
+          {/* Right Social Media Icons (Mockup arrangement: Facebook, X, Instagram, TikTok) */}
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             {[
               {
@@ -214,11 +178,11 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
                 ),
               },
               {
-                name: 'LinkedIn',
+                name: 'TikTok',
                 href: '#',
                 icon: (
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                    <path d="M16.7 2c.2 2.3 1.5 3.8 3.8 4v3.5a8.2 8.2 0 0 1-3.8-1v6.3a6.7 6.7 0 1 1-6.7-6.7c.4 0 .8 0 1.2.1v3.6a3.2 3.2 0 1 0 2 3V2h3.5Z" />
                   </svg>
                 ),
               },
@@ -244,7 +208,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
       {/* =========================================================================
           SECTION B: MAIN NAVIGATION BAR
           ========================================================================= */}
-      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-3.5">
+      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-0.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo on Left */}
           <a
@@ -253,13 +217,16 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               handleLinkClick('/');
             }}
-            className="shrink-0 transition-opacity hover:opacity-95"
+            className="block w-60 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-64 lg:w-72 xl:w-80"
           >
-            <UniversityPathwayLogo variant="header" />
+            {/* <UniversityPathwayLogo variant="header" /> */}
+            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-[66px] w-full object-contain object-left sm:h-[72px]" />
+
+            
           </a>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <div className="hidden lg:flex items-center gap-4 xl:gap-6">
             {navLinks.map((link) => {
               const active = isLinkActive(link.path);
               const hasDropdown = Boolean(link.hasDropdown);
@@ -360,7 +327,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
           LEFT-SIDE NAVIGATION DRAWER & BACKDROP OVERLAY
           ========================================================================= */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+        <div className="fixed inset-0 z-50  flex lg:hidden" role="dialog" aria-modal="true" aria-label="Mobile navigation">
           {/* Dark Semi-Transparent Backdrop */}
           <div
             className="fixed inset-0 bg-[#060f26]/70 backdrop-blur-xs transition-opacity animate-backdrop-fade-in"
@@ -374,15 +341,16 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
             className="relative w-[85%] max-w-sm bg-white h-full shadow-2xl flex flex-col z-10 animate-drawer-slide-in overflow-hidden"
           >
             {/* Drawer Top Header with Logo and Close Button */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/70">
               <a
                 href="/"
                 onClick={(e) => {
                   e.preventDefault();
                   handleLinkClick('/');
                 }}
+                className="flex min-w-0 flex-1 items-center"
               >
-                <UniversityPathwayLogo variant="compact" />
+                <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-16 w-full max-w-[235px] object-contain object-left" />
               </a>
               <button
                 type="button"

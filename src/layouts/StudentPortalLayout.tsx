@@ -8,6 +8,9 @@ import {
   Bell,
   Settings,
   BookOpenCheck,
+  BookOpen,
+  Mail,
+  CreditCard,
   LogOut,
   Menu,
   X,
@@ -18,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UniversityPathwayLogo from '../components/UniversityPathwayLogo';
+import {getStudentToken} from '../context/AuthContext';
+import {upecAuthApi} from '../lib/upecAuthApi';
 
 export interface PortalNavItem {
   id: string;
@@ -29,10 +34,13 @@ export interface PortalNavItem {
 export const STUDENT_PORTAL_NAV_ITEMS: PortalNavItem[] = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'profile', label: 'My Profile', icon: User },
-  { id: 'applications', label: 'My Applications', icon: FileCheck },
+  { id: 'applications', label: 'Applications', icon: FileCheck },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'cbt', label: 'CBT Practice', icon: BookOpenCheck },
-  { id: 'notices', label: 'Notifications', icon: Bell },
+  { id: 'resources', label: 'Learning Resources', icon: BookOpen },
+  { id: 'notices', label: 'Notice Board', icon: Bell },
+  { id: 'messages', label: 'Messages', icon: Mail, badge: '2' },
+  { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -52,6 +60,14 @@ export default function StudentPortalLayout({
   const { currentUser, logout } = useAuth();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    let mounted=true;
+    const refresh=async()=>{const token=getStudentToken();if(!token)return;try{const data=await upecAuthApi.studentNotifications(token);if(mounted)setUnreadCount(data.notifications.filter(n=>!n.read).length);}catch{ /* notification access must never block portal navigation */ }};
+    void refresh();const timer=window.setInterval(()=>void refresh(),30000);
+    window.addEventListener('upec-notifications-changed',refresh);
+    return()=>{mounted=false;window.clearInterval(timer);window.removeEventListener('upec-notifications-changed',refresh);};
+  },[activeTab]);
 
   // Keyboard Escape listener & body scroll lock for mobile drawer
   useEffect(() => {
@@ -92,7 +108,7 @@ export default function StudentPortalLayout({
           COMPACT PORTAL TOP BAR
           ========================================================================= */}
       <header className="sticky top-0 z-40 bg-[#08163b] text-white border-b border-[#0f2150] shadow-sm">
-        <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="mx-auto flex min-h-[64px] items-center justify-between gap-3 px-3 py-2 sm:px-5 lg:min-h-[70px] lg:px-6">
           {/* Left: Hamburger & Institution Branding */}
           <div className="flex items-center gap-3">
             {/* Hamburger button for Drawer */}
@@ -136,7 +152,7 @@ export default function StudentPortalLayout({
               title="Notifications"
             >
               <Bell size={18} />
-
+              {unreadCount>0&&<span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[#c62839] px-1 py-0.5 text-[10px] font-bold text-white" aria-label={`${unreadCount} unread notifications`}>{unreadCount>99?'99+':unreadCount}</span>}
             </button>
 
             {/* Student Identity Pill */}
@@ -175,8 +191,8 @@ export default function StudentPortalLayout({
       <div className="flex-1 flex relative">
         {/* DESKTOP LEFT SIDEBAR */}
         <aside
-          className={`hidden lg:flex flex-col bg-[#0b1a42] text-white transition-all duration-300 border-r border-[#152a5e] shrink-0 sticky top-[57px] h-[calc(100vh-57px)] ${
-            isDesktopCollapsed ? 'w-20' : 'w-64'
+          className={`hidden lg:flex flex-col bg-[#0b1a42] text-white transition-all duration-300 border-r border-[#152a5e] shrink-0 sticky top-[70px] h-[calc(100vh-70px)] ${
+            isDesktopCollapsed ? 'w-[76px]' : 'w-[248px] xl:w-[260px]'
           }`}
         >
           {/* Collapse/Expand Toggle Header */}
@@ -348,7 +364,7 @@ export default function StudentPortalLayout({
         )}
 
         {/* DEDICATED MAIN CONTENT AREA */}
-        <main className="flex-1 min-w-0 p-3 sm:p-5 lg:p-7 xl:p-9 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-6 lg:px-6 lg:py-7 xl:px-8">
           {children}
         </main>
       </div>

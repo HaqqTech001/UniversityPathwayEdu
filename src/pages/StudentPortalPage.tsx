@@ -1,5 +1,25 @@
+import {notifyPortal} from '../components/PortalToasts';
+import StudentPaymentHistory from '../portal/StudentPaymentHistory';
+import StudentFeeStatement from '../portal/StudentFeeStatement';
+import StudentRegistrationFees from '../portal/StudentRegistrationFees';
+import StudentExamRegistrations from '../portal/StudentExamRegistrations';
+import StudentSupportChat from '../portal/StudentSupportChat';
+import StudentNotifications from '../portal/StudentNotifications';
+import StudentPhotoUpload from '../portal/StudentPhotoUpload';
+import AdditionalServices from '../portal/AdditionalServices';
+import StudentApplicationRegister from '../portal/StudentApplicationRegister';
+import StudentHostelRequests from '../portal/StudentHostelRequests';
+import ExtraServices from '../portal/ExtraServices';
+import CommonApplicationForm from '../portal/CommonApplicationForm';
+import ConductAcknowledgement from '../portal/ConductAcknowledgement';
+import StudentMonthlyFees from '../portal/StudentMonthlyFees';
+import GuardianContact from '../portal/GuardianContact';
+import StudentNotices from '../portal/StudentNotices';
+import StudentLearningResources from '../portal/StudentLearningResources';
+import InstitutionalAssessments from '../portal/InstitutionalAssessments';
 import React, { useState } from 'react';
 import {
+  ArrowRight,
   GraduationCap,
   User,
   Key,
@@ -29,39 +49,130 @@ import {
   HelpCircle,
   Check,
   Award,
-  ArrowRight,
 } from 'lucide-react';
 import CbtExamWizard from '../portal/CbtExamWizard';
+import JambPastQuestions from '../portal/JambPastQuestions';
 import StudentBiodataForm from '../components/StudentBiodataForm';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getStudentToken } from '../context/AuthContext';
+import { upecAuthApi } from '../lib/upecAuthApi';
 import StudentPortalLayout from '../layouts/StudentPortalLayout';
 import AuthPage from './AuthPage';
+
+import ProfileTabView from '../portal/views/ProfileTabView';
+import ApplicationsTabView from '../portal/views/ApplicationsTabView';
+import DocumentsTabView from '../portal/views/DocumentsTabView';
+import CbtTabView from '../portal/views/CbtTabView';
+import LearningResourcesTabView from '../portal/views/LearningResourcesTabView';
+import NoticeBoardTabView from '../portal/views/NoticeBoardTabView';
+import MessagesTabView from '../portal/views/MessagesTabView';
+import PaymentsTabView from '../portal/views/PaymentsTabView';
+import SettingsTabView from '../portal/views/SettingsTabView';
 
 interface PageProps {
   onNavigate: (path: string) => void;
 }
 
 export default function StudentPortalPage({ onNavigate }: PageProps) {
-  const { currentUser, isAuthenticated, updateBiodata, submitApplication } = useAuth();
-  const [applicationProgramme, setApplicationProgramme] = useState('JAMB / UTME');
-  const [applicationSession, setApplicationSession] = useState('2026/2027');
-  const [applicationSubjects, setApplicationSubjects] = useState('');
-  const [applicationSaving, setApplicationSaving] = useState(false);
-  const [applicationMessage, setApplicationMessage] = useState<string | null>(null);
+  const { currentUser, isAuthenticated, updateBiodata, refreshStudent, logout } = useAuth();
 
   // Navigation tab state controlled by the Left Navigation Drawer
-  const [dashboardTab, setDashboardTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
-      return 'cbt';
-    }
-    return 'overview';
-  });
+  const portalTabs = [
+    'overview',
+    'profile',
+    'applications',
+    'documents',
+    'cbt',
+    'resources',
+    'notices',
+    'messages',
+    'payments',
+    'settings',
+  ];
+  const tabFromHash = () => {
+    const hash = window.location.hash.slice(1);
+    return portalTabs.includes(hash) ? hash : 'overview';
+  };
+  const [dashboardTab, setDashboardTab] = useState<string>(() =>
+    typeof window === 'undefined' ? 'overview' : tabFromHash()
+  );
+
+  const [dashboardPhoto,setDashboardPhoto] = useState<string | null>(null);
+  React.useEffect(()=>{
+    if (!currentUser?.id || dashboardTab !== 'overview') return;
+    const controller=new AbortController();
+    const token=getStudentToken();
+    if (!token) return;
+    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+    fetch(base+'/api/student/profile/photo',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{if(!controller.signal.aborted)setDashboardPhoto(typeof data?.url==='string'?data.url:null);})
+      .catch(()=>{});
+    return ()=>controller.abort();
+  },[currentUser?.id,dashboardTab]);
+
+  const [dashboardNotices,setDashboardNotices]=useState<Array<{key:string;title:string;body:string;createdAt:string;read:boolean}>>([]);
+  const [noticesLoading,setNoticesLoading]=useState(false);
+  React.useEffect(()=>{
+    if(dashboardTab!=='overview'||!isAuthenticated)return;
+    const token=getStudentToken();if(!token)return;
+    let active=true;setNoticesLoading(true);
+    upecAuthApi.studentNotifications(token).then(result=>{
+      if(active)setDashboardNotices((result.notifications||[]).slice(0,3));
+    }).catch(()=>{if(active)setDashboardNotices([]);}).finally(()=>{if(active)setNoticesLoading(false);});
+    return()=>{active=false;};
+  },[dashboardTab,isAuthenticated]);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#cbt') {
-      setDashboardTab('cbt');
-    }
+    const onHashChange = () => setDashboardTab(tabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onHashChange);
+    };
   }, []);
+
+  const selectPortalTab = (tab: string) => {
+    if (!portalTabs.includes(tab)) return;
+    setDashboardTab(tab);
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + '#' + tab);
+  };
+
+  const [correctionOpen,setCorrectionOpen]=useState(false);
+  const [correctionForm,setCorrectionForm]=useState<Record<string,unknown>>({});
+  const [correctionBusy,setCorrectionBusy]=useState(false);
+  const [correctionMessage,setCorrectionMessage]=useState('');
+  const [applicationHistory,setApplicationHistory]=useState<Array<{id:string;new_status:string;created_at:string}>>([]);
+  const [historyLoading,setHistoryLoading]=useState(false);
+  const [historyError,setHistoryError]=useState('');
+  const applicationId=currentUser?.application?.id;
+  const isAdmitted=currentUser?.application?.status==='approved';
+  React.useEffect(()=>{
+    if(!isAuthenticated||!applicationId){setApplicationHistory([]);setHistoryError('');return;}
+    const token=getStudentToken();
+    if(!token)return;
+    let cancelled=false;
+    setHistoryLoading(true);setHistoryError('');
+    upecAuthApi.applicationHistory(token,applicationId).then(data=>{
+      if(!cancelled)setApplicationHistory(data.reviews);
+    }).catch(error=>{if(!cancelled)setHistoryError(error instanceof Error?error.message:'Unable to load status history.');})
+      .finally(()=>{if(!cancelled)setHistoryLoading(false);});
+    return()=>{cancelled=true;};
+  },[isAuthenticated,applicationId,dashboardTab]);
+
+  const submitCorrection=async(e:React.FormEvent)=>{
+    e.preventDefault();
+    const id=currentUser?.application?.id,token=getStudentToken();
+    if(!id||!token)return;
+    setCorrectionBusy(true);setCorrectionMessage('');
+    try{
+      await upecAuthApi.correctApplication(token,id,correctionForm);
+      setCorrectionOpen(false);
+      setCorrectionMessage('Corrections submitted successfully. The admissions team will review your application again.');
+      await refreshStudent();
+    }catch(error){setCorrectionMessage(error instanceof Error?error.message:'Unable to resubmit correction.');}
+    finally{setCorrectionBusy(false);}
+  };
 
   // Edit biodata modal state
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);
@@ -100,6 +211,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   }
 
   const startEditing = () => {
+    if (!currentUser.biodataEditAllowed) return;
     setEditForm({
       surname: currentUser.biodata.surname,
       firstName: currentUser.biodata.firstName,
@@ -121,11 +233,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     setIsEditingBiodata(true);
   };
 
-  const handleSaveBiodata = async (e: React.FormEvent) => {
-    setEditSuccessMsg(null);
-    try {
+  const handleSaveBiodata = (e: React.FormEvent) => {
     e.preventDefault();
-    await updateBiodata({
+    updateBiodata({
       surname: editForm.surname,
       firstName: editForm.firstName,
       otherNames: editForm.otherNames,
@@ -144,35 +254,24 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       targetCourse: editForm.targetCourse,
     });
     setIsEditingBiodata(false);
-    setEditSuccessMsg('Your biodata records have been updated successfully.');
+    notifyPortal('success','Your biodata was saved successfully.');
     setTimeout(() => setEditSuccessMsg(null), 4000);
-    } catch (error) {
-      setEditSuccessMsg(error instanceof Error ? error.message : 'Unable to save profile. Please try again.');
-    }
   };
 
+  // Password changes require a verified backend session. Do not simulate success.
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordState.newPass !== passwordState.confirmPass) {
-      setPasswordNotice('New passwords do not match. Please re-enter.');
-      return;
-    }
-    if (passwordState.newPass.length < 6) {
-      setPasswordNotice('Password must be at least 6 characters.');
-      return;
-    }
-    setPasswordNotice('Password changes are not connected to an authentication service yet. No password was changed.');
+    setPasswordNotice('Password changes are unavailable while secure account services are being configured. Your password has not been changed.');
     setPasswordState({ current: '', newPass: '', confirmPass: '' });
-    setTimeout(() => setPasswordNotice(null), 3500);
   };
 
   return (
     <StudentPortalLayout
       activeTab={dashboardTab}
-      onTabChange={setDashboardTab}
+      onTabChange={selectPortalTab}
       onNavigate={onNavigate}
     >
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-[1250px] min-w-0 space-y-4 sm:space-y-5">
         {/* Success Alert */}
         {editSuccessMsg && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
@@ -181,622 +280,201 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
           </div>
         )}
 
-        {/* =========================================================================
-            HEADER IDENTITY STRIP
-            ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
-              {currentUser.biodata.firstName?.[0] || 'U'}
-              {currentUser.biodata.surname?.[0] || 'P'}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-serif font-black text-[#0b1a42]">
-                  {currentUser.fullName}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
-                  <CheckCircle2 size={11} />
-                  {currentUser.isEmailVerified ? 'Email verified' : 'Verification pending'}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
-                <span>
-                  Reg No: <strong className="text-[#0b1a42]">{currentUser.regNumber}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Centre: <strong>Sawmill Main Centre, Ilorin</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Target: <strong>{currentUser.biodata.targetExam || 'Not selected'}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-stretch md:self-auto justify-end">
-            <button
-              type="button"
-              onClick={startEditing}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-[#0b1a42] transition-colors cursor-pointer"
-            >
-              <Edit3 size={13} />
-              <span>Edit Biodata</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDashboardTab('documents')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b1a42] hover:bg-[#122867] text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              <Printer size={13} />
-              <span>Print Slip</span>
-            </button>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            DRAWER TAB 1: DASHBOARD (OVERVIEW)
-            ========================================================================= */}
+        {/* Dashboard-only welcome / identity card — no duplicate on module screens. */}
         {dashboardTab === 'overview' && (
-          <div className="space-y-5 sm:space-y-6">
-            <section className="relative isolate overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:p-8 lg:p-10">
-              <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block" />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20" />
-              <div className="relative max-w-xl">
-                <p className="text-sm font-medium text-[#233b68]">Welcome back,</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight text-[#08163b] sm:text-3xl">{currentUser.biodata.firstName || 'Student'}</h2>
-                <p className="mt-3 max-w-md text-sm leading-7 text-[#334b72]">Keep your profile updated and track your journey towards your academic goals.</p>
-                <p className="mt-3 text-xs font-semibold text-[#526988]">Your next opportunity could be one step closer today.</p>
+          <div className="space-y-4 sm:space-y-5">
+            <section className="relative overflow-hidden rounded-[22px] border border-[#dbe5f3] bg-gradient-to-r from-[#edf3ff] via-[#f0f6ff] to-[#dbe8fa] shadow-sm">
+              <div className="absolute inset-y-0 right-0 hidden w-[38%] lg:block">
+                <img src="/images/campus_atmosphere.jpg" alt="" className="h-full w-full object-cover opacity-30"/>
+              </div>
+              <div className="relative flex min-h-[184px] flex-col justify-between gap-5 px-5 py-6 sm:px-7 lg:min-h-[205px] lg:flex-row lg:items-center lg:gap-8 lg:px-8">
+                <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-[#14285e] text-xl font-black text-white shadow-md sm:h-24 sm:w-24">
+                    {dashboardPhoto ? <img src={dashboardPhoto} alt="Student passport photograph" className="h-full w-full object-cover"/> : <span>{currentUser.biodata.firstName?.[0] || 'S'}{currentUser.biodata.surname?.[0] || ''}</span>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#52658b] sm:text-sm">Welcome back,</p>
+                    <h1 className="mt-1 break-words text-xl font-black tracking-tight text-[#111A43] sm:text-[28px]">{currentUser.fullName}</h1>
+                    <p className="mt-2 text-xs font-medium text-[#435779] sm:text-sm">{currentUser.biodata.targetExam || 'Programme not selected'}</p>
+                    <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${isAdmitted?'bg-emerald-100 text-emerald-800':currentUser.application?'bg-amber-100 text-amber-800':'bg-white/90 text-[#244274]'}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current"/>{currentUser.application?.status?.replace(/_/g,' ') || 'Application not started'}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" onClick={()=>selectPortalTab('profile')} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#C62839] px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#a51b2b] lg:self-center">View My Profile <ArrowRight size={16}/></button>
               </div>
             </section>
 
-            <section aria-label="Your account status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="min-w-0 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-3"><span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><User size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Profile completion</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.profileCompleted ? 'Complete' : 'Incomplete'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.profileCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.profileCompleted ? 'Completed' : 'Action needed'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.profileCompleted ? 'w-full bg-emerald-600' : 'w-[15%] bg-red-500'}`}/></div>
-                <button type="button" onClick={() => setDashboardTab('profile')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View profile <ArrowRight size={17}/></button>
+            <section aria-label="Student overview" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#eaf3ff] p-2.5 text-[#2456a0]"><User size={22}/></span><span className="text-xs font-semibold text-slate-500">Profile status</span></div>
+                <h2 className="mt-3 text-[19px] font-black text-[#111A43]">{currentUser.profileCompleted?'Completed':'Incomplete'}</h2>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#edf1f7]"><div className={`h-full rounded-full ${currentUser.profileCompleted?'w-full bg-emerald-500':'w-0'}`}/></div>
+                <button type="button" onClick={()=>selectPortalTab('profile')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">View profile <ArrowRight size={15}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-3"><span className="rounded-2xl bg-amber-100 p-3 text-amber-700"><FileText size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Application status</p><p className="mt-1 text-lg font-extrabold capitalize text-[#08163b]">{currentUser.application?.status.replace(/_/g,' ') || 'Not started'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'bg-emerald-100 text-emerald-800' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'bg-red-100 text-red-800' : currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'Approved' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'Needs attention' : currentUser.application ? 'In progress' : 'Not started'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.application ? 'w-1/2 bg-amber-500' : 'w-0'}`}/></div>
-                <button type="button" onClick={() => setDashboardTab('applications')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View application <ArrowRight size={17}/></button>
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#fff1df] p-2.5 text-[#bf791d]"><FileText size={22}/></span><span className="text-xs font-semibold text-slate-500">Application status</span></div>
+                <h2 className="mt-3 break-words text-[19px] font-black capitalize text-[#111A43]">{currentUser.application?.status?.replace(/_/g,' ')||'Not started'}</h2>
+                <p className="mt-2 text-xs text-slate-500">Reference: {currentUser.application?.referenceNumber||'Not issued'}</p>
+                <button type="button" onClick={()=>selectPortalTab('applications')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">View application <ArrowRight size={15}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
-                <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified in preview' : 'Incomplete'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.isEmailVerified ? 'w-full bg-emerald-600' : 'w-[10%] bg-red-500'}`}/></div>
-                <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Verification is not yet backend-confirmed.</p>
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#e9f7ec] p-2.5 text-emerald-700"><ShieldCheck size={22}/></span><span className="text-xs font-semibold text-slate-500">Account verification</span></div>
+                <h2 className="mt-3 text-[19px] font-black text-[#111A43]">{currentUser.isEmailVerified?'Verified':'Pending'}</h2>
+                <p className="mt-2 break-all text-xs text-slate-500">{currentUser.email}</p>
+                <button type="button" onClick={()=>selectPortalTab('settings')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">Account settings <ArrowRight size={15}/></button>
               </article>
             </section>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
-              <div className="space-y-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-extrabold text-[#08163b]">Application journey</h3><p className="mt-1 text-xs text-slate-500">Follow each step to complete your application.</p></div><button type="button" onClick={() => setDashboardTab('applications')} className="min-h-10 rounded-full bg-[#142f70] px-5 text-xs font-bold text-white">Continue →</button></div>
-                  <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
+              <div className="min-w-0 space-y-4">
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div><h2 className="text-[17px] font-extrabold text-[#111A43]">Application Journey</h2><p className="mt-1 text-xs text-slate-500">Track your progress step by step</p></div>
+                    <button type="button" onClick={()=>selectPortalTab('applications')} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-bold text-white">Continue</button>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                     {[
-                      { label:'Account', done:true },
-                      { label:'Profile', done:currentUser.profileCompleted },
-                      { label:'Application', done:!!currentUser.application },
-                      { label:'Review & status', done:['approved','accepted','completed'].includes(currentUser.application?.status || '') },
-                    ].map((step,index) => <div key={step.label} className="flex min-w-0 flex-col items-center text-center"><span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ${step.done ? 'bg-emerald-600' : index===2 && currentUser.application ? 'bg-amber-500' : 'bg-slate-400'}`}>{step.done ? <Check size={18}/> : index+1}</span><p className="mt-3 text-xs font-semibold text-[#08163b]">{step.label}</p><span className={`mt-2 rounded-full px-2 py-1 text-[10px] font-semibold ${step.done ? 'bg-emerald-100 text-emerald-800' : index===2 && currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{step.done ? 'Completed' : index===2 && currentUser.application ? 'In progress' : 'Not started'}</span></div>)}
+                      {label:'Account',done:true},
+                      {label:'Profile',done:currentUser.profileCompleted},
+                      {label:'Application',done:!!currentUser.application},
+                      {label:'Review & Status',done:isAdmitted}
+                    ].map((step,index)=><div key={step.label} className="flex min-w-0 flex-col items-center text-center">
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${step.done?'bg-[#14a376] text-white':'bg-[#eef1f7] text-[#69738a]'}`}>{step.done?<Check size={18}/>:index+1}</span>
+                      <span className="mt-3 text-xs font-bold text-[#111A43]">{step.label}</span>
+                      <span className={`mt-1 text-[10px] font-semibold ${step.done?'text-emerald-700':'text-slate-500'}`}>{step.done?'Completed':'Pending'}</span>
+                    </div>)}
                   </div>
                 </section>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <h3 className="text-lg font-extrabold text-[#08163b]">Quick actions</h3>
-                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <h2 className="text-[17px] font-extrabold text-[#111A43]">Quick Access</h2>
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
-                      {label:'Edit profile',tab:'profile',Icon:User,tone:'bg-blue-50 text-blue-700'},
-                      {label:'Application',tab:'applications',Icon:FileText,tone:'bg-amber-50 text-amber-700'},
-                      {label:'Practice CBT',tab:'cbt',Icon:BookOpen,tone:'bg-violet-50 text-violet-700'},
-                      {label:'Documents',tab:'documents',Icon:Download,tone:'bg-emerald-50 text-emerald-700'},
-                    ].map(item => <button type="button" key={item.tab} onClick={() => setDashboardTab(item.tab)} className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={25}/>{item.label}</button>)}
+                      {label:'My Profile',tab:'profile',Icon:User,tone:'bg-[#eef3ff] text-[#3359a5]'},
+                      {label:'Applications',tab:'applications',Icon:FileText,tone:'bg-[#fff1e5] text-[#ab651a]'},
+                      {label:'CBT Practice',tab:'cbt',Icon:BookOpen,tone:'bg-[#f3ecff] text-[#754cb2]'},
+                      {label:'Documents',tab:'documents',Icon:Download,tone:'bg-[#e9f6ee] text-[#237e52]'}
+                    ].map(item=><button type="button" key={item.tab} onClick={()=>selectPortalTab(item.tab)} className={`flex min-h-[100px] min-w-0 flex-col items-center justify-center gap-2.5 rounded-xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={24}/>{item.label}</button>)}
                   </div>
                 </section>
               </div>
-              <aside className="space-y-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#08163b]">Notifications</h3><button type="button" onClick={() => setDashboardTab('notices')} className="text-xs font-bold text-blue-700">View all</button></div>
-                  <div className="mt-6 flex flex-col items-center rounded-xl bg-slate-50 px-4 py-9 text-center"><Bell size={27} className="text-slate-400"/><p className="mt-3 text-sm font-bold">No notifications yet</p><p className="mt-2 text-xs leading-5 text-slate-500">Official updates will appear when connected.</p></div>
+              <aside className="min-w-0 space-y-4">
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex items-center justify-between gap-3"><h2 className="text-[17px] font-extrabold text-[#111A43]">Notifications</h2><button type="button" onClick={()=>selectPortalTab('notices')} className="text-xs font-bold text-[#C62839]">View All</button></div>
+                  <div className="mt-4 space-y-2">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Loading notifications…</p>:dashboardNotices.length?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl bg-slate-50 p-3 text-left"><span className="block text-sm font-semibold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs text-slate-500">{item.body}</span></button>):<p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">No new notifications</p>}</div>
                 </section>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <h2 className="text-[17px] font-extrabold text-[#111A43]">Important Dates</h2>
+                  <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No official dates have been published.</div>
+                </section>
               </aside>
             </div>
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">Account details are loaded from the student service. Official announcements will appear when published.</p>
           </div>
         )}
 
-                {/* =========================================================================
-            DRAWER TAB 2: MY PROFILE / BIODATA
+        {/* =========================================================================
+            TAB 2: MY PROFILE (Dedicated Photo & Particulars — NO Welcome Banner)
             ========================================================================= */}
         {dashboardTab === 'profile' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-              <div>
-                <h2 className="font-serif text-base font-bold text-[#0b1a42]">
-                  Candidate Biodata Record
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Registration Number: <strong className="text-[#0b1a42]">{currentUser.regNumber}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={startEditing}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold transition-colors cursor-pointer"
-              >
-                <Edit3 size={14} />
-                <span>Update Biodata</span>
-              </button>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-xs text-[#0b1a42]">
-                  <User size={16} className="text-[#c62839]" />
-                  <span>Personal Particulars</span>
-                </div>
-                <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Surname</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.surname}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">First Name</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.firstName}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Other Names</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.otherNames || 'N/A'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Gender</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.gender}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Date of Birth</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.dateOfBirth}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Phone</span>
-                    <strong className="text-[#0b1a42]">{currentUser.phone}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Email</span>
-                    <strong className="text-[#0b1a42]">{currentUser.email}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Residential Address</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.address}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Guardian & Target Academic Goals */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-xs text-[#0b1a42]">
-                  <GraduationCap size={16} className="text-[#c62839]" />
-                  <span>Guardian &amp; Academic Pathway</span>
-                </div>
-                <div className="grid grid-cols-2 gap-y-3.5 text-xs">
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Guardian Name</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.guardianName}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-[11px] block">Relationship</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.guardianRelationship}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Guardian Phone</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.guardianPhone}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Previous School</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.previousSchool}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Target University</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.targetInstitution}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 text-[11px] block">Target Course</span>
-                    <strong className="text-[#0b1a42]">{currentUser.biodata.targetCourse}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProfileTabView
+            currentUser={currentUser}
+            onEditBiodata={startEditing}
+            dashboardPhoto={dashboardPhoto}
+          />
         )}
 
         {/* =========================================================================
-            DRAWER TAB 3: MY APPLICATIONS
+            TAB 3: APPLICATIONS (Stages Stepper, Radial Donut, History & Deadlines)
             ========================================================================= */}
         {dashboardTab === 'applications' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h2 className="font-serif text-lg font-bold text-[#0b1a42]">
-                    My Cohort Registrations
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Manage and review your active cohort registration files and examination streams.
-                  </p>
-                </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-700">{currentUser.application?.status.replace(/_/g, " ") || "No application"}</span>
-              </div>
-
-              {currentUser.application ? (
-                <div className="mt-6 rounded-2xl border border-slate-200 p-6 bg-slate-50/50 space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-red-50 text-[#c62839] flex items-center justify-center font-bold">
-                        <FileCheck size={24} />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase">
-                          Reference: {currentUser.application.referenceNumber}
-                        </span>
-                        <h4 className="font-serif text-base font-bold text-[#0b1a42]">
-                          {currentUser.application.programme}
-                        </h4>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs pt-4 border-t border-slate-200">
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px]">Academic Session</span>
-                      <p className="font-bold text-[#0b1a42] mt-0.5">{currentUser.application.session}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px]">Study Center</span>
-                      <p className="font-bold text-[#0b1a42] mt-0.5">{currentUser.application.studyCenter}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px]">Submission Date</span>
-                      <p className="font-bold text-[#0b1a42] mt-0.5">{currentUser.application.submittedAt}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px]">CBT Enrolment</span>
-                      <p className="font-bold text-[#0b1a42] mt-0.5">{currentUser.application.cbtEnrolled ? "Enrolled" : "Not yet confirmed"}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block mb-1">
-                        Registered Subjects:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {currentUser.application.chosenSubjects.map((s) => (
-                          <span
-                            key={s}
-                            className="px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[#0b1a42] font-semibold text-xs"
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setDashboardTab('documents')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-[#0b1a42] shadow-xs cursor-pointer"
-                    >
-                      <Printer size={14} />
-                      <span>View Application Documents</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form className="mt-6 space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-7" onSubmit={async (event) => {
-                  event.preventDefault();
-                  setApplicationSaving(true);
-                  setApplicationMessage(null);
-                  try {
-                    const reference = await submitApplication({
-                      programme: applicationProgramme,
-                      session: applicationSession,
-                      chosenSubjects: applicationSubjects.split(',').map(subject => subject.trim()).filter(Boolean).slice(0, 3),
-                    });
-                    setApplicationMessage('Application submitted successfully. Reference: ' + reference);
-                  } catch (error) {
-                    setApplicationMessage(error instanceof Error ? error.message : 'Unable to submit application.');
-                  } finally {
-                    setApplicationSaving(false);
-                  }
-                }}>
-                  <h3 className="font-serif text-lg font-bold text-[#0b1a42]">Start your application</h3>
-                  <p className="text-sm text-slate-600">Complete your biodata before applying. Your application will be reviewed by the admissions team.</p>
-                  <label className="block text-sm font-semibold text-[#0b1a42]">Programme
-                    <select required value={applicationProgramme} onChange={event => setApplicationProgramme(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3">
-                      <option>JAMB / UTME</option><option>WAEC / NECO</option><option>JUPEB / A-Level</option><option>International Examinations</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm font-semibold text-[#0b1a42]">Academic session
-                    <input required value={applicationSession} onChange={event => setApplicationSession(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3" placeholder="2026/2027" />
-                  </label>
-                  <label className="block text-sm font-semibold text-[#0b1a42]">Optional subject choices (separate with commas)
-                    <input value={applicationSubjects} onChange={event => setApplicationSubjects(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3" placeholder="Mathematics, Physics, Chemistry" />
-                  </label>
-                  {applicationMessage && <p role="status" className="rounded-xl bg-white p-3 text-sm text-[#0b1a42]">{applicationMessage}</p>}
-                  <button type="submit" disabled={!currentUser.profileCompleted || applicationSaving} className="rounded-xl bg-[#c62839] px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
-                    {applicationSaving ? 'Submitting...' : 'Submit application'}
-                  </button>
-                  {!currentUser.profileCompleted && <p className="text-sm text-amber-800">Complete your profile in the Biodata tab to enable submission.</p>}
-                </form>
-                <div className="mt-8 text-center py-10 bg-slate-50 rounded-2xl border border-slate-200">
-                  <FileText size={36} className="text-slate-300 mx-auto mb-3" />
-                  <h4 className="font-serif text-base font-bold text-[#0b1a42]">
-                    No application submitted
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                    Once your application is submitted, its reference number and review status will appear here.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <ApplicationsTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+            correctionOpen={correctionOpen}
+            setCorrectionOpen={setCorrectionOpen}
+            correctionForm={correctionForm}
+            setCorrectionForm={setCorrectionForm}
+            correctionBusy={correctionBusy}
+            correctionMessage={correctionMessage}
+            submitCorrection={submitCorrection}
+            applicationHistory={applicationHistory}
+            historyLoading={historyLoading}
+            historyError={historyError}
+          />
         )}
 
         {/* =========================================================================
-            DRAWER TAB 4: DOCUMENTS & SLIPS
+            TAB 4: DOCUMENTS & SLIPS (Filter Tabs, Upload Zone, Guidelines)
             ========================================================================= */}
         {dashboardTab === 'documents' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="font-serif text-lg font-bold text-[#0b1a42]">
-                  Official Documents &amp; Clearance Slips
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  View your application information. This document is not proof of admission or CBT clearance.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
-              >
-                <Printer size={15} />
-                <span>Print Application Record</span>
-              </button>
-            </div>
-
-            {/* Official Registration Slip Preview */}
-            <div className="bg-white rounded-3xl border-2 border-slate-200 p-8 shadow-md print:shadow-none print:border-none print:p-0">
-              {/* Slip Header */}
-              <div className="border-b-2 border-[#0b1a42] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-[#0b1a42] text-white flex items-center justify-center font-bold shrink-0">
-                    <GraduationCap size={28} className="text-[#f0bb5b]" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#c62839] block">
-                      STUDENT APPLICATION RECORD
-                    </span>
-                    <h3 className="font-serif text-xl sm:text-2xl font-black text-[#0b1a42]">
-                      University Pathway Educational Consult
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      23 Olaiya Street, Sawmill Garage, Ilorin, Kwara State • 09133903600
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right sm:border-l border-slate-200 sm:pl-6 text-xs">
-                  <p className="font-mono text-slate-400 text-[10px]">SLIP REFERENCE</p>
-                  <p className="font-mono font-bold text-sm text-[#0b1a42]">
-                    {currentUser.regNumber}
-                  </p>
-                  <span className="inline-block mt-1 px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    SUBJECT TO ADMISSIONS REVIEW
-                  </span>
-                </div>
-              </div>
-
-              {/* Slip Body Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-slate-200">
-                <div className="md:col-span-2 space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Full Name</span>
-                      <p className="font-bold text-[#0b1a42] text-sm">{currentUser.fullName}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Registration Number</span>
-                      <p className="font-mono font-bold text-[#0b1a42]">{currentUser.regNumber}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Enrolled Programme</span>
-                      <p className="font-bold text-[#0b1a42]">JAMB (UTME) Intensive Coaching</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Study Cohort</span>
-                      <p className="font-bold text-[#0b1a42]">Batch A — Morning Sessions</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Study Centre</span>
-                      <p className="font-bold text-[#0b1a42]">Sawmill Main Campus, Hall A</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400">Primary Contact</span>
-                      <p className="font-bold text-[#0b1a42]">{currentUser.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
-                      Registered Examination Subjects
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {['Use of English', 'Biology', 'Chemistry', 'Physics'].map((subj) => (
-                        <span
-                          key={subj}
-                          className="px-3 py-1 rounded-lg bg-slate-100 font-bold text-[#0b1a42] text-xs"
-                        >
-                          {subj}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Candidate Photo / Verification box */}
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-slate-50/50">
-                  <div className="w-24 h-24 rounded-2xl bg-[#0b1a42] text-white flex items-center justify-center font-serif text-3xl font-black mb-3 shadow-md">
-                    {currentUser.biodata.firstName[0]}
-                    {currentUser.biodata.surname[0]}
-                  </div>
-                  <p className="text-xs font-bold text-[#0b1a42]">{currentUser.fullName}</p>
-                  <p className="text-[10px] font-mono text-slate-500 mt-0.5">{currentUser.regNumber}</p>
-                  <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-emerald-700">
-                    <ShieldCheck size={14} />
-                    <span>Clearance Verified</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slip Notice & Instructions */}
-              <div className="pt-6 text-[11px] text-slate-500 space-y-2">
-                <p className="font-bold text-[#0b1a42] uppercase text-[10px]">
-                  Institutional Regulations &amp; Attendance Notice:
-                </p>
-                <p>
-                  1. Candidates must present this signed slip alongside valid identification when accessing lecture halls and Saturday computerized mock examinations.
-                </p>
-                <p>
-                  2. Attendance is checked electronically at the entrance; 80% minimum attendance is required for institution-backed mock certification.
-                </p>
-              </div>
-            </div>
-          </div>
+          <DocumentsTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
         )}
 
         {/* =========================================================================
-            DRAWER TAB 5: CBT PRACTICE SIMULATOR
+            TAB 5: CBT PRACTICE SIMULATOR (Subjects Grid, Active Practice Timer, Palette)
             ========================================================================= */}
         {dashboardTab === 'cbt' && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="font-serif text-xl font-bold text-[#0b1a42]">
-                  Computer-Based Test (CBT) Practice Simulator
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Authentic UTME question bank, subject selector, and timed practice test engine.
-                </p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-red-50 text-[#c62839] border border-red-200 text-xs font-bold self-start sm:self-auto">
-                Official Candidate Simulator
-              </span>
-            </div>
-
-            <CbtExamWizard />
-          </div>
+          <CbtTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
         )}
 
         {/* =========================================================================
-            DRAWER TAB 6: NOTIFICATIONS
+            TAB 6: LEARNING RESOURCES (Search, Featured Masterclasses, Subject Grid)
+            ========================================================================= */}
+        {dashboardTab === 'resources' && (
+          <LearningResourcesTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
+        )}
+
+        {/* =========================================================================
+            TAB 7: NOTICE BOARD (Category Pills, Pinned Cards, Feed & Important Dates)
             ========================================================================= */}
         {dashboardTab === 'notices' && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-[#0b1a42]">Notifications</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">No official announcements are available in your account yet. Updates will appear here when the institution publishes them.</p>
-          </section>
+          <NoticeBoardTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
         )}
 
         {/* =========================================================================
-            DRAWER TAB 7: SETTINGS
+            TAB 8: MESSAGES (Two-Column Chat, Department Threads, Active Composer)
+            ========================================================================= */}
+        {dashboardTab === 'messages' && (
+          <MessagesTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
+        )}
+
+        {/* =========================================================================
+            TAB 9: PAYMENTS (4 Metric Cards, Subtabs, Approved Accounts & Upload Evidence)
+            ========================================================================= */}
+        {dashboardTab === 'payments' && (
+          <PaymentsTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+          />
+        )}
+
+        {/* =========================================================================
+            TAB 10: SETTINGS (2x3 Grid, Password Form, Toggles, Quick Actions)
             ========================================================================= */}
         {dashboardTab === 'settings' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="font-serif text-lg font-bold text-[#0b1a42]">
-                  Candidate Account Security &amp; Settings
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Manage your portal credentials and contact notification preferences.
-                </p>
-              </div>
-
-              {passwordNotice && (
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-blue-600 shrink-0" />
-                  <span>{passwordNotice}</span>
-                </div>
-              )}
-
-              {/* Password update form */}
-              <form onSubmit={handlePasswordChange} className="max-w-md space-y-4">
-                <h3 className="text-xs font-bold text-[#0b1a42] uppercase tracking-wider">
-                  Update Account Password
-                </h3>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordState.current}
-                    onChange={(e) =>
-                      setPasswordState({ ...passwordState, current: e.target.value })
-                    }
-                    placeholder="Enter current password"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordState.newPass}
-                    onChange={(e) =>
-                      setPasswordState({ ...passwordState, newPass: e.target.value })
-                    }
-                    placeholder="Min. 6 characters"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordState.confirmPass}
-                    onChange={(e) =>
-                      setPasswordState({ ...passwordState, confirmPass: e.target.value })
-                    }
-                    placeholder="Re-type new password"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#0b1a42] hover:bg-[#132a63] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
-                >
-                  Save New Password
-                </button>
-              </form>
-            </div>
-          </div>
+          <SettingsTabView
+            currentUser={currentUser}
+            onNavigateTab={selectPortalTab}
+            onSignOut={() => {
+              logout();
+              onNavigate('/student/login');
+            }}
+          />
         )}
       </div>
 
@@ -811,7 +489,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               onCancel={() => setIsEditingBiodata(false)}
               onSuccess={() => {
                 setIsEditingBiodata(false);
-                setEditSuccessMsg('Candidate biodata updated successfully.');
+                notifyPortal('success','Your biodata was saved successfully.');
                 setTimeout(() => setEditSuccessMsg(null), 4000);
               }}
             />

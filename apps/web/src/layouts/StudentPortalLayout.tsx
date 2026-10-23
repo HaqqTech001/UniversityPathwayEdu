@@ -8,6 +8,9 @@ import {
   Bell,
   Settings,
   BookOpenCheck,
+  BookOpen,
+  Mail,
+  CreditCard,
   LogOut,
   Menu,
   X,
@@ -31,10 +34,13 @@ export interface PortalNavItem {
 export const STUDENT_PORTAL_NAV_ITEMS: PortalNavItem[] = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'profile', label: 'My Profile', icon: User },
-  { id: 'applications', label: 'My Applications', icon: FileCheck },
+  { id: 'applications', label: 'Applications', icon: FileCheck },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'cbt', label: 'CBT Practice', icon: BookOpenCheck },
-  { id: 'notices', label: 'Notifications', icon: Bell },
+  { id: 'resources', label: 'Learning Resources', icon: BookOpen },
+  { id: 'notices', label: 'Notice Board', icon: Bell },
+  { id: 'messages', label: 'Messages', icon: Mail, badge: '2' },
+  { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

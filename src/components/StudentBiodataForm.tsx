@@ -34,7 +34,7 @@ export default function StudentBiodataForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successToast, setSuccessToast] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState('');
 
   // Initialize form state directly from authenticated student's record
   const [formData, setFormData] = useState({
@@ -162,13 +162,15 @@ export default function StudentBiodataForm({
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!formData.declarationConfirmed) {
       setErrors({ declarationConfirmed: 'You must check the confirmation declaration to proceed.' });
       return;
     }
 
+    // Wait for the backend to confirm persistence before showing success.
     setSaving(true);
-    setSaveError(null);
+    setSaveError('');
     try {
     await updateBiodata({
       surname: formData.surname,
@@ -194,7 +196,7 @@ export default function StudentBiodataForm({
     setSuccessToast(true);
     if (onSuccess) onSuccess();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not save your profile. Please retry.');
+      setSaveError(error instanceof Error ? error.message : 'Could not save biodata. Please retry.');
     } finally {
       setSaving(false);
     }
@@ -212,7 +214,7 @@ export default function StudentBiodataForm({
             Complete Candidate Biodata Form
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Record ID: <strong className="text-[#0b1a42] font-mono">{currentUser?.regNumber}</strong> • Reference: <span className="font-mono text-slate-600">UPEC/APP/2025/0842</span>
+            Record ID: <strong className="text-[#0b1a42] font-mono">{currentUser?.id.slice(0,8).toUpperCase() || 'Pending'}</strong> • Application reference: <span className="font-mono text-slate-600">{currentUser?.application?.referenceNumber || 'Not yet issued'}</span>
           </p>
         </div>
 
@@ -229,7 +231,7 @@ export default function StudentBiodataForm({
 
       {/* 4-Step Progress Indicator */}
       <div className="my-8">
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4 text-center">
           {[
             { step: 1, title: 'Personal Biodata', icon: User },
             { step: 2, title: 'Guardian & Emergency', icon: Users },
@@ -246,7 +248,7 @@ export default function StudentBiodataForm({
                 onClick={() => {
                   if (item.step < currentStep) setCurrentStep(item.step);
                 }}
-                className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer ${
+                className={`min-w-0 p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer ${
                   isCurrent
                     ? 'border-[#0b1a42] bg-[#0b1a42] text-white shadow-md'
                     : isDone
@@ -264,7 +266,7 @@ export default function StudentBiodataForm({
                     Step {item.step}
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs font-bold truncate">
+                <p className="text-[11px] sm:text-xs font-bold leading-snug break-words">
                   {item.title}
                 </p>
               </div>
@@ -281,6 +283,7 @@ export default function StudentBiodataForm({
         </div>
       </div>
 
+      {saveError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{saveError}</p>}
       {/* Success Notification */}
       {successToast && (
         <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
@@ -941,11 +944,10 @@ export default function StudentBiodataForm({
               className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#c62839] hover:bg-[#b01f30] text-white text-xs font-bold shadow-lg shadow-[#c62839]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <Save size={15} />
-              <span>{saving ? "Saving profile..." : "Save student profile"}</span>
+              <span>{saving ? "Saving biodata…" : "Save Biodata"}</span>
             </button>
           )}
         </div>
-        {saveError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">{saveError}</p>}
       </form>
     </div>
   );

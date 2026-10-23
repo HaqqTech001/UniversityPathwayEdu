@@ -72,7 +72,6 @@ export default function Footer({ onNavigate }: FooterProps) {
               ].map((s) => (
                 <span
                   key={s.name}
-                  href={undefined}
                   aria-label={s.name}
                   className="w-8 h-8 rounded-full border border-white/20 hover:border-[#d5a75b] hover:text-[#d5a75b] flex items-center justify-center transition-colors text-slate-300"
                 >
