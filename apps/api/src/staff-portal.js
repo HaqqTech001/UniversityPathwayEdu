@@ -409,6 +409,25 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
 }));
 
 // External examination records are entered by authorized staff only after official registration.
+router.get('/finance/application-receipts',permit('finance.manage'),wrap(async(req,res)=>{
+ const status=String(req.query.status||'pending');
+ if(!['pending','approved','rejected','all'].includes(status))return res.status(400).json({error:'Invalid receipt status.'});
+ let query=db.from('upec_application_payment_evidence').select('id,student_account_id,application_id,review_status,created_at,mime_type,file_size_bytes').order('created_at',{ascending:false}).limit(100);
+ if(status!=='all')query=query.eq('review_status',status);
+ const {data,error}=await query;
+ if(error)throw error;
+ res.json({receipts:data||[]});
+}));
+router.patch('/finance/application-receipts/:id/review',permit('finance.manage'),wrap(async(req,res)=>{
+ const id=req.params.id;
+ const status=req.body?.status;
+ if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid receipt ID.'});
+ if(!['approved','rejected'].includes(status))return res.status(400).json({error:'Review status must be approved or rejected.'});
+ const {data,error}=await db.from('upec_application_payment_evidence').update({review_status:status}).eq('id',id).eq('review_status','pending').select('id,review_status').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Receipt not found or already reviewed.'});
+ res.json({receipt:data});
+}));
 router.get('/finance/bank-account',permit('finance.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_bank_accounts').select('id,bank_name,account_number,account_name,is_active,updated_at').order('updated_at',{ascending:false}).limit(20);
  if(error)throw error;res.json({accounts:data||[]});
