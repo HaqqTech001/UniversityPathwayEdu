@@ -74,6 +74,20 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     typeof window === 'undefined' ? 'overview' : tabFromHash()
   );
 
+  const [dashboardPhoto,setDashboardPhoto] = useState<string | null>(null);
+  React.useEffect(()=>{
+    if (!currentUser?.id || dashboardTab !== 'overview') return;
+    const controller=new AbortController();
+    const token=getStudentToken();
+    if (!token) return;
+    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+    fetch(base+'/api/student/profile/photo',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{if(!controller.signal.aborted)setDashboardPhoto(typeof data?.url==='string'?data.url:null);})
+      .catch(()=>{});
+    return ()=>controller.abort();
+  },[currentUser?.id,dashboardTab]);
+
   React.useEffect(() => {
     const onHashChange = () => setDashboardTab(tabFromHash());
     window.addEventListener('hashchange', onHashChange);
@@ -238,8 +252,10 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {dashboardTab === 'overview' && <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
-              {currentUser.biodata.firstName?.[0] || 'U'}
-              {currentUser.biodata.surname?.[0] || 'P'}
+              {dashboardPhoto ? <img src={dashboardPhoto} alt="Student profile photograph" className="h-full w-full rounded-2xl object-cover" /> : <>
+                {currentUser.biodata.firstName?.[0] || 'U'}
+                {currentUser.biodata.surname?.[0] || 'P'}
+              </>}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
