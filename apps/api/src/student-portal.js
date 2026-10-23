@@ -286,6 +286,15 @@ router.get('/admissions/combinations',wrap(async(req,res)=>{
  if(error)throw error;res.json({combinations:data||[]});
 }));
 // Payment evidence is uploaded before application submission; receipt does not imply approval.
+router.get('/application-payment/receipts',wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_application_payment_evidence')
+  .select('id,review_status,application_id,created_at')
+  .eq('student_account_id',req.actor.sub)
+  .order('created_at',{ascending:false})
+  .limit(30);
+ if(error)throw error;
+ res.json({receipts:data||[]});
+}));
 router.post('/application-payment/upload-url',wrap(async(req,res)=>{
  const {mimeType,sizeBytes}=req.body||{};
  if(!['application/pdf','image/png','image/jpeg'].includes(mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>5242880)return res.status(400).json({error:'Choose a PDF, PNG or JPG receipt under 5 MB.'});
