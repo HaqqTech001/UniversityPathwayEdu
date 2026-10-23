@@ -20,6 +20,7 @@ import {
 import { StudentUser } from '../../context/AuthContext';
 import StudentApplicationRegister from '../StudentApplicationRegister';
 import StudentHostelRequests from '../StudentHostelRequests';
+import ProgrammeEnrollment from '../ProgrammeEnrollment';
 
 interface ApplicationsTabViewProps {
   currentUser: StudentUser;
@@ -73,26 +74,12 @@ export default function ApplicationsTabView({
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
           >
             <FileText size={14} />
-            <span>{showRegisterNew ? 'Hide Registration' : '+ New Application'}</span>
+            <span>{showRegisterNew ? 'Close Application Form' : '+ New Application'}</span>
           </button>
         </div>
       </div>
 
-      {showRegisterNew && (
-        <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-sm animate-in fade-in">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <h2 className="text-base font-bold text-[#111A43]">Register Another Programme / Cohort</h2>
-            <button
-              type="button"
-              onClick={() => setShowRegisterNew(false)}
-              className="text-xs font-bold text-slate-400 hover:text-slate-600"
-            >
-              Close
-            </button>
-          </div>
-          <StudentApplicationRegister />
-        </div>
-      )}
+      {showRegisterNew && <ProgrammeEnrollment />}
 
       {/* Main Grid: Left (Current application & details), Right (Deadlines, Actions & Updates) */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
