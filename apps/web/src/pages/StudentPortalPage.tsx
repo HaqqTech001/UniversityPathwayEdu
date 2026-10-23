@@ -111,13 +111,14 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
 
   const [dashboardNotices,setDashboardNotices]=useState<Array<{key:string;title:string;body:string;createdAt:string;read:boolean}>>([]);
   const [noticesLoading,setNoticesLoading]=useState(false);
+  const [noticesError,setNoticesError]=useState('');
   React.useEffect(()=>{
     if(dashboardTab!=='overview'||!isAuthenticated)return;
     const token=getStudentToken();if(!token)return;
-    let active=true;setNoticesLoading(true);
+    let active=true;setNoticesLoading(true);setNoticesError('');
     upecAuthApi.studentNotifications(token).then(result=>{
       if(active)setDashboardNotices((result.notifications||[]).slice(0,3));
-    }).catch(()=>{if(active)setDashboardNotices([]);}).finally(()=>{if(active)setNoticesLoading(false);});
+    }).catch(error=>{if(active){setDashboardNotices([]);setNoticesError(error instanceof Error?error.message:'Unable to load notifications.');}}).finally(()=>{if(active)setNoticesLoading(false);});
     return()=>{active=false;};
   },[dashboardTab,isAuthenticated]);
 
@@ -361,7 +362,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               <aside className="min-w-0 space-y-4">
                 <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
                   <div className="flex items-center justify-between gap-3"><h2 className="text-[17px] font-extrabold text-[#111A43]">Notifications</h2><button type="button" onClick={()=>selectPortalTab('notices')} className="text-xs font-bold text-[#C62839]">View All</button></div>
-                  <div className="mt-4 space-y-2">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Loading notifications…</p>:dashboardNotices.length?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl bg-slate-50 p-3 text-left"><span className="block text-sm font-semibold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs text-slate-500">{item.body}</span></button>):<p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">No new notifications</p>}</div>
+                  <div className="mt-4 space-y-2">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Loading notifications…</p>:noticesError?<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Could not load notifications. Please refresh to retry.</p>:dashboardNotices.length?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl bg-slate-50 p-3 text-left"><span className="block text-sm font-semibold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs text-slate-500">{item.body}</span></button>):<p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">No new notifications</p>}</div>
                 </section>
                 <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
                   <h2 className="text-[17px] font-extrabold text-[#111A43]">Important Dates</h2>
