@@ -64,7 +64,6 @@ import DocumentsTabView from '../portal/views/DocumentsTabView';
 import CbtTabView from '../portal/views/CbtTabView';
 import LearningResourcesTabView from '../portal/views/LearningResourcesTabView';
 import NoticeBoardTabView from '../portal/views/NoticeBoardTabView';
-import MessagesTabView from '../portal/views/MessagesTabView';
 import PaymentsTabView from '../portal/views/PaymentsTabView';
 import SettingsTabView from '../portal/views/SettingsTabView';
 
@@ -448,10 +447,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             TAB 8: MESSAGES (Two-Column Chat, Department Threads, Active Composer)
             ========================================================================= */}
         {dashboardTab === 'messages' && (
-          <MessagesTabView
-            currentUser={currentUser}
-            onNavigateTab={selectPortalTab}
-          />
+          <StudentSupportChat />
         )}
 
         {/* =========================================================================
