@@ -234,18 +234,19 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
           to { opacity: 1; transform: translateY(0); }
         }
         .auth-stage { animation: upecStageAppear 700ms cubic-bezier(.22,1,.36,1) both; }
-        .auth-form-panel form { animation: upecAuthContentEnter 550ms cubic-bezier(.22,1,.36,1) both; }
+        .auth-form-panel form { animation: upecAuthContentEnter 650ms cubic-bezier(.22,1,.36,1) 120ms both; }
         @media(min-width:768px) {
+          /* Identical tracks avoid offset errors at tablet and desktop sizes. */
           .auth-promo-panel,.auth-form-panel {
-            transition: transform 800ms cubic-bezier(.22,1,.36,1);
+            flex: 0 0 50%;
+            width: 50%;
+            transition: transform 900ms cubic-bezier(.65,0,.25,1);
             will-change: transform;
           }
-          .auth-stage[data-reversed="true"] .auth-promo-panel { transform: translateX(108.333333%); }
-          .auth-stage[data-reversed="true"] .auth-form-panel { transform: translateX(-92.307692%); }
-        }
-        @media(min-width:1024px) {
-          .auth-stage[data-reversed="true"] .auth-promo-panel { transform: translateX(72.413793%); }
-          .auth-stage[data-reversed="true"] .auth-form-panel { transform: translateX(-138.095238%); }
+          .auth-stage[data-reversed="true"] .auth-promo-panel { transform: translate3d(100%,0,0); }
+          .auth-stage[data-reversed="true"] .auth-form-panel { transform: translate3d(-100%,0,0); }
+          .auth-stage[data-reversed="false"] .auth-promo-panel,
+          .auth-stage[data-reversed="false"] .auth-form-panel { transform: translate3d(0,0,0); }
         }
         @media(prefers-reduced-motion:reduce) {
           .auth-stage,.auth-form-panel form { animation: none !important; }
@@ -258,7 +259,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             LEFT PANEL (approx 58-60% width): Royal Blue Gradient + Text + 4 Benefit Rows + Student Portrait
             ========================================================================= */}
-        <div className={`hidden md:flex md:w-[48%] lg:w-[58%] bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] `} >
+        <div className={`hidden md:flex md:w-1/2 bg-gradient-to-br from-[#123578] via-[#091b46] to-[#040c24] text-white p-5 md:p-6 lg:p-10 flex-col justify-between relative isolate overflow-hidden auth-promo-panel md:min-h-[640px] lg:min-h-[680px] `} >
           
           {/* Top Header section inside left panel */}
           <div className="relative z-20 min-w-0 max-w-full xl:max-w-[56%]">
@@ -333,7 +334,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
         {/* =========================================================================
             RIGHT PANEL (approx 42% width): White Registration / Auth Form Panel
             ========================================================================= */}
-        <div className={`w-full md:w-[52%] lg:w-[42%] bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0 auth-form-panel `}>
+        <div className={`w-full md:w-1/2 bg-white p-5 sm:p-8 md:p-6 lg:p-10 flex flex-col justify-between min-w-0 auth-form-panel `}>
           <div>
             {/* Form Title & Subtitle */}
             <div className="mb-5">
