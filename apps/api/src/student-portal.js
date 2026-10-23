@@ -467,6 +467,15 @@ router.get('/applications/:id/documents',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_application_documents').select('id,document_type,original_filename,review_status,review_note,created_at').eq('student_account_id',req.actor.sub).eq('application_id',req.params.id).order('created_at',{ascending:false});
  if(error)throw error;res.json({documents:data||[]});
 }));
+router.get('/documents/:id/view',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid document ID.'});
+ const {data,error}=await db.from('upec_application_documents').select('storage_path').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(404).json({error:'Document not found.'});
+ const signed=await db.storage.from('upec-application-documents').createSignedUrl(data.storage_path,120);
+ if(signed.error)throw signed.error;
+ res.json({url:signed.data.signedUrl});
+}));
 router.post('/applications/:id/documents/upload-url',wrap(async(req,res)=>{
  const {mimeType,sizeBytes}=req.body||{};
  const app=await db.from('local_student_applications').select('id').eq('id',req.params.id).eq('account_id',req.actor.sub).maybeSingle();
