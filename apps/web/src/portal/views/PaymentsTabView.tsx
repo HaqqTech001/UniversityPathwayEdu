@@ -176,7 +176,7 @@ export default function PaymentsTabView({
               Amount Paid
             </span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-              {feeSummary?.count ? 'Verified records' : 'Awaiting invoices'}
+              {feeSummary?.count ? 'Recorded payments' : 'Awaiting invoices'}
             </span>
           </div>
           <strong className="text-2xl font-black text-emerald-700 block mt-1">
@@ -377,7 +377,6 @@ export default function PaymentsTabView({
                   {evidenceUploading ? "Uploading receipt…" : "Submit Application Payment Receipt"}
                 </button>
                 {evidenceError && <p role="alert" className="text-xs font-semibold text-red-700">{evidenceError}</p>}
-                {evidenceSuccess && <p role="status" className="text-xs font-semibold text-emerald-700">{evidenceSuccess}</p>}
               </form>
             </div>
           )}
