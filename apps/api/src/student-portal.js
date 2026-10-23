@@ -445,7 +445,8 @@ router.post('/finance/monthly-receipts/confirm',wrap(async(req,res)=>{
  const name=path.split('/')[2];
  const {data:files,error:storageError}=await db.storage.from('upec-application-payment').list(req.actor.sub+'/monthly',{search:name,limit:10});
  if(storageError)throw storageError;
- const size=Number((files||[]).find(file=>file.name===name)?.metadata?.size);
+ const stored=(files||[]).find(file=>file.name===name);
+ const size=Number(stored?.metadata?.size);
  if(!Number.isInteger(size)||size<1||size>5242880)return res.status(409).json({error:'Receipt upload incomplete.'});
  const {data,error}=await db.from('upec_monthly_payment_evidence').insert({student_account_id:req.actor.sub,monthly_fee_id:monthlyFeeId,storage_path:path,mime_type:mimeType,file_size_bytes:size,review_status:'pending'}).select('id,review_status').single();
  if(error)throw error;
