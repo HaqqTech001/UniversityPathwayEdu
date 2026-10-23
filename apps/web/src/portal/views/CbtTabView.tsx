@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {getStudentToken} from '../../context/AuthContext';
 import {
   BookOpenCheck,
   Clock,
@@ -44,7 +45,20 @@ export default function CbtTabView({
     { id: 'bio', name: 'Biology', questions: 40, time: '40 mins', score: '—' },
   ];
 
-  const recentHistory: Array<{id:string;date:string;test:string;subject:string;score:string;pct:string;status:string}> = []; // Populated only from authenticated assessment history.
+  const [recentHistory,setRecentHistory]=useState<Array<{id:string;date:string;test:string;subject:string;score:string;pct:string;status:string}>>([]);
+  const [historyError,setHistoryError]=useState('');
+  const [historyLoading,setHistoryLoading]=useState(false);
+  useEffect(()=>{
+    const token=getStudentToken();
+    if(!token){setHistoryError('Sign in to view assessment results.');return;}
+    let active=true;setHistoryLoading(true);
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/assessment-results',{headers:{Authorization:'Bearer '+token}})
+      .then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Could not load assessment results.');return data;})
+      .then(data=>{if(active)setRecentHistory((data.results||[]).map((r:any)=>({id:r.id,date:new Date(r.submitted_at).toLocaleDateString('en-NG'),test:'Institutional Assessment',subject:'Assessment '+String(r.assessment_id).slice(0,8),score:String(r.score??0)+' / '+String(r.total_questions??0),pct:r.total_questions?Math.round(Number(r.score||0)/Number(r.total_questions)*100)+'%':'—',status:'Submitted'})));})
+      .catch(e=>{if(active)setHistoryError(e instanceof Error?e.message:'Assessment history unavailable.');})
+      .finally(()=>{if(active)setHistoryLoading(false);});
+    return ()=>{active=false;};
+  },[]);
 
   return (
     <div className="space-y-6">
@@ -206,51 +220,10 @@ export default function CbtTabView({
             </div>
 
             {/* Practice Question Grid Preview (1..20 Mockup Feature) */}
-            <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-extrabold text-[#111A43]">
-                    Question Palette &amp; Navigation Simulation
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Preview of the standard JAMB 8-key question navigator
-                  </p>
-                </div>
-                {/* Legend */}
-                <div className="flex items-center gap-3 text-[11px]">
-                  <span className="flex items-center gap-1.5 text-slate-600">
-                    <span className="w-3 h-3 rounded-md bg-emerald-500 inline-block" /> Answered
-                  </span>
-                  <span className="flex items-center gap-1.5 text-slate-600">
-                    <span className="w-3 h-3 rounded-md bg-amber-500 inline-block" /> Flagged
-                  </span>
-                  <span className="flex items-center gap-1.5 text-slate-600">
-                    <span className="w-3 h-3 rounded-md bg-slate-200 inline-block" /> Unattempted
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-5 sm:grid-cols-10 gap-2">
-                {Array.from({ length: 20 }, (_, i) => {
-                  const num = i + 1;
-                  const isAnswered = [1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 14, 15, 17, 18].includes(num);
-                  const isFlagged = [4, 10, 16].includes(num);
-                  return (
-                    <div
-                      key={num}
-                      className={`h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${
-                        isAnswered
-                          ? 'bg-emerald-500 text-white'
-                          : isFlagged
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {num}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="rounded-2xl border border-[#dce5f0] bg-white p-6">
+              <h3 className="font-extrabold text-[#111A43]">Live CBT question navigator</h3>
+              <p className="mt-2 text-xs text-slate-600">Question numbers, answered status and flagged questions are displayed inside an active CBT session, using your actual responses.</p>
+              <button type="button" onClick={()=>setShowFullWizard(true)} className="mt-4 rounded-xl bg-[#111A43] px-4 py-2 text-xs font-bold text-white">Start CBT session</button>
             </div>
 
             {/* Recent Practice History Table */}
@@ -262,6 +235,9 @@ export default function CbtTabView({
                 <span className="text-xs text-slate-400">Past 30 Days</span>
               </div>
 
+              {historyLoading && <p role="status" className="text-sm text-slate-600">Loading assessment results…</p>}
+              {historyError && <p role="alert" className="text-sm text-red-700">{historyError}</p>}
+              {!historyLoading && !historyError && recentHistory.length===0 && <p className="text-sm text-slate-600">No completed assessments recorded yet.</p>}
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full text-left text-xs min-w-[500px]">
                   <thead>
