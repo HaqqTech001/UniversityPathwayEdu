@@ -15,12 +15,15 @@ export async function queueMonthlyPaymentReminders(){
  if(accounts.error)throw accounts.error;
  const guardians=await db.from('upec_guardian_contacts').select('student_account_id,guardian_name,email,verified_at').in('student_account_id',ids).not('verified_at','is',null);
  if(guardians.error)throw guardians.error;
+ const evidence=await db.from('upec_monthly_payment_evidence').select('monthly_fee_id').in('monthly_fee_id',(bills.data||[]).map(b=>b.id)).eq('review_status','pending');
+ if(evidence.error)throw evidence.error;
+ const pendingBills=new Set((evidence.data||[]).map(e=>e.monthly_fee_id));
  const guardianById=new Map((guardians.data||[]).map(g=>[g.student_account_id,g]));
  const byId=new Map((accounts.data||[]).map(a=>[a.id,a]));
  for(const bill of bills.data||[]){
   const account=byId.get(bill.student_account_id);
   const outstanding=Number(bill.amount_due_ngn)-Number(bill.amount_paid_ngn);
-  if(outstanding<=0){skipped++;continue;}
+  if(outstanding<=0||pendingBills.has(bill.id)){skipped++;continue;}
   const canEmailStudent=Boolean(account?.verified_at&&account.email);
   const verifiedGuardian=guardianById.get(bill.student_account_id);
   if(!canEmailStudent&&!verifiedGuardian?.email){skipped++;continue;}
