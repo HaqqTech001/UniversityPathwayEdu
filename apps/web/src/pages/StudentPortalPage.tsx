@@ -310,15 +310,16 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'overview' && (
           <div className="space-y-5 sm:space-y-6">
-            <section className="relative isolate overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:p-8 lg:p-10">
-              <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block" />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20" />
-              <div className="relative max-w-xl">
-                <p className="text-sm font-medium text-[#233b68]">Welcome back,</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight text-[#08163b] sm:text-3xl">{currentUser.biodata.firstName || 'Student'}</h2>
-                <p className="mt-3 max-w-md text-sm leading-7 text-[#334b72]">Keep your profile updated and track your journey towards your academic goals.</p>
-                <p className="mt-3 text-xs font-semibold text-[#526988]">Your next opportunity could be one step closer today.</p>
+            <section className="flex flex-col gap-4 rounded-2xl border border-red-100 bg-gradient-to-r from-[#fff4f5] to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between" aria-label="Your next step">
+              <div className="flex items-center gap-4">
+                <span className="shrink-0 rounded-2xl bg-red-100 p-3 text-[#c62839]"><FileCheck size={26}/></span>
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wide text-[#c62839]">Your next step</p>
+                  <h2 className="mt-1 text-lg font-extrabold text-[#111A43]">{!currentUser.profileCompleted?'Complete your profile':!currentUser.application?'Start your application':isAdmitted?'Explore your learning resources':'Track your application'}</h2>
+                  <p className="mt-1 text-sm text-slate-600">{!currentUser.profileCompleted?'Add the details required to begin your application.':!currentUser.application?'Select a programme and submit your application.':isAdmitted?'Your admission is approved. Your learning tools are available.':'Check for updates or requests from the admissions team.'}</p>
+                </div>
               </div>
+              <button type="button" onClick={()=>selectPortalTab(!currentUser.profileCompleted?'profile':!currentUser.application?'applications':isAdmitted?'documents':'applications')} className="min-h-11 shrink-0 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#af1f30]">Continue <ArrowRight className="ml-1 inline" size={15}/></button>
             </section>
 
             <section aria-label="Your account status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -333,9 +334,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 <button type="button" onClick={() => setDashboardTab('applications')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View application <ArrowRight size={17}/></button>
               </article>
               <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
-                <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified in preview' : 'Incomplete'}</span></div></div>
+                <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified' : 'Incomplete'}</span></div></div>
                 <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.isEmailVerified ? 'w-full bg-emerald-600' : 'w-[10%] bg-red-500'}`}/></div>
-                <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Verification is not yet backend-confirmed.</p>
+                <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Status provided by your authenticated account.</p>
               </article>
             </section>
 
@@ -372,7 +373,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
               </aside>
             </div>
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">Frontend preview only: account and application statuses are not yet verified by a backend. Sample results, notices and deadlines are intentionally not shown.</p>
+
           </div>
         )}
 
