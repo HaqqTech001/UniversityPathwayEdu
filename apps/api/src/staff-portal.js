@@ -193,6 +193,18 @@ router.post('/finance/invoices/:id/payments',permit('finance.manage'),wrap(async
  if(error)throw error;
  res.json({invoice:data});
 }));
+router.post('/finance/monthly-receipts/:id/record-payment',permit('finance.manage'),wrap(async(req,res)=>{
+ const {amountNgn,reference}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
+ if(typeof amountNgn!=='number'||!Number.isFinite(amountNgn)||amountNgn<=0||!Number.isInteger(Math.round(amountNgn*100))||typeof reference!=='string'||reference.trim().length<5||reference.length>120)return res.status(400).json({error:'Verified amount and transaction reference required.'});
+ const {data:receipt,error:receiptError}=await db.from('upec_monthly_payment_evidence').select('monthly_fee_id,review_status').eq('id',req.params.id).maybeSingle();
+ if(receiptError)throw receiptError;
+ if(!receipt)return res.status(404).json({error:'Receipt not found.'});
+ if(receipt.review_status!=='approved')return res.status(409).json({error:'Approve receipt before posting payment.'});
+ const {data,error}=await db.rpc('upec_record_fee_payment',{p_invoice:receipt.monthly_fee_id,p_amount:amountNgn,p_reference:reference.trim(),p_staff:req.actor.sub});
+ if(error)throw error;
+ res.json({invoice:data,paymentRecorded:true});
+}));
 router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res)=>{
  const limit=100;
  const [monthly,registration]=await Promise.all([
