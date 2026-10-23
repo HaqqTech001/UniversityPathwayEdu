@@ -30,7 +30,7 @@ export default function SettingsTabView({
   onNavigateTab,
   onSignOut,
 }: SettingsTabViewProps) {
-  // Toast banner simulation matching mockup
+  // Local interface state; no claim that unsaved preferences are persisted
   const [showToast, setShowToast] = useState(false);
 
   // Password state
@@ -55,20 +55,8 @@ export default function SettingsTabView({
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPass.length < 6) {
-      setPasswordNotice('Password must be at least 6 characters long.');
-      return;
-    }
-    if (newPass !== confirmPass) {
-      setPasswordNotice('New password and confirmation do not match.');
-      return;
-    }
-    setPasswordNotice('Password changes are unavailable here until the secure account endpoint is connected. No password was changed.');
-    notifyPortal('warning','Password was not changed. Secure password updates are not yet available.');
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
-    setTimeout(() => setPasswordNotice(null), 5000);
+    setPasswordNotice('Password changes must be completed through the secure account recovery flow. No password was changed.');
+    notifyPortal('warning','Use Forgot Password on the sign-in page to securely reset your password.');
   };
 
   return (
@@ -82,7 +70,7 @@ export default function SettingsTabView({
             </span>
             <div>
               <strong className="font-bold block">Settings preferences active</strong>
-              <span className="text-emerald-700">Your profile preferences and security configurations are up to date.</span>
+              <span className="text-emerald-700">These controls are local to this session until server-side preferences are available.</span>
             </div>
           </div>
           <button
