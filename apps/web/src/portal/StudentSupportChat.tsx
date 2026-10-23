@@ -8,6 +8,8 @@ const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/
 export default function StudentSupportChat(){
  const [messages,setMessages]=useState<Message[]>([]);
  const [previews,setPreviews]=useState<Record<string,string>>({});
+ const [previewGeneration,setPreviewGeneration]=useState(0);
+ const previewRequests=useRef(new Set<string>());
  const [draft,setDraft]=useState('');
  const [file,setFile]=useState<File|null>(null);
  const [dragging,setDragging]=useState(false);
@@ -75,10 +77,12 @@ export default function StudentSupportChat(){
  };
  useEffect(()=>{
   let active=true;
-  const media=messages.filter(m=>m.attachment_path&&(m.attachment_mime?.startsWith('image/')||m.attachment_mime?.startsWith('video/'))&&!previews[m.id]);
+  const media=messages.filter(m=>m.attachment_path&&(m.attachment_mime?.startsWith('image/')||m.attachment_mime?.startsWith('video/'))&&!previews[m.id]&&!previewRequests.current.has(m.id));
+  media.forEach(m=>previewRequests.current.add(m.id));
   Promise.all(media.map(async m=>{try{const token=getStudentToken();const r=await fetch(base+'/api/student/support/attachments/'+encodeURIComponent(m.id),{headers:{Authorization:'Bearer '+token}});if(!r.ok)return null;const data=await r.json();return {id:m.id,url:data.url as string};}catch{return null;}})).then(results=>{if(active)setPreviews(p=>({...p,...Object.fromEntries(results.filter((x):x is {id:string;url:string}=>x!==null).map(x=>[x.id,x.url]))}));});
   return()=>{active=false;};
- },[messages]);
+ },[messages,previewGeneration]);
+ useEffect(()=>{const timer=window.setInterval(()=>{previewRequests.current.clear();setPreviews({});setPreviewGeneration(n=>n+1);},45000);return()=>window.clearInterval(timer);},[]);
  const send=async(e:React.FormEvent)=>{
   e.preventDefault();
   const message=draft.trim();
