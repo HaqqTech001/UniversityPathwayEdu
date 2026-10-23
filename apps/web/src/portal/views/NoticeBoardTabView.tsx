@@ -41,14 +41,17 @@ export default function NoticeBoardTabView({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
 
+  const [noticeError,setNoticeError]=useState('');
+  const [noticeLoading,setNoticeLoading]=useState(false);
   const [notices, setNotices] = useState<NoticeItem[]>([]); // Never display invented institutional announcements.
 
   // Merge real notifications if available
   useEffect(() => {
     const token = getStudentToken();
-    if (!token) return;
+    if (!token) {setNoticeError('Sign in to view notices.');return;}
+    setNoticeLoading(true);
     upecAuthApi.studentNotifications(token).then((res) => {
-      if (res?.notifications && res.notifications.length > 0) {
+      if (Array.isArray(res?.notifications)) {
         setNotices((prev) => {
           const apiNotices: NoticeItem[] = res.notifications.map((n: any) => ({
             id: n.key,
@@ -61,7 +64,7 @@ export default function NoticeBoardTabView({
           return [...apiNotices, ...prev.filter((p) => !apiNotices.some((a) => a.id === p.id))];
         });
       }
-    }).catch(() => {});
+    }).catch((error) => setNoticeError(error instanceof Error?error.message:'Unable to load notices.')).finally(()=>setNoticeLoading(false));
   }, []);
 
   const categories = ['All', 'Admissions', 'Clearance', 'Examination', 'Fees', 'Academic'];
@@ -83,6 +86,8 @@ export default function NoticeBoardTabView({
 
   return (
     <div className="space-y-6">
+      {noticeLoading && <p role="status" className="text-sm text-slate-600">Loading notices…</p>}
+      {noticeError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{noticeError}</p>}
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-2xl border border-[#dce5f0] p-5 shadow-xs">
         <div>
