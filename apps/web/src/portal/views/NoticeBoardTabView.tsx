@@ -41,50 +41,7 @@ export default function NoticeBoardTabView({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
 
-  const [notices, setNotices] = useState<NoticeItem[]>([
-    {
-      id: 'n-1',
-      title: '2026/2027 Academic Session Orientation Date Announced',
-      category: 'Admissions',
-      body: 'All newly admitted IJMB and JUPEB candidates are hereby notified that the official matriculation and orientation ceremony will hold on Wednesday, November 12, 2026 at the Main Campus Auditorium. Attendance is mandatory for all students.',
-      publishedAt: '20 Oct 2026',
-      isPinned: true,
-      isRead: false,
-    },
-    {
-      id: 'n-2',
-      title: 'Mandatory Document Verification Window for Cohort A Candidates',
-      category: 'Clearance',
-      body: 'Candidates who have completed online registration are requested to upload clear original scanned copies of their WAEC/NECO results and birth certificates. Physical clearance schedules will be communicated individually via the student portal.',
-      publishedAt: '18 Oct 2026',
-      isPinned: true,
-      isRead: true,
-    },
-    {
-      id: 'n-3',
-      title: 'First Semester Lecture Timetable & Subject Groupings Released',
-      category: 'Academic',
-      body: 'The approved lecture timetable for the first term of the 2026/2027 academic session has been published. Lectures commence daily at 8:30 AM across all designated science and arts lecture rooms.',
-      publishedAt: '16 Oct 2026',
-      isRead: true,
-    },
-    {
-      id: 'n-4',
-      title: 'Statewide UTME Simulation CBT Mock Examination Schedule',
-      category: 'Examination',
-      body: 'The diagnostic computer-based mock testing session is scheduled for Saturday, November 8, 2026. All students enrolled in the CBT practice program can access practice tests from the CBT simulator tab.',
-      publishedAt: '14 Oct 2026',
-      isRead: true,
-    },
-    {
-      id: 'n-5',
-      title: 'Second Instalment Tuition Fee Payment Notice',
-      category: 'Fees',
-      body: 'Students paying tuition fees on an instalment schedule are reminded that the second instalment is due on or before November 15, 2026. Please remit only to approved UPEC bank accounts.',
-      publishedAt: '10 Oct 2026',
-      isRead: true,
-    },
-  ]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]); // Never display invented institutional announcements.
 
   // Merge real notifications if available
   useEffect(() => {
