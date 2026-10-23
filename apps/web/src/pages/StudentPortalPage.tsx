@@ -259,134 +259,95 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
           </div>
         )}
 
-        {/* =========================================================================
-            HEADER IDENTITY STRIP
-            ========================================================================= */}
-        {dashboardTab === 'overview' && <div className="flex min-h-[118px] flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-4">
-            <div className="w-[72px] h-[72px] sm:w-[82px] sm:h-[82px] rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
-              {dashboardPhoto ? <img src={dashboardPhoto} alt="Student profile photograph" className="h-full w-full rounded-2xl object-cover" /> : <>
-                {currentUser.biodata.firstName?.[0] || 'U'}
-                {currentUser.biodata.surname?.[0] || 'P'}
-              </>}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-[22px] font-serif font-black text-[#0b1a42]">
-                  {currentUser.fullName}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
-                  <CheckCircle2 size={11} />
-                  {currentUser.isEmailVerified ? 'Email verified' : 'Verification pending'}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
-                <span>
-                  Application ID: <strong className="text-[#0b1a42]">{currentUser.application?.referenceNumber || 'Not issued'}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Centre: <strong>Sawmill Main Centre, Ilorin</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Target: <strong>{currentUser.biodata.targetExam || 'Not selected'}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-stretch md:self-auto justify-end">
-            <button
-              type="button"
-              onClick={startEditing}
-              disabled={!currentUser.biodataEditAllowed}
-              title={!currentUser.biodataEditAllowed ? 'Contact administration to request biodata editing permission' : 'Edit biodata'}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-[#0b1a42] transition-colors cursor-pointer"
-            >
-              <Edit3 size={13} />
-              <span>{currentUser.biodataEditAllowed ? 'Edit Biodata' : 'Biodata Locked'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDashboardTab('documents')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b1a42] hover:bg-[#122867] text-white text-xs font-bold transition-colors cursor-pointer"
-            >
-              <Printer size={13} />
-              <span>Application Documents</span>
-            </button>
-          </div>
-        </div>}
-
-        {/* =========================================================================
-            DRAWER TAB 1: DASHBOARD (OVERVIEW)
-            ========================================================================= */}
+        {/* Dashboard-only welcome / identity card — no duplicate on module screens. */}
         {dashboardTab === 'overview' && (
           <div className="space-y-4 sm:space-y-5">
-            {/* Approved dashboard-only welcome section, never repeated in other modules. */}
-            <section aria-label="Welcome back" className="relative isolate min-h-[168px] overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:min-h-[184px] sm:p-6 lg:min-h-[196px] lg:p-7">
-              <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block"/>
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20"/>
-              <div className="relative max-w-xl">
-                <p className="text-sm font-medium text-[#233b68]">Welcome back,</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight text-[#08163b] sm:text-3xl">{currentUser.biodata.firstName || 'Student'}</h2>
-                <p className="mt-3 max-w-md text-sm leading-7 text-[#334b72]">Keep your profile updated and track your academic journey.</p>
-                <button type="button" onClick={()=>selectPortalTab(!currentUser.profileCompleted?'profile':!currentUser.application?'applications':isAdmitted?'documents':'applications')} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white hover:bg-[#ad2332]">Continue <ArrowRight size={16}/></button>
+            <section className="relative overflow-hidden rounded-[22px] border border-[#dbe5f3] bg-gradient-to-r from-[#edf3ff] via-[#f0f6ff] to-[#dbe8fa] shadow-sm">
+              <div className="absolute inset-y-0 right-0 hidden w-[38%] lg:block">
+                <img src="/images/campus_atmosphere.jpg" alt="" className="h-full w-full object-cover opacity-30"/>
+              </div>
+              <div className="relative flex min-h-[184px] flex-col justify-between gap-5 px-5 py-6 sm:px-7 lg:min-h-[205px] lg:flex-row lg:items-center lg:gap-8 lg:px-8">
+                <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-[#14285e] text-xl font-black text-white shadow-md sm:h-24 sm:w-24">
+                    {dashboardPhoto ? <img src={dashboardPhoto} alt="Student passport photograph" className="h-full w-full object-cover"/> : <span>{currentUser.biodata.firstName?.[0] || 'S'}{currentUser.biodata.surname?.[0] || ''}</span>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#52658b] sm:text-sm">Welcome back,</p>
+                    <h1 className="mt-1 break-words text-xl font-black tracking-tight text-[#111A43] sm:text-[28px]">{currentUser.fullName}</h1>
+                    <p className="mt-2 text-xs font-medium text-[#435779] sm:text-sm">{currentUser.biodata.targetExam || 'Programme not selected'}</p>
+                    <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${isAdmitted?'bg-emerald-100 text-emerald-800':currentUser.application?'bg-amber-100 text-amber-800':'bg-white/90 text-[#244274]'}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current"/>{currentUser.application?.status?.replace(/_/g,' ') || 'Application not started'}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" onClick={()=>selectPortalTab('profile')} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#C62839] px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#a51b2b] lg:self-center">View My Profile <ArrowRight size={16}/></button>
               </div>
             </section>
 
-            <section aria-label="Your account status" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="min-w-0 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
-                <div className="flex items-start gap-3"><span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><User size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Profile completion</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.profileCompleted ? 'Complete' : 'Incomplete'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.profileCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.profileCompleted ? 'Completed' : 'Action needed'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.profileCompleted ? 'w-full bg-emerald-600' : 'w-[15%] bg-red-500'}`}/></div>
-                <button type="button" onClick={() => setDashboardTab('profile')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View profile <ArrowRight size={17}/></button>
+            <section aria-label="Student overview" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#eaf3ff] p-2.5 text-[#2456a0]"><User size={22}/></span><span className="text-xs font-semibold text-slate-500">Profile status</span></div>
+                <h2 className="mt-3 text-[19px] font-black text-[#111A43]">{currentUser.profileCompleted?'Completed':'Incomplete'}</h2>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#edf1f7]"><div className={`h-full rounded-full ${currentUser.profileCompleted?'w-full bg-emerald-500':'w-0'}`}/></div>
+                <button type="button" onClick={()=>selectPortalTab('profile')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">View profile <ArrowRight size={15}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:p-5">
-                <div className="flex items-start gap-3"><span className="rounded-2xl bg-amber-100 p-3 text-amber-700"><FileText size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Application status</p><p className="mt-1 text-lg font-extrabold capitalize text-[#08163b]">{currentUser.application?.status.replace(/_/g,' ') || 'Not started'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'bg-emerald-100 text-emerald-800' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'bg-red-100 text-red-800' : currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'Approved' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'Needs attention' : currentUser.application ? 'In progress' : 'Not started'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.application ? 'w-1/2 bg-amber-500' : 'w-0'}`}/></div>
-                <button type="button" onClick={() => setDashboardTab('applications')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View application <ArrowRight size={17}/></button>
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#fff1df] p-2.5 text-[#bf791d]"><FileText size={22}/></span><span className="text-xs font-semibold text-slate-500">Application status</span></div>
+                <h2 className="mt-3 break-words text-[19px] font-black capitalize text-[#111A43]">{currentUser.application?.status?.replace(/_/g,' ')||'Not started'}</h2>
+                <p className="mt-2 text-xs text-slate-500">Reference: {currentUser.application?.referenceNumber||'Not issued'}</p>
+                <button type="button" onClick={()=>selectPortalTab('applications')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">View application <ArrowRight size={15}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-4 shadow-sm sm:col-span-2 sm:p-5 xl:col-span-1">
-                <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified' : 'Incomplete'}</span></div></div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.isEmailVerified ? 'w-full bg-emerald-600' : 'w-[10%] bg-red-500'}`}/></div>
-                <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Status provided by your authenticated account.</p>
+              <article className="min-w-0 rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+                <div className="flex items-center justify-between"><span className="rounded-xl bg-[#e9f7ec] p-2.5 text-emerald-700"><ShieldCheck size={22}/></span><span className="text-xs font-semibold text-slate-500">Account verification</span></div>
+                <h2 className="mt-3 text-[19px] font-black text-[#111A43]">{currentUser.isEmailVerified?'Verified':'Pending'}</h2>
+                <p className="mt-2 break-all text-xs text-slate-500">{currentUser.email}</p>
+                <button type="button" onClick={()=>selectPortalTab('settings')} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C62839]">Account settings <ArrowRight size={15}/></button>
               </article>
             </section>
 
-            <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(270px,1fr)]">
+            <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
               <div className="min-w-0 space-y-4">
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-extrabold text-[#08163b]">Application journey</h3><p className="mt-1 text-xs text-slate-500">Follow each step to complete your application.</p></div><button type="button" onClick={() => setDashboardTab('applications')} className="min-h-10 rounded-full bg-[#142f70] px-5 text-xs font-bold text-white">Continue →</button></div>
-                  <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div><h2 className="text-[17px] font-extrabold text-[#111A43]">Application Journey</h2><p className="mt-1 text-xs text-slate-500">Track your progress step by step</p></div>
+                    <button type="button" onClick={()=>selectPortalTab('applications')} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-bold text-white">Continue</button>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                     {[
-                      { label:'Account', done:true },
-                      { label:'Profile', done:currentUser.profileCompleted },
-                      { label:'Application', done:!!currentUser.application },
-                      { label:'Review & status', done:['approved','accepted','completed'].includes(currentUser.application?.status || '') },
-                    ].map((step,index) => <div key={step.label} className="flex min-w-0 flex-col items-center text-center"><span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ${step.done ? 'bg-emerald-600' : index===2 && currentUser.application ? 'bg-amber-500' : 'bg-slate-400'}`}>{step.done ? <Check size={18}/> : index+1}</span><p className="mt-3 text-xs font-semibold text-[#08163b]">{step.label}</p><span className={`mt-2 rounded-full px-2 py-1 text-[10px] font-semibold ${step.done ? 'bg-emerald-100 text-emerald-800' : index===2 && currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{step.done ? 'Completed' : index===2 && currentUser.application ? 'In progress' : 'Not started'}</span></div>)}
+                      {label:'Account',done:true},
+                      {label:'Profile',done:currentUser.profileCompleted},
+                      {label:'Application',done:!!currentUser.application},
+                      {label:'Review & Status',done:isAdmitted}
+                    ].map((step,index)=><div key={step.label} className="flex min-w-0 flex-col items-center text-center">
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${step.done?'bg-[#14a376] text-white':'bg-[#eef1f7] text-[#69738a]'}`}>{step.done?<Check size={18}/>:index+1}</span>
+                      <span className="mt-3 text-xs font-bold text-[#111A43]">{step.label}</span>
+                      <span className={`mt-1 text-[10px] font-semibold ${step.done?'text-emerald-700':'text-slate-500'}`}>{step.done?'Completed':'Pending'}</span>
+                    </div>)}
                   </div>
                 </section>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <h3 className="text-lg font-extrabold text-[#08163b]">Quick actions</h3>
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <h2 className="text-[17px] font-extrabold text-[#111A43]">Quick Access</h2>
                   <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
-                      {label:'Edit profile',tab:'profile',Icon:User,tone:'bg-blue-50 text-blue-700'},
-                      {label:'Application',tab:'applications',Icon:FileText,tone:'bg-amber-50 text-amber-700'},
-                      {label:'Practice CBT',tab:'cbt',Icon:BookOpen,tone:'bg-violet-50 text-violet-700'},
-                      {label:'Documents',tab:'documents',Icon:Download,tone:'bg-emerald-50 text-emerald-700'},
-                    ].map(item => <button type="button" key={item.tab} onClick={() => setDashboardTab(item.tab)} className={`flex min-h-[94px] flex-col items-center justify-center gap-3 rounded-2xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={25}/>{item.label}</button>)}
+                      {label:'My Profile',tab:'profile',Icon:User,tone:'bg-[#eef3ff] text-[#3359a5]'},
+                      {label:'Applications',tab:'applications',Icon:FileText,tone:'bg-[#fff1e5] text-[#ab651a]'},
+                      {label:'CBT Practice',tab:'cbt',Icon:BookOpen,tone:'bg-[#f3ecff] text-[#754cb2]'},
+                      {label:'Documents',tab:'documents',Icon:Download,tone:'bg-[#e9f6ee] text-[#237e52]'}
+                    ].map(item=><button type="button" key={item.tab} onClick={()=>selectPortalTab(item.tab)} className={`flex min-h-[100px] min-w-0 flex-col items-center justify-center gap-2.5 rounded-xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={24}/>{item.label}</button>)}
                   </div>
                 </section>
               </div>
-              <aside className="space-y-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#08163b]">Notifications</h3><button type="button" onClick={() => setDashboardTab('notices')} className="text-xs font-bold text-blue-700">View all</button></div>
-                  <div className="mt-5 space-y-2" aria-live="polite">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Loading notifications…</p>:dashboardNotices.length>0?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl border border-slate-100 bg-slate-50 p-4 text-left hover:bg-blue-50"><span className="block text-sm font-bold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{item.body}</span></button>):<div className="flex flex-col items-center rounded-xl bg-slate-50 px-4 py-8 text-center"><Bell size={27} className="text-slate-400"/><p className="mt-3 text-sm font-bold">No notifications yet</p><p className="mt-2 text-xs leading-5 text-slate-500">You will see new updates here.</p></div>}</div>
+              <aside className="min-w-0 space-y-4">
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex items-center justify-between gap-3"><h2 className="text-[17px] font-extrabold text-[#111A43]">Notifications</h2><button type="button" onClick={()=>selectPortalTab('notices')} className="text-xs font-bold text-[#C62839]">View All</button></div>
+                  <div className="mt-4 space-y-2">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Loading notifications…</p>:dashboardNotices.length?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl bg-slate-50 p-3 text-left"><span className="block text-sm font-semibold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs text-slate-500">{item.body}</span></button>):<p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">No new notifications</p>}</div>
                 </section>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
+                <section className="rounded-2xl border border-[#dce5f0] bg-white p-5 shadow-sm sm:p-6">
+                  <h2 className="text-[17px] font-extrabold text-[#111A43]">Important Dates</h2>
+                  <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No official dates have been published.</div>
+                </section>
               </aside>
             </div>
-
           </div>
         )}
 
