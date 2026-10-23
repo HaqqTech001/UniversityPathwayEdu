@@ -1,3 +1,4 @@
+import {notifyPortal} from '../../components/PortalToasts';
 import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
@@ -46,6 +47,7 @@ export default function LearningResourcesTabView({
   const [levelFilter, setLevelFilter] = useState('all');
   const [remoteResources, setRemoteResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError,setLoadError]=useState('');
 
   // Load real backend learning resources if available
   useEffect(() => {
@@ -55,75 +57,12 @@ export default function LearningResourcesTabView({
     upecAuthApi
       .learningResources(token)
       .then((data) => setRemoteResources(data.resources || []))
-      .catch(() => {})
+      .catch((e) => {setLoadError(e instanceof Error?e.message:'Unable to load resources');notifyPortal('error','Unable to load learning resources.');})
       .finally(() => setLoading(false));
   }, []);
 
-  const resources: ResourceItem[] = [
-    {
-      id: 'res-1',
-      title: 'Comprehensive Biology Revision Notes 2026 - Cell Biology & Genetics',
-      subject: 'Biology',
-      type: 'pdf',
-      description: 'In-depth notes on cellular respiration, mitosis, meiosis and Mendelian inheritance patterns.',
-      sizeOrDuration: '4.8 MB',
-      downloads: 420,
-      featured: true,
-      author: 'Dr. E. O. Adebayo (Senior Biology Lecturer)',
-    },
-    {
-      id: 'res-2',
-      title: 'Organic Chemistry Hydrocarbons Video Masterclass',
-      subject: 'Chemistry',
-      type: 'video',
-      description: 'Step-by-step breakdown of alkanes, alkenes, alkynes and functional group mechanisms.',
-      sizeOrDuration: '42 mins',
-      downloads: 310,
-      featured: true,
-      author: 'Prof. K. A. Adeleke',
-    },
-    {
-      id: 'res-3',
-      title: 'UTME Advanced Mathematics Formulae & Worked Solutions',
-      subject: 'Mathematics',
-      type: 'handbook',
-      description: 'Handy formula compendium covering calculus, trigonometry, coordinate geometry and vectors.',
-      sizeOrDuration: '3.2 MB',
-      downloads: 580,
-      featured: true,
-      author: 'Engr. T. S. Ibrahim',
-    },
-    {
-      id: 'res-4',
-      title: 'Electromagnetism & Waves Lecture Slides & Problem Sets',
-      subject: 'Physics',
-      type: 'pdf',
-      description: 'Coulombs law, electric field intensity, Faraday induction and harmonic wave motion.',
-      sizeOrDuration: '5.4 MB',
-      downloads: 290,
-      author: 'Mr. O. M. Babatunde',
-    },
-    {
-      id: 'res-5',
-      title: 'Lexis & Structure Masterclass for UTME / IJMB',
-      subject: 'Use of English',
-      type: 'pdf',
-      description: 'Idiomatic expressions, prepositional phrases, antonyms and sentence completion strategies.',
-      sizeOrDuration: '2.1 MB',
-      downloads: 640,
-      author: 'Mrs. F. A. Johnson',
-    },
-    {
-      id: 'res-6',
-      title: 'Past IJMB 10-Year Compilation with Explanatory Notes',
-      subject: 'General Studies',
-      type: 'past_questions',
-      description: 'Complete past question papers with officially approved model marking guides.',
-      sizeOrDuration: '8.6 MB',
-      downloads: 920,
-      author: 'UPEC Academic Board',
-    },
-  ];
+  const resources: ResourceItem[] = remoteResources.map(r=>({id:String(r.id),title:String(r.title||'Untitled resource'),subject:String(r.subject_name||r.subject||'General'),type:r.resource_type==='video'?'video':r.resource_type==='past_questions'?'past_questions':r.resource_type==='handbook'?'handbook':'pdf',description:String(r.description||''),sizeOrDuration:'',featured:!!r.featured,author:String(r.author_name||'Academic team')}));
+  const subjectCounts=resources.reduce<Record<string,number>>((out,r)=>{out[r.subject]=(out[r.subject]||0)+1;return out;},{});
 
   const filteredResources = resources.filter((item) => {
     const matchesSubject = subjectFilter === 'all' || item.subject.toLowerCase().includes(subjectFilter.toLowerCase());
@@ -135,14 +74,7 @@ export default function LearningResourcesTabView({
     return matchesSubject && matchesType && matchesSearch;
   });
 
-  const handleOpenResource = (id: string) => {
-    const token = getStudentToken();
-    if (token) {
-      upecAuthApi.openLearningResource(token, id).catch(() => {});
-    }
-    // Informational alert on mock preview
-    alert('Opening academic resource in secure document viewer.');
-  };
+  const handleOpenResource = async(id:string)=>{const token=getStudentToken();if(!token){notifyPortal('error','Please sign in to access learning resources.');return;}try{const data=await upecAuthApi.openLearningResource(token,id);if(!data.url)throw Error('No file URL is available for this resource.');window.open(data.url,'_blank','noopener,noreferrer');}catch(e){notifyPortal('error',e instanceof Error?e.message:'Unable to open resource.');}};
 
   return (
     <div className="space-y-6">
@@ -159,11 +91,12 @@ export default function LearningResourcesTabView({
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-[#111A43] text-xs font-bold">
             <BookOpen size={14} className="text-[#c62839]" />
-            <span>Over 140 Academic Resources</span>
+            <span>{loading?'Loading…':resources.length+' Academic Resources'}</span>
           </span>
         </div>
       </div>
 
+      {loadError&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{loadError}</p>}
       {/* Search & Filter Bar (Matching Mockup) */}
       <div className="bg-white rounded-2xl border border-[#dce5f0] p-4 sm:p-5 shadow-xs space-y-3">
         <div className="relative">
@@ -282,14 +215,7 @@ export default function LearningResourcesTabView({
               Browse by Subject Stream
             </h3>
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { name: 'Biology', count: '24 Materials', icon: '🧬' },
-                { name: 'Mathematics', count: '32 Materials', icon: '📐' },
-                { name: 'Physics', count: '28 Materials', icon: '⚡' },
-                { name: 'Chemistry', count: '26 Materials', icon: '🧪' },
-                { name: 'Use of English', count: '18 Materials', icon: '📖' },
-                { name: 'General Studies', count: '12 Materials', icon: '🏛️' },
-              ].map((cat) => (
+              {Object.keys(subjectCounts).sort().map(name=>({name,count:subjectCounts[name]+' Materials',icon:'📚'})).map((cat) => (
                 <button
                   key={cat.name}
                   type="button"
@@ -314,6 +240,7 @@ export default function LearningResourcesTabView({
             </div>
 
             <div className="mt-4 divide-y divide-slate-100">
+              {!loading && filteredResources.length===0&&<p className="py-5 text-sm text-slate-500">No published resources match your filters.</p>}
               {filteredResources.map((res) => (
                 <div
                   key={res.id}
@@ -373,24 +300,7 @@ export default function LearningResourcesTabView({
             </p>
           </div>
 
-          {/* Latest Uploads */}
-          <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-            <h3 className="text-sm font-extrabold text-[#111A43] pb-3 border-b border-slate-100">
-              New Uploads This Week
-            </h3>
-            <div className="mt-3 space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold text-[#c62839] uppercase block">Mathematics</span>
-                <strong className="text-xs font-bold text-[#111A43] block mt-0.5">Calculus Derivative Drills (PDF)</strong>
-                <span className="text-[10px] text-slate-400 mt-1 block">Uploaded 2 days ago</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold text-[#2456a0] uppercase block">Use of English</span>
-                <strong className="text-xs font-bold text-[#111A43] block mt-0.5">Oral English &amp; Vowel Contrasts (Audio)</strong>
-                <span className="text-[10px] text-slate-400 mt-1 block">Uploaded 4 days ago</span>
-              </div>
-            </div>
-          </div>
+          <div className="rounded-2xl border border-[#dce5f0] bg-white p-6"><h3 className="text-sm font-bold text-[#111A43]">Published materials</h3><p className="mt-3 text-sm text-slate-600">{loading?'Loading…':resources.length+' resources available'}</p></div>
         </div>
       </div>
     </div>
