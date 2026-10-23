@@ -169,8 +169,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       await upecAuthApi.correctApplication(token,id,correctionForm);
       setCorrectionOpen(false);
       setCorrectionMessage('Corrections submitted successfully. The admissions team will review your application again.');
+      notifyPortal('success','Application corrections submitted for admissions review.');
       await refreshStudent();
-    }catch(error){setCorrectionMessage(error instanceof Error?error.message:'Unable to resubmit correction.');}
+    }catch(error){const message=error instanceof Error?error.message:'Unable to resubmit correction.';setCorrectionMessage(message);notifyPortal('error',message);}
     finally{setCorrectionBusy(false);}
   };
 
