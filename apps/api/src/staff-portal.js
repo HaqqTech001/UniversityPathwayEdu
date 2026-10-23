@@ -412,6 +412,15 @@ router.get('/support/attachments/:messageId',supportAccess,wrap(async(req,res)=>
  if(signError)throw signError;
  res.json({url:data.signedUrl});
 }));
+router.post('/support/attachments/upload-url',supportAccess,wrap(async(req,res)=>{
+ const {name,mimeType,sizeBytes}=req.body||{};
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
+ if(typeof name!=='string'||!name.trim()||name.length>180||!Object.hasOwn(types,mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>20971520)return res.status(400).json({error:'Invalid file.'});
+ const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+types[mimeType];
+ const {data,error}=await db.storage.from('upec-support-chat').createSignedUploadUrl(path);
+ if(error)throw error;
+ res.json({path,uploadUrl:data.signedUrl,token:data.token});
+}));
 router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('student_account_id,body,created_at,author_role').order('created_at',{ascending:false}).limit(500);
  if(error)throw error;
