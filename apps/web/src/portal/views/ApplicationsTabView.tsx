@@ -324,7 +324,7 @@ export default function ApplicationsTabView({
                 </p>
               </div>
               <span className="text-xs font-mono font-bold text-slate-400">
-                {application?.referenceNumber || 'APP-2026-0842'}
+                {application?.referenceNumber || 'Not issued'}
               </span>
             </div>
 
