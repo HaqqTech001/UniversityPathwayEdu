@@ -19,7 +19,7 @@ export default function ContactPage({ onNavigate }: Props) {
     if(form.name.trim().length<2||form.message.trim().length<10||(!form.email.trim()&&!form.phone.trim())){setError('Enter your name, a contact method and a message of at least 10 characters.');return}
     setError('');
     const body=['Hello University Pathway Educational Consult,','','I would like to make an enquiry.','', 'Name: '+form.name.trim(),'Email: '+(form.email.trim()||'Not provided'),'Phone: '+(form.phone.trim()||'Not provided'),'Topic: '+form.topic,'','Message:',form.message.trim()].join('\n');
-    const url='mailto:'+email+'?subject='+encodeURIComponent('UPEC enquiry: '+form.topic)+'&body='+encodeURIComponent(body);
+    const url='mailto:'+email+'?subject='+encodeURIComponent('University Pathway enquiry: '+form.topic)+'&body='+encodeURIComponent(body);
     setDraftReady(true);
     window.location.href=url;
   };
