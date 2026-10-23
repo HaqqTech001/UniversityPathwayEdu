@@ -18,7 +18,20 @@ try{getMailer();if(!process.env.MAIL_FROM||process.env.MAIL_FROM.includes('youra
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'32kb'}));
-app.use((req,res,next)=>{const allowed=(process.env.WEB_ORIGINS||'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://localhost:3000').split(',').map(s=>s.trim());const origin=req.headers.origin;if(origin&&allowed.includes(origin)){res.set('Access-Control-Allow-Origin',origin);res.set('Vary','Origin');res.set('Access-Control-Allow-Headers','Content-Type, Authorization');res.set('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,OPTIONS');}if(req.method==='OPTIONS')return res.sendStatus(origin&&allowed.includes(origin)?204:403);next();});
+// Keep local Vite development origins enabled even if WEB_ORIGINS defines production hosts.
+const localWebOrigins=['http://localhost:5173','http://localhost:5174','http://127.0.0.1:5173','http://127.0.0.1:5174','http://localhost:3000'];
+const allowedWebOrigins=new Set([...localWebOrigins,...(process.env.WEB_ORIGINS||'').split(',').map(origin=>origin.trim()).filter(Boolean)]);
+app.use((req,res,next)=>{
+ const origin=req.headers.origin;
+ if(!origin)return req.method==='OPTIONS'?res.sendStatus(204):next();
+ res.vary('Origin');
+ if(!allowedWebOrigins.has(origin))return req.method==='OPTIONS'?res.status(403).json({error:'Origin not allowed'}):next();
+ res.set('Access-Control-Allow-Origin',origin);
+ res.set('Access-Control-Allow-Headers','Content-Type, Authorization');
+ res.set('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');
+ if(req.method==='OPTIONS')return res.sendStatus(204);
+ next();
+});
 app.use('/api/blog',publicBlog);
 app.use('/api/news',educationNews);
 app.use('/api/auth',localAuth);
