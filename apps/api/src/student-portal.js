@@ -543,6 +543,15 @@ router.post('/applications/:id/documents/confirm',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_application_documents').insert({application_id:req.params.id,student_account_id:req.actor.sub,document_type:documentType,storage_path:path,original_filename:filename.trim(),mime_type:mimeType,file_size_bytes:size}).select('id,review_status').single();
  if(error)throw error;res.status(201).json({document:data});
 }));
+router.post('/support/attachments/upload-url',wrap(async(req,res)=>{
+ const {name,mimeType,sizeBytes}=req.body||{};
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf','video/mp4':'mp4'};
+ if(typeof name!=='string'||!name.trim()||name.length>180||!Object.hasOwn(types,mimeType)||!Number.isInteger(sizeBytes)||sizeBytes<1||sizeBytes>20971520)return res.status(400).json({error:'Choose a JPG, PNG, WebP, PDF or MP4 file up to 20 MB.'});
+ const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+types[mimeType];
+ const {data,error}=await db.storage.from('upec-support-chat').createSignedUploadUrl(path);
+ if(error)throw error;
+ res.json({path,uploadUrl:data.signedUrl,token:data.token});
+}));
 router.get('/support/messages',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.actor.sub).order('created_at',{ascending:true}).limit(200);
  if(error)throw error;res.json({messages:data||[]});
