@@ -11,6 +11,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(exam.error)throw exam.error;
  if(!exam.data||exam.data.status!=='published')return res.status(404).json({error:'Published examination not found.'});
  if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
+ if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
  const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(500);
  if(eligibility.error)throw eligibility.error;
  const ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
