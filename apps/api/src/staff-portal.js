@@ -432,7 +432,8 @@ router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)
  if(error)throw error;res.json({messages:data||[]});
 }));
 router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
- const body=req.body?.body;if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.trim().length<1||body.length>3000)return res.status(400).json({error:'Invalid message.'});
+ const {body='',attachmentPath,attachmentName,attachmentMime,attachmentSize}=req.body||{};
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId)||typeof body!=='string'||body.length>3000||(!body.trim()&&!attachmentPath))return res.status(400).json({error:'Invalid message.'});
  const {data,error}=await db.from('upec_support_messages').insert({student_account_id:req.params.studentId,author_account_id:req.actor.sub,author_role:'staff',body:body.trim()}).select('id,author_role,body,created_at').single();
  if(error)throw error;res.status(201).json({message:data});
 }));
