@@ -81,10 +81,10 @@ export default function DocumentsTabView({
       filename:match?.original_filename,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
   });
   const handleFileSelect=(f?:File)=>{
-    if(!f)return;
+    if(!f||uploading)return;
     setUploadError('');setUploadNotice('');
     if(!['application/pdf','image/jpeg','image/png'].includes(f.type)||f.size>5*1024*1024||f.size===0){
-      setUploadError('Select a PDF, JPG or PNG file up to 5 MB.');return;
+      setSelectedFile(null);setUploadError('Select a PDF, JPG or PNG file up to 5 MB.');return;
     }
     setSelectedFile(f);
   };
@@ -146,6 +146,7 @@ export default function DocumentsTabView({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
           >
             <UploadCloud size={14} />
@@ -335,6 +336,7 @@ export default function DocumentsTabView({
                 <select
                   value={selectedKind}
                   onChange={(e) => setSelectedKind(e.target.value)}
+                  disabled={uploading}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-[#111A43] bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#111A43]"
                 >
                   <option value="academic_result">O'Level Result Slip (WAEC/NECO)</option>
@@ -346,7 +348,9 @@ export default function DocumentsTabView({
 
               {/* Dropzone */}
               <div
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {if(!uploading)fileInputRef.current?.click();}}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {e.preventDefault();handleFileSelect(e.dataTransfer.files?.[0]);}}
                 className="border-2 border-dashed border-slate-300 hover:border-[#c62839] hover:bg-red-50/20 rounded-2xl p-6 text-center cursor-pointer transition-colors"
               >
                 <input
@@ -354,7 +358,8 @@ export default function DocumentsTabView({
                   type="file"
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => handleFileSelect(e.target.files?.[0])}
+                  disabled={uploading}
+                  onChange={(e) => {handleFileSelect(e.target.files?.[0]);e.target.value='';}}
                 />
                 <div className="w-12 h-12 rounded-full bg-slate-100 text-[#c62839] flex items-center justify-center mx-auto mb-2">
                   <UploadCloud size={24} />
@@ -377,6 +382,8 @@ export default function DocumentsTabView({
                   </div>
                   <button
                     type="button"
+                    disabled={uploading}
+                    aria-label="Remove selected document"
                     onClick={() => setSelectedFile(null)}
                     className="text-slate-400 hover:text-red-600"
                   >
@@ -426,7 +433,7 @@ export default function DocumentsTabView({
               </li>
               <li className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c62839] mt-1.5 shrink-0" />
-                <span>Verification typically completes within 24 to 48 hours.</span>
+                <span>Document review status will update after the admissions team has reviewed your submission.</span>
               </li>
             </ul>
           </div>
