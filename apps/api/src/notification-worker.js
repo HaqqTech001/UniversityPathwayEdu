@@ -11,6 +11,7 @@ export async function processEmailOutbox(){
  const results={claimed:(data||[]).length,sent:0,failed:0};
  for(const item of data||[]){
   try{
+   let deliveryText=item.body;
    const paymentKey=/^fee-due:([0-9a-f-]{36}):(-?3|0|7):(student|guardian)$/i.exec(item.dedupe_key);
    if(paymentKey){
     const {data:bill,error:billError}=await db.from('upec_student_monthly_fees').select('status,amount_due_ngn,amount_paid_ngn').eq('id',paymentKey[1]).maybeSingle();
@@ -23,8 +24,11 @@ export async function processEmailOutbox(){
      results.cancelled=(results.cancelled||0)+1;
      continue;
     }
+    const money=n=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(Number(n));
+    const recorded=money(bill.amount_paid_ngn),balance=money(Number(bill.amount_due_ngn)-Number(bill.amount_paid_ngn));
+    deliveryText=deliveryText.replace(/(Amount already recorded:|Payment already recorded:)\\s*[^\\n]*/g,'$1 '+recorded).replace(/(Outstanding balance:)\\s*[^\\n]*/g,'$1 '+balance);
    }
-   await sendEmail({to:item.recipient,subject:item.subject,text:item.body});
+   await sendEmail({to:item.recipient,subject:item.subject,text:deliveryText});
    const {error:updateError}=await db.from('upec_email_outbox').update({status:'sent',sent_at:new Date().toISOString(),claimed_until:null,last_error:null}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
    if(updateError)throw updateError;results.sent++;
   }catch(err){
