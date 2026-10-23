@@ -231,7 +231,7 @@ export default function StudentBiodataForm({
 
       {/* 4-Step Progress Indicator */}
       <div className="my-8">
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4 text-center">
           {[
             { step: 1, title: 'Personal Biodata', icon: User },
             { step: 2, title: 'Guardian & Emergency', icon: Users },
@@ -248,7 +248,7 @@ export default function StudentBiodataForm({
                 onClick={() => {
                   if (item.step < currentStep) setCurrentStep(item.step);
                 }}
-                className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer ${
+                className={`min-w-0 p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer ${
                   isCurrent
                     ? 'border-[#0b1a42] bg-[#0b1a42] text-white shadow-md'
                     : isDone
@@ -266,7 +266,7 @@ export default function StudentBiodataForm({
                     Step {item.step}
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs font-bold truncate">
+                <p className="text-[11px] sm:text-xs font-bold leading-snug break-words">
                   {item.title}
                 </p>
               </div>
