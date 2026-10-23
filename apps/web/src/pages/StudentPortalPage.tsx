@@ -610,7 +610,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             DRAWER TAB 5: CBT PRACTICE SIMULATOR
             ========================================================================= */}
-        {dashboardTab === 'cbt' && !isAdmitted && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h2 className="text-lg font-bold text-[#111A43]">Admission approval required</h2><p className="mt-2 text-sm">You can complete and track your application now. CBT becomes available once UPEC approves your admission.</p><button type="button" onClick={()=>setDashboardTab('applications')} className="mt-4 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">View my application</button></section>}
+        {dashboardTab === 'cbt' && !isAdmitted && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h2 className="text-lg font-bold text-[#111A43]">Admission approval required</h2><p className="mt-2 text-sm">You can complete and track your application now. CBT becomes available once your admission is approved.</p><button type="button" onClick={()=>setDashboardTab('applications')} className="mt-4 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">View my application</button></section>}
         {dashboardTab === 'cbt' && isAdmitted && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
