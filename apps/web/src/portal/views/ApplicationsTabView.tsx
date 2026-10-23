@@ -54,6 +54,9 @@ export default function ApplicationsTabView({
   const [showRegisterNew, setShowRegisterNew] = useState(false);
   const application = currentUser.application;
   const isAdmitted = application?.status === 'approved';
+  const hasApplication=Boolean(application?.id);
+  const applicationStage = !hasApplication ? 0 : isAdmitted || application?.status==='rejected' ? 4 : application?.status==='under_review'||application?.status==='action_required' ? 3 : 2;
+  const stageProgress=applicationStage*25;
 
   return (
     <div className="space-y-6">
@@ -168,7 +171,7 @@ export default function ApplicationsTabView({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                      Reference: {application?.referenceNumber || 'APP-2026-0842'}
+                      Reference: {application?.referenceNumber || 'Not issued'}
                     </span>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       isAdmitted
@@ -177,14 +180,14 @@ export default function ApplicationsTabView({
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-slate-100 text-slate-700'
                     }`}>
-                      {application?.status ? application.status.replace(/_/g, ' ') : 'Under Review'}
+                      {application?.status ? application.status.replace(/_/g, ' ') : 'No application'}
                     </span>
                   </div>
                   <h2 className="mt-1 text-lg font-black text-[#111A43]">
-                    {application?.programme || currentUser.biodata.targetExam || 'IJMB Advanced Level Programme'}
+                    {application?.programme || 'No programme application submitted'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Session: {application?.session || '2026/2027 Academic Session'} · Center: {application?.studyCenter || 'Lagos Learning Center'}
+                    Session: {application?.session || 'Not assigned'}{application?.studyCenter ? ' · Centre: '+application.studyCenter : ''}
                   </p>
                 </div>
               </div>
@@ -202,7 +205,7 @@ export default function ApplicationsTabView({
                     />
                     <path
                       className={isAdmitted ? 'text-emerald-500' : 'text-[#c62839]'}
-                      strokeDasharray={`${isAdmitted ? 100 : 75}, 100`}
+                      strokeDasharray={`${stageProgress}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
                       stroke="currentColor"
@@ -211,13 +214,13 @@ export default function ApplicationsTabView({
                     />
                   </svg>
                   <span className="absolute text-[11px] font-black text-[#111A43]">
-                    {isAdmitted ? '100%' : '75%'}
+                    {stageProgress+'%'}
                   </span>
                 </div>
                 <div className="text-left text-xs leading-tight">
                   <strong className="block font-bold text-[#111A43]">Application</strong>
                   <span className="text-[11px] text-slate-500">
-                    {isAdmitted ? 'Approved' : 'Stage 3 of 4'}
+                    {!hasApplication ? 'Not started' : isAdmitted ? 'Approved' : 'Stage '+applicationStage+' of 4'}
                   </span>
                 </div>
               </div>
@@ -231,11 +234,11 @@ export default function ApplicationsTabView({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
                 {/* Step 1 */}
                 <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className={`w-8 h-8 rounded-full ${currentUser.biodata.completedAt ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs`}>
                     <CheckCircle2 size={16} />
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">1. Biodata</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">Completed</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">{currentUser.biodata.completedAt ? 'Completed' : 'Not completed'}</span>
                 </div>
 
                 {/* Step 2 */}
@@ -244,7 +247,7 @@ export default function ApplicationsTabView({
                     <CheckCircle2 size={16} />
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">2. Application</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">Submitted</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">{hasApplication ? 'Submitted' : 'Not submitted'}</span>
                 </div>
 
                 {/* Step 3 */}
@@ -256,7 +259,7 @@ export default function ApplicationsTabView({
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">3. Review</span>
                   <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {isAdmitted ? 'Verified' : 'Under Review'}
+                    {isAdmitted ? 'Verified' : applicationStage>=3 ? 'In review' : 'Not started'}
                   </span>
                 </div>
 
@@ -269,7 +272,7 @@ export default function ApplicationsTabView({
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">4. Decision</span>
                   <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-slate-400'}`}>
-                    {isAdmitted ? 'Admitted' : 'Pending'}
+                    {isAdmitted ? 'Admitted' : application?.status==='rejected' ? 'Not admitted' : hasApplication ? 'Pending' : 'Not started'}
                   </span>
                 </div>
               </div>
@@ -279,7 +282,7 @@ export default function ApplicationsTabView({
             <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-slate-500">Registered Subjects:</span>
-                {(application?.chosenSubjects || ['Biology', 'Chemistry', 'Physics', 'Use of English']).map((subj: string) => (
+                {(application?.chosenSubjects || []).map((subj: string) => (
                   <span
                     key={subj}
                     className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#111A43] font-semibold text-xs border border-slate-200"
@@ -331,7 +334,7 @@ export default function ApplicationsTabView({
               <p className="text-xs text-red-600 py-4">{historyError}</p>
             ) : applicationHistory.length === 0 ? (
               <div className="py-6 text-center text-xs text-slate-500">
-                <p>Application successfully received by the Admissions Registry.</p>
+                <p>{hasApplication ? 'No recorded status changes yet.' : 'No application has been submitted yet.'}</p>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Further status updates will appear here as your credentials are verified.
                 </p>
@@ -369,31 +372,7 @@ export default function ApplicationsTabView({
                 Application Deadlines
               </h3>
             </div>
-            <div className="mt-4 space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-[#c62839] block">
-                  Cohort A Closing Date
-                </span>
-                <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
-                  15 November 2026
-                </strong>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Late registrations subject to administrative surcharge.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">
-                  Document Clearance Window
-                </span>
-                <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
-                  25 November 2026
-                </strong>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Upload all academic testimonials prior to verification day.
-                </p>
-              </div>
-            </div>
+            <p className="mt-4 text-xs leading-6 text-slate-600">No programme-specific deadline has been published to your application record. Check official notices for approved dates.</p>
           </div>
 
           {/* Required Next Actions */}
@@ -404,29 +383,7 @@ export default function ApplicationsTabView({
                 Required Next Actions
               </h3>
             </div>
-            <div className="mt-4 space-y-2.5 text-xs">
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-200">
-                <Clock size={16} className="text-amber-700 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <strong className="font-bold text-[#111A43] block">
-                    Upload WAEC/NECO Result Slip
-                  </strong>
-                  <span className="text-[11px] text-slate-600">
-                    Provide clear scan for subject clearance
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200">
-                <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <strong className="font-bold text-[#111A43] block">
-                    Student Profile Verification
-                  </strong>
-                  <span className="text-[11px] text-emerald-800">Completed &amp; logged</span>
-                </div>
-              </div>
-            </div>
+            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">{!hasApplication ? 'Start a new programme application to see your admission tasks.' : application?.status==='action_required' ? 'Your application requires correction. Open the correction form to review the requested changes.' : isAdmitted ? 'Your application has been approved. Check your documents and official notices for next steps.' : 'Check your status history and official notices for updates from admissions.'}</div>
           </div>
 
           {/* Need Assistance */}
