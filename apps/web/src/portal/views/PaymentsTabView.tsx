@@ -183,10 +183,10 @@ export default function PaymentsTabView({
             Next Payment Due
           </span>
           <strong className="text-2xl font-black text-[#111A43] block mt-1">
-            15 Nov 2026
+            Not scheduled
           </strong>
           <span className="text-[11px] font-semibold text-amber-700 mt-1 block">
-            Due in 23 Days
+            Awaiting verified fee schedule
           </span>
         </div>
       </div>
