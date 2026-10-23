@@ -97,11 +97,11 @@ export default function StudentSupportChat(){
   if((!message&&!files.length)||sending)return;
   setSending(true);setError('');
   try{
-   if(file)setUploadProgress('uploading');
+   if(files.length)setUploadProgress('uploading');
    const attachments:Upload[]=[];
    for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);}
    setUploadProgress('sending');
-   await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))} as never);
+   await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))});
    if(mounted.current){setDraft('');setFile(null);setFiles([]);setUploadedFiles(new Map());uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
    if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
