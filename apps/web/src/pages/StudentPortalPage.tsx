@@ -250,7 +250,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       onTabChange={selectPortalTab}
       onNavigate={onNavigate}
     >
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-[1250px] min-w-0 space-y-4 sm:space-y-5">
         {/* Success Alert */}
         {editSuccessMsg && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
@@ -262,9 +262,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
         {/* =========================================================================
             HEADER IDENTITY STRIP
             ========================================================================= */}
-        {dashboardTab === 'overview' && <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        {dashboardTab === 'overview' && <div className="flex min-h-[118px] flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
+            <div className="w-[72px] h-[72px] sm:w-[82px] sm:h-[82px] rounded-2xl bg-gradient-to-br from-[#08163b] to-[#162f74] text-white flex items-center justify-center font-serif text-xl sm:text-2xl font-black shrink-0 shadow-md">
               {dashboardPhoto ? <img src={dashboardPhoto} alt="Student profile photograph" className="h-full w-full rounded-2xl object-cover" /> : <>
                 {currentUser.biodata.firstName?.[0] || 'U'}
                 {currentUser.biodata.surname?.[0] || 'P'}
@@ -272,7 +272,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-serif font-black text-[#0b1a42]">
+                <h1 className="text-lg sm:text-[22px] font-serif font-black text-[#0b1a42]">
                   {currentUser.fullName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
@@ -322,9 +322,9 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             DRAWER TAB 1: DASHBOARD (OVERVIEW)
             ========================================================================= */}
         {dashboardTab === 'overview' && (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {/* Approved dashboard-only welcome section, never repeated in other modules. */}
-            <section aria-label="Welcome back" className="relative isolate overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:p-8 lg:p-10">
+            <section aria-label="Welcome back" className="relative isolate min-h-[168px] overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:min-h-[184px] sm:p-6 lg:min-h-[196px] lg:p-7">
               <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block"/>
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20"/>
               <div className="relative max-w-xl">
@@ -335,27 +335,27 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               </div>
             </section>
 
-            <section aria-label="Your account status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="min-w-0 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <section aria-label="Your account status" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <article className="min-w-0 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex items-start gap-3"><span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><User size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Profile completion</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.profileCompleted ? 'Complete' : 'Incomplete'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.profileCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.profileCompleted ? 'Completed' : 'Action needed'}</span></div></div>
                 <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.profileCompleted ? 'w-full bg-emerald-600' : 'w-[15%] bg-red-500'}`}/></div>
                 <button type="button" onClick={() => setDashboardTab('profile')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View profile <ArrowRight size={17}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
+              <article className="min-w-0 rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex items-start gap-3"><span className="rounded-2xl bg-amber-100 p-3 text-amber-700"><FileText size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Application status</p><p className="mt-1 text-lg font-extrabold capitalize text-[#08163b]">{currentUser.application?.status.replace(/_/g,' ') || 'Not started'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'bg-emerald-100 text-emerald-800' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'bg-red-100 text-red-800' : currentUser.application ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{['approved','accepted','completed'].includes(currentUser.application?.status || '') ? 'Approved' : ['rejected','declined'].includes(currentUser.application?.status || '') ? 'Needs attention' : currentUser.application ? 'In progress' : 'Not started'}</span></div></div>
                 <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.application ? 'w-1/2 bg-amber-500' : 'w-0'}`}/></div>
                 <button type="button" onClick={() => setDashboardTab('applications')} className="mt-4 flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold text-[#30466d]">View application <ArrowRight size={17}/></button>
               </article>
-              <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+              <article className="min-w-0 rounded-2xl border border-red-100 bg-white p-4 shadow-sm sm:col-span-2 sm:p-5 xl:col-span-1">
                 <div className="flex items-start gap-3"><span className={`rounded-2xl p-3 ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><ShieldCheck size={23}/></span><div className="min-w-0"><p className="text-xs font-semibold text-slate-500">Email verification</p><p className="mt-1 text-lg font-extrabold text-[#08163b]">{currentUser.isEmailVerified ? 'Marked verified' : 'Not verified'}</p><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{currentUser.isEmailVerified ? 'Verified' : 'Incomplete'}</span></div></div>
                 <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${currentUser.isEmailVerified ? 'w-full bg-emerald-600' : 'w-[10%] bg-red-500'}`}/></div>
                 <p className="mt-4 break-all text-xs leading-6 text-slate-500">{currentUser.email} · Status provided by your authenticated account.</p>
               </article>
             </section>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
-              <div className="space-y-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(270px,1fr)]">
+              <div className="min-w-0 space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-extrabold text-[#08163b]">Application journey</h3><p className="mt-1 text-xs text-slate-500">Follow each step to complete your application.</p></div><button type="button" onClick={() => setDashboardTab('applications')} className="min-h-10 rounded-full bg-[#142f70] px-5 text-xs font-bold text-white">Continue →</button></div>
                   <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
@@ -368,13 +368,13 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
                 </section>
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                   <h3 className="text-lg font-extrabold text-[#08163b]">Quick actions</h3>
-                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
                       {label:'Edit profile',tab:'profile',Icon:User,tone:'bg-blue-50 text-blue-700'},
                       {label:'Application',tab:'applications',Icon:FileText,tone:'bg-amber-50 text-amber-700'},
                       {label:'Practice CBT',tab:'cbt',Icon:BookOpen,tone:'bg-violet-50 text-violet-700'},
                       {label:'Documents',tab:'documents',Icon:Download,tone:'bg-emerald-50 text-emerald-700'},
-                    ].map(item => <button type="button" key={item.tab} onClick={() => setDashboardTab(item.tab)} className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={25}/>{item.label}</button>)}
+                    ].map(item => <button type="button" key={item.tab} onClick={() => setDashboardTab(item.tab)} className={`flex min-h-[94px] flex-col items-center justify-center gap-3 rounded-2xl p-3 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${item.tone}`}><item.Icon size={25}/>{item.label}</button>)}
                   </div>
                 </section>
               </div>
