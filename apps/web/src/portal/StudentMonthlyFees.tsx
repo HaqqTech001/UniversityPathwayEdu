@@ -17,6 +17,7 @@ export default function StudentMonthlyFees(){
  const [dragging,setDragging]=useState(false);
  const [uploading,setUploading]=useState(false);
  const [message,setMessage]=useState('');
+ const [messageIsError,setMessageIsError]=useState(false);
  const [reload,setReload]=useState(0);
  const input=useRef<HTMLInputElement>(null);
  useEffect(()=>{
@@ -33,16 +34,16 @@ export default function StudentMonthlyFees(){
   return()=>controller.abort();
  },[reload]);
  const choose=(candidate:File|undefined)=>{
-  setMessage('');
+  setMessage('');setMessageIsError(false);
   if(!candidate)return;
-  if(!allowed.includes(candidate.type)||candidate.size<1||candidate.size>5242880){setFile(null);setMessage('Choose a PDF, JPG or PNG receipt under 5 MB.');return;}
+  if(!allowed.includes(candidate.type)||candidate.size<1||candidate.size>5242880){setFile(null);setMessageIsError(true);setMessage('Choose a PDF, JPG or PNG receipt under 5 MB.');return;}
   setFile(candidate);
  };
  const submit=async(event:React.FormEvent)=>{
-  event.preventDefault();setMessage('');
-  if(!selectedFee||!fees.some(f=>f.id===selectedFee)){setMessage('Select the monthly fee you paid.');return;}
-  if(!file){setMessage('Choose a receipt to upload.');return;}
-  const token=getStudentToken();if(!token){setMessage('Sign in before uploading.');return;}
+  event.preventDefault();setMessage('');setMessageIsError(false);
+  if(!selectedFee||!fees.some(f=>f.id===selectedFee)){setMessageIsError(true);setMessage('Select the monthly fee you paid.');return;}
+  if(!file){setMessageIsError(true);setMessage('Choose a receipt to upload.');return;}
+  const token=getStudentToken();if(!token){setMessageIsError(true);setMessage('Sign in before uploading.');return;}
   setUploading(true);
   try{
    const post=async(route:string,body:object)=>{
@@ -52,6 +53,7 @@ export default function StudentMonthlyFees(){
     return json;
    };
    const signed=await post('/monthly-receipts/upload-url',{monthlyFeeId:selectedFee,mimeType:file.type,sizeBytes:file.size});
+   if(typeof signed.signedUrl!=='string'||!signed.signedUrl.startsWith('https://')||typeof signed.path!=='string'||!signed.path)throw Error('The server did not provide a valid secure upload destination.');
    const uploaded=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
    if(!uploaded.ok)throw Error('Receipt file upload failed.');
    const confirmed=await post('/monthly-receipts/confirm',{monthlyFeeId:selectedFee,path:signed.path,mimeType:file.type});
@@ -59,7 +61,7 @@ export default function StudentMonthlyFees(){
    setMessage('Receipt submitted for finance review. Reference: '+confirmed.receipt.id+'. This does not confirm payment.');
    setFile(null);if(input.current)input.current.value='';
    setReload(value=>value+1);
-  }catch(e){setMessage(e instanceof Error?e.message:'Unable to upload receipt.');}
+  }catch(e){setMessageIsError(true);setMessage(e instanceof Error?e.message:'Unable to upload receipt.');}
   finally{setUploading(false);}
  };
  return <section className="rounded-2xl border border-slate-200 bg-white p-6" aria-labelledby="monthly-fees-heading">
@@ -74,14 +76,14 @@ export default function StudentMonthlyFees(){
     <option value="">Select month and programme</option>
     {fees.map(f=><option key={f.id} value={f.id}>{f.billing_month} — {f.programme_code} — {money(Math.max(0,f.amount_due_ngn-f.amount_paid_ngn))} outstanding</option>)}
    </select>
-   <div onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={e=>{e.preventDefault();setDragging(false);}} onDrop={e=>{e.preventDefault();setDragging(false);if(!uploading)choose(e.dataTransfer.files[0]);}} className={'rounded-xl border-2 border-dashed p-6 text-center '+(dragging?'border-[#C62839] bg-red-50':'border-slate-300 bg-white')}>
+   <div onDragOver={e=>{e.preventDefault();if(!uploading)setDragging(true);}} onDragLeave={e=>{e.preventDefault();setDragging(false);}} onDrop={e=>{e.preventDefault();setDragging(false);if(!uploading)choose(e.dataTransfer.files[0]);}} className={'rounded-xl border-2 border-dashed p-6 text-center '+(dragging?'border-[#C62839] bg-red-50':'border-slate-300 bg-white')}>
     <p className="text-sm text-slate-700">{file?file.name:'Drag and drop your receipt here, or browse your device'}</p>
-    <input ref={input} type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" className="sr-only" onChange={e=>choose(e.target.files?.[0])} />
+    <input ref={input} type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" className="sr-only" disabled={uploading} onChange={e=>choose(e.target.files?.[0])} />
     <button type="button" disabled={uploading} onClick={()=>input.current?.click()} className="mt-3 rounded-lg bg-[#111A43] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Browse files</button>
     <p className="mt-2 text-xs text-slate-500">PDF, JPG or PNG · Maximum 5 MB</p>
    </div>
    <button type="submit" disabled={uploading||loading||!file||!selectedFee} className="rounded-lg bg-[#C62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploading?'Uploading…':'Submit receipt for review'}</button>
-   {message&&<p role="status" className="text-sm text-slate-700">{message}</p>}
+   {message&&<p role={messageIsError?'alert':'status'} className={'text-sm '+(messageIsError?'text-red-700':'text-emerald-700')}>{message}</p>}
   </form>
   <div className="mt-8"><div className="flex items-center justify-between"><h3 className="font-bold text-[#111A43]">Submitted monthly receipts</h3><button type="button" onClick={()=>setReload(value=>value+1)} className="text-sm font-semibold text-[#C62839]">Refresh</button></div>
    {receipts.length===0?<p className="mt-3 text-sm text-slate-500">No monthly payment receipts submitted yet.</p>:<ul className="mt-3 space-y-2">{receipts.map(r=><li key={r.id} className="rounded-lg border border-slate-200 p-3 text-sm"><span className="font-semibold capitalize">{r.review_status}</span> · {fees.find(f=>f.id===r.monthly_fee_id)?.billing_month||'Monthly fee'} · {new Date(r.created_at).toLocaleDateString('en-NG')}<p className="break-all text-xs text-slate-500">Reference: {r.id}</p></li>)}</ul>}
