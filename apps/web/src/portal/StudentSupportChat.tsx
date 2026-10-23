@@ -12,6 +12,7 @@ export default function StudentSupportChat(){
  const previewRequests=useRef(new Set<string>());
  const [draft,setDraft]=useState('');
  const [file,setFile]=useState<File|null>(null);
+ const uploadedRef=useRef<{file:File;upload:Upload}|null>(null);
  const [dragging,setDragging]=useState(false);
  const fileRef=useRef<HTMLInputElement|null>(null);
  const [emojiOpen,setEmojiOpen]=useState(false);
@@ -62,7 +63,7 @@ export default function StudentSupportChat(){
  const selectFile=(selected?:File)=>{
   if(!selected)return;
   if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(selected.type)||selected.size>20971520||selected.size<1||selected.name.length>180){setError('Select a JPG, PNG, WebP, PDF or MP4 file up to 20 MB.');return;}
-  setFile(selected);setError('');
+  uploadedRef.current=null;setFile(selected);setError('');
  };
  const upload=async(selected:File):Promise<Upload>=>{
   const token=getStudentToken();if(!token)throw Error('Sign in again.');
@@ -91,10 +92,11 @@ export default function StudentSupportChat(){
   setSending(true);setError('');
   try{
    if(file)setUploadProgress('uploading');
-   const attachment=file?await upload(file):null;
+   const attachment=file?(uploadedRef.current?.file===file?uploadedRef.current.upload:await upload(file)):null;
+   if(file&&attachment)uploadedRef.current={file,upload:attachment};
    setUploadProgress('sending');
    await request({body:message,...(attachment?{attachmentPath:attachment.path,attachmentName:attachment.name,attachmentMime:attachment.mime,attachmentSize:attachment.size}:{})});
-   if(mounted.current){setDraft('');setFile(null);if(fileRef.current)fileRef.current.value='';await refresh(true);}
+   if(mounted.current){setDraft('');setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
    if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
   }finally{if(mounted.current){setSending(false);setUploadProgress('idle');}}
@@ -109,7 +111,7 @@ export default function StudentSupportChat(){
    <div ref={endRef}/>
   </div>
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-  {file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>setFile(null)} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
+  {file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>{setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';}} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
   <form onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);selectFile(e.dataTransfer.files[0]);}} className={'mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end '+(dragging?'rounded-xl ring-2 ring-[#c62839]':'')} onSubmit={send}>
    <label className="min-w-0 flex-1 text-xs font-bold text-[#111A43]">Your message
     <textarea ref={inputRef} maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
