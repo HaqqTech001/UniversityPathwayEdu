@@ -350,12 +350,12 @@ router.post('/applications',wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').insert({account_id:req.actor.sub,programme,academic_session,subjects,form_data:formData}).select('id,reference_number,status,submitted_at,student_registration_number').single();
  if(error)throw error;
  const linked=await db.from('upec_application_payment_evidence').update({application_id:data.id}).eq('id',evidenceId).eq('student_account_id',req.actor.sub).is('application_id',null).select('id').maybeSingle();
- if(linked.error||!linked.data){console.error('Payment evidence link failed',linked.error);return res.status(503).json({error:'Application saved, but receipt linking needs staff review. Keep your Application ID.',applicationId:data.id});}
+ if(linked.error||!linked.data){console.error('Payment evidence link failed',linked.error);return res.status(202).json({application:data,warning:'Application saved, but receipt linking needs staff review. Your application reference is '+data.reference_number+'. Contact admissions if this remains unresolved.',requiresStaffReview:true});}
  if(formData.hostelInterest==='yes'){
   const request=await db.from('upec_hostel_requests').insert({application_id:data.id,student_account_id:req.actor.sub});
   if(request.error){
    console.error('Accommodation interest sync failed',request.error);
-   return res.status(503).json({error:'Application saved but accommodation request could not be recorded. Contact admissions with your application reference.',applicationReference:data.reference_number});
+   return res.status(202).json({application:data,warning:'Application saved, but accommodation request could not be recorded. Contact admissions with your application reference.',requiresStaffReview:true});
   }
  }
  res.status(201).json({application:data});
