@@ -1,3 +1,4 @@
+import {notifyPortal} from './PortalToasts';
 import PaymentLedger from './PaymentLedger';
 import RegistrationBilling from './RegistrationBilling';
 import FinanceSummary from './FinanceSummary';
@@ -65,8 +66,8 @@ export default function StaffDashboard({profile,onLogout}){
   setError('');setUpdating(review.id);
   try{
    await opsRequest('/applications/'+encodeURIComponent(review.id)+'/status',{method:'PATCH',body:JSON.stringify({status:review.status,note})});
-   setReview(null);setReviewNote('');await load();
-  }catch(err){setError(err.message);}
+   setReview(null);setReviewNote('');await load();notifyPortal('success','Application review saved successfully.');
+  }catch(err){setError(err.message);notifyPortal('error',err.message||'Operation failed.');}
   finally{setUpdating(null);}
  };
  const viewDetails=async id=>{
