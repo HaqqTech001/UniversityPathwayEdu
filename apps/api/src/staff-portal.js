@@ -404,6 +404,14 @@ router.patch('/documents/:id/review',permit('applications.review'),wrap(async(re
  if(error)throw error;if(!data)return res.status(404).json({error:'Document not found.'});res.json({document:data});
 }));
 const supportAccess=(req,res,next)=>['super_admin','admin','admissions_officer','teacher','content_editor'].includes(req.staff.role)?next():res.status(403).json({error:'Support inbox access denied.'});
+router.get('/support/attachments/:messageId',supportAccess,wrap(async(req,res)=>{
+ const {data:message,error}=await db.from('upec_support_messages').select('attachment_path').eq('id',req.params.messageId).maybeSingle();
+ if(error)throw error;
+ if(!message?.attachment_path)return res.status(404).json({error:'Attachment not found.'});
+ const {data,error:signError}=await db.storage.from('upec-support-chat').createSignedUrl(message.attachment_path,60);
+ if(signError)throw signError;
+ res.json({url:data.signedUrl});
+}));
 router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('student_account_id,body,created_at,author_role').order('created_at',{ascending:false}).limit(500);
  if(error)throw error;
