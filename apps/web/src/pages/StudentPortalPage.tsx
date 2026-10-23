@@ -89,6 +89,18 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     return ()=>controller.abort();
   },[currentUser?.id,dashboardTab]);
 
+  const [dashboardNotices,setDashboardNotices]=useState<Array<{key:string;title:string;body:string;createdAt:string;read:boolean}>>([]);
+  const [noticesLoading,setNoticesLoading]=useState(false);
+  React.useEffect(()=>{
+    if(dashboardTab!=='overview'||!isAuthenticated)return;
+    const token=getStudentToken();if(!token)return;
+    let active=true;setNoticesLoading(true);
+    upecAuthApi.studentNotifications(token).then(result=>{
+      if(active)setDashboardNotices((result.notifications||[]).slice(0,3));
+    }).catch(()=>{if(active)setDashboardNotices([]);}).finally(()=>{if(active)setNoticesLoading(false);});
+    return()=>{active=false;};
+  },[dashboardTab,isAuthenticated]);
+
   React.useEffect(() => {
     const onHashChange = () => setDashboardTab(tabFromHash());
     window.addEventListener('hashchange', onHashChange);
@@ -311,16 +323,16 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
             ========================================================================= */}
         {dashboardTab === 'overview' && (
           <div className="space-y-5 sm:space-y-6">
-            <section className="flex flex-col gap-4 rounded-2xl border border-red-100 bg-gradient-to-r from-[#fff4f5] to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between" aria-label="Your next step">
-              <div className="flex items-center gap-4">
-                <span className="shrink-0 rounded-2xl bg-red-100 p-3 text-[#c62839]"><FileCheck size={26}/></span>
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-wide text-[#c62839]">Your next step</p>
-                  <h2 className="mt-1 text-lg font-extrabold text-[#111A43]">{!currentUser.profileCompleted?'Complete your profile':!currentUser.application?'Start your application':isAdmitted?'Explore your learning resources':'Track your application'}</h2>
-                  <p className="mt-1 text-sm text-slate-600">{!currentUser.profileCompleted?'Add the details required to begin your application.':!currentUser.application?'Select a programme and submit your application.':isAdmitted?'Your admission is approved. Your learning tools are available.':'Check for updates or requests from the admissions team.'}</p>
-                </div>
+            {/* Approved dashboard-only welcome section, never repeated in other modules. */}
+            <section aria-label="Welcome back" className="relative isolate overflow-hidden rounded-2xl border border-[#d8e4f3] bg-gradient-to-r from-[#e6f0ff] via-[#edf5ff] to-[#dceafa] p-5 sm:p-8 lg:p-10">
+              <img src="/images/campus_atmosphere.jpg" alt="" className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[47%] object-cover opacity-70 lg:block"/>
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#e8f2ff] via-[#e8f2ff]/95 to-[#e8f2ff]/20"/>
+              <div className="relative max-w-xl">
+                <p className="text-sm font-medium text-[#233b68]">Welcome back,</p>
+                <h2 className="mt-1 text-2xl font-black tracking-tight text-[#08163b] sm:text-3xl">{currentUser.biodata.firstName || 'Student'}</h2>
+                <p className="mt-3 max-w-md text-sm leading-7 text-[#334b72]">Keep your profile updated and track your academic journey.</p>
+                <button type="button" onClick={()=>selectPortalTab(!currentUser.profileCompleted?'profile':!currentUser.application?'applications':isAdmitted?'documents':'applications')} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white hover:bg-[#ad2332]">Continue <ArrowRight size={16}/></button>
               </div>
-              <button type="button" onClick={()=>selectPortalTab(!currentUser.profileCompleted?'profile':!currentUser.application?'applications':isAdmitted?'documents':'applications')} className="min-h-11 shrink-0 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#af1f30]">Continue <ArrowRight className="ml-1 inline" size={15}/></button>
             </section>
 
             <section aria-label="Your account status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -369,7 +381,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               <aside className="space-y-5">
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                   <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold text-[#08163b]">Notifications</h3><button type="button" onClick={() => setDashboardTab('notices')} className="text-xs font-bold text-blue-700">View all</button></div>
-                  <div className="mt-6 flex flex-col items-center rounded-xl bg-slate-50 px-4 py-9 text-center"><Bell size={27} className="text-slate-400"/><p className="mt-3 text-sm font-bold">No notifications yet</p><p className="mt-2 text-xs leading-5 text-slate-500">Official updates will appear when connected.</p></div>
+                  <div className="mt-5 space-y-2" aria-live="polite">{noticesLoading?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Loading notifications…</p>:dashboardNotices.length>0?dashboardNotices.map(item=><button type="button" key={item.key} onClick={()=>selectPortalTab('notices')} className="block w-full rounded-xl border border-slate-100 bg-slate-50 p-4 text-left hover:bg-blue-50"><span className="block text-sm font-bold text-[#111A43]">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{item.body}</span></button>):<div className="flex flex-col items-center rounded-xl bg-slate-50 px-4 py-8 text-center"><Bell size={27} className="text-slate-400"/><p className="mt-3 text-sm font-bold">No notifications yet</p><p className="mt-2 text-xs leading-5 text-slate-500">You will see new updates here.</p></div>}</div>
                 </section>
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><h3 className="text-lg font-extrabold text-[#08163b]">Important dates</h3><p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm leading-6 text-slate-500">No official dates have been published to your portal.</p></section>
               </aside>
