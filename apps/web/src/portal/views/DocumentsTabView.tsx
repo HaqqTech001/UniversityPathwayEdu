@@ -59,7 +59,7 @@ export default function DocumentsTabView({
   const [loading,setLoading]=useState(false);
   const [loadError,setLoadError]=useState('');
   const applicationId=currentUser.application?.id;
-  const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student';
+  const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student';
   const authenticatedHeaders=()=>{const token=getStudentToken();if(!token)throw Error('Please sign in again.');return {Authorization:'Bearer '+token};};
   const request=async(url:string,options:RequestInit={})=>{
     const response=await fetch(url,{...options,headers:{...authenticatedHeaders(),...(options.headers||{})}});
@@ -68,7 +68,7 @@ export default function DocumentsTabView({
     return data;
   };
   const refreshDocuments=async()=>{
-    if(!applicationId){setRecords([]);return;}
+    if(!applicationId){setRecords([]);setLoadError('');setLoading(false);return;}
     setLoading(true);setLoadError('');
     try{const data=await request(api+'/applications/'+encodeURIComponent(applicationId)+'/documents');setRecords(data.documents||[]);}
     catch(error){setLoadError(error instanceof Error?error.message:'Could not load documents.');setRecords([]);}
@@ -76,7 +76,7 @@ export default function DocumentsTabView({
   };
   useEffect(()=>{void refreshDocuments();},[applicationId]);
   const documents:DocumentItem[]=requirements.map(item=>{
-    const match=records.find(record=>record.document_type===item.type);
+    const match=records.filter(record=>record.document_type===item.type).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())[0];
     return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':match.review_status==='rejected'?'rejected':'under_review',
       filename:match?.original_filename,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
   });
