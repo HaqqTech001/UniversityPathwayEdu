@@ -58,6 +58,7 @@ export default function DocumentsTabView({
   const [records,setRecords]=useState<Array<{id:string;document_type:string;original_filename:string;review_status:string;review_note?:string;created_at:string}>>([]);
   const [loading,setLoading]=useState(false);
   const [loadError,setLoadError]=useState('');
+  const [lastRefresh,setLastRefresh]=useState(0);
   const applicationId=currentUser.application?.id;
   const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student';
   const authenticatedHeaders=()=>{const token=getStudentToken();if(!token)throw Error('Please sign in again.');return {Authorization:'Bearer '+token};};
@@ -74,7 +75,7 @@ export default function DocumentsTabView({
     catch(error){setLoadError(error instanceof Error?error.message:'Could not load documents.');setRecords([]);return false;}
     finally{setLoading(false);}
   };
-  useEffect(()=>{void refreshDocuments();},[applicationId]);
+  useEffect(()=>{void refreshDocuments();},[applicationId,lastRefresh]);
   const documents:DocumentItem[]=requirements.map(item=>{
     const match=records.filter(record=>record.document_type===item.type).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())[0];
     return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':match.review_status==='rejected'?'rejected':'under_review',
@@ -182,7 +183,8 @@ export default function DocumentsTabView({
           </div>
 
           {loading && <p role="status" className="text-sm text-slate-600">Loading documents from server…</p>}
-          {loadError && <p role="alert" className="text-sm text-red-700">{loadError}</p>}
+          {loadError && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-red-700"><span>{loadError}</span><button type="button" disabled={loading} onClick={()=>setLastRefresh(n=>n+1)} className="rounded-lg border border-red-300 px-3 py-1.5 font-semibold disabled:opacity-50">Retry loading</button></div>}
+          {!loading&&!loadError&&records.length===0&&applicationId&&<p className="text-sm text-slate-600">No documents have been submitted for this application yet.</p>}
           {/* Documents Table / List */}
           <div className="bg-white rounded-2xl border border-[#dce5f0] shadow-xs overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
@@ -252,6 +254,7 @@ export default function DocumentsTabView({
                     {doc.status === 'not_uploaded' ? (
                       <button
                         type="button"
+                        disabled={uploading}
                         onClick={() => {
                           setSelectedKind(doc.type);
                           fileInputRef.current?.click();
