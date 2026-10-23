@@ -10,6 +10,7 @@ export default function StudentSupportChat(){
  const [messages,setMessages]=useState<Message[]>([]);
  const [previews,setPreviews]=useState<Record<string,string>>({});
  const [previewGeneration,setPreviewGeneration]=useState(0);
+ const [groupPreviews,setGroupPreviews]=useState<Record<string,string>>({});
  const previewRequests=useRef(new Set<string>());
  const [draft,setDraft]=useState('');
  const [file,setFile]=useState<File|null>(null);
@@ -90,7 +91,14 @@ export default function StudentSupportChat(){
   Promise.all(media.map(async m=>{try{const token=getStudentToken();const r=await fetch(base+'/api/student/support/attachments/'+encodeURIComponent(m.id),{headers:{Authorization:'Bearer '+token}});if(!r.ok)return null;const data=await r.json();return {id:m.id,url:data.url as string};}catch{return null;}})).then(results=>{if(active)setPreviews(p=>({...p,...Object.fromEntries(results.filter((x):x is {id:string;url:string}=>x!==null).map(x=>[x.id,x.url]))}));});
   return()=>{active=false;};
  },[messages,previewGeneration]);
- useEffect(()=>{const timer=window.setInterval(()=>{previewRequests.current.clear();setPreviews({});setPreviewGeneration(n=>n+1);},45000);return()=>window.clearInterval(timer);},[]);
+ useEffect(()=>{const timer=window.setInterval(()=>{previewRequests.current.clear();setPreviews({});setGroupPreviews({});setPreviewGeneration(n=>n+1);},45000);return()=>window.clearInterval(timer);},[]);
+ useEffect(()=>{
+  let active=true;
+  const media=messages.flatMap(m=>(m.attachments||[]).filter(a=>a.mime_type.startsWith('image/')||a.mime_type.startsWith('video/'))).filter(a=>!groupPreviews[a.id]&&!previewRequests.current.has(a.id));
+  media.forEach(a=>previewRequests.current.add(a.id));
+  Promise.all(media.map(async a=>{try{const token=getStudentToken();const r=await fetch(base+'/api/student/support/files/'+encodeURIComponent(a.id),{headers:{Authorization:'Bearer '+token}});if(!r.ok)return null;const data=await r.json();return {id:a.id,url:data.url as string};}catch{return null;}})).then(results=>{if(active)setGroupPreviews(p=>({...p,...Object.fromEntries(results.filter((x):x is {id:string;url:string}=>x!==null).map(x=>[x.id,x.url]))}));});
+  return()=>{active=false;};
+ },[messages,previewGeneration]);
  const send=async(e:React.FormEvent)=>{
   e.preventDefault();
   const message=draft.trim();
