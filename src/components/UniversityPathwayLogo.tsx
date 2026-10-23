@@ -25,8 +25,8 @@ export default function UniversityPathwayLogo({
 
   // Determine image asset path based on variant
   const imagePath = isFooter
-    ? '/images/pathway-logos/pathway-footer.png'
-    : '/images/pathway-logos/pathway-header.png';
+    ? '/images/upec_official_horizontal_white.png'
+    : '/images/upec_official_horizontal_dark.png';
 
   // 1. Watermark Variant
   if (isWatermark) {
@@ -162,7 +162,7 @@ export default function UniversityPathwayLogo({
           onError={() => setImgError(true)}
           className={`w-auto object-contain ${
             isFooter
-              ? 'block h-auto max-h-[84px] max-w-full object-contain object-left'
+              ? 'h-12 sm:h-14 md:h-16 max-h-[64px]'
               : 'h-9 xs:h-10 sm:h-12 md:h-14 max-h-[56px]'
           }`}
         />
