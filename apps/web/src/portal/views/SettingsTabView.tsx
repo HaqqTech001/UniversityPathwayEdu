@@ -108,7 +108,7 @@ export default function SettingsTabView({
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
             <ShieldCheck size={14} className="text-emerald-600" />
-            <span>Account Security High</span>
+            <span>Security status unavailable</span>
           </span>
         </div>
       </div>
@@ -135,7 +135,7 @@ export default function SettingsTabView({
                   <div>
                     <span className="text-slate-400 font-medium block">Student ID / Reference</span>
                     <strong className="text-[#111A43] font-mono block mt-0.5">
-                      {currentUser.regNumber || currentUser.application?.referenceNumber || 'UPEC/2026/0148'}
+                      {currentUser.regNumber || currentUser.application?.referenceNumber || 'Not issued'}
                     </strong>
                   </div>
                   <div>
@@ -144,7 +144,7 @@ export default function SettingsTabView({
                   </div>
                   <div>
                     <span className="text-slate-400 font-medium block">Mobile Phone</span>
-                    <strong className="text-[#111A43] block mt-0.5">{currentUser.phone || '+234 812 345 6789'}</strong>
+                    <strong className="text-[#111A43] block mt-0.5">{currentUser.phone || 'Not provided'}</strong>
                   </div>
                 </div>
               </div>
