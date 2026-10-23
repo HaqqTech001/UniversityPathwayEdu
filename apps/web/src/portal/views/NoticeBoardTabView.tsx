@@ -81,7 +81,7 @@ export default function NoticeBoardTabView({
   const regularNotices = filteredNotices.filter((n) => !n.isPinned);
 
   const markAllAsRead = () => {
-    setNotices((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNoticeError('Read status must be saved by the server. Open each notice to review it; bulk read is not available yet.');
   };
 
   return (
