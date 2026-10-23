@@ -314,12 +314,13 @@ export default function PaymentsTabView({
 
               <section className="mt-5 rounded-xl border border-slate-200 p-4" aria-label="Submitted application payment receipts">
                 <h3 className="text-xs font-bold text-[#111A43] mb-2">Your submitted application receipts</h3>
+                <button type="button" className="text-xs text-[#c62839] font-bold underline mb-2" disabled={receiptLoading} onClick={()=>setReceiptReload(value=>value+1)}>Refresh receipt statuses</button>
                 {receiptLoading ? <p className="text-xs text-slate-600">Loading receipts…</p> :
                   receiptError ? <p role="alert" className="text-xs text-red-700">{receiptError}</p> :
                   receiptRecords.length===0 ? <p className="text-xs text-slate-600">No application receipts submitted yet.</p> :
                   <ul className="space-y-2">{receiptRecords.map(receipt=><li key={receipt.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 text-xs">
                     <span className="font-mono break-all">{receipt.id}</span>
-                    <span className="font-bold capitalize">{receipt.review_status.replace(/_/g,' ')}</span>
+                    <span className="flex flex-col gap-1"><span className="font-bold capitalize">{receipt.review_status.replace(/_/g,' ')}</span><time dateTime={receipt.created_at} className="text-slate-500">{new Date(receipt.created_at).toLocaleString()}</time>{receipt.application_id && <span className="text-slate-500">Linked to application</span>}</span>
                   </li>)}</ul>}
               </section>
               <form onSubmit={handleEvidenceSubmit} className="mt-5 space-y-4 max-w-lg">
