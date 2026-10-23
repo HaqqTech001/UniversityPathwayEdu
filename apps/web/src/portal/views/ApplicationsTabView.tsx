@@ -55,10 +55,12 @@ export default function ApplicationsTabView({
   const application = currentUser.application;
   const isAdmitted = application?.status === 'approved';
   const hasApplication=Boolean(application?.id);
-  const hasDecision=isAdmitted||application?.status==='rejected';
+  const isRejected=application?.status==='rejected';
+  const hasDecision=isAdmitted||isRejected;
   const isUnderReview=hasApplication&&(hasDecision||application?.status==='under_review'||application?.status==='action_required');
   const applicationStage = !hasApplication ? 0 : hasDecision ? 4 : isUnderReview ? 3 : 2;
   const stageProgress=applicationStage*25;
+  const applicationStatusLabel=!hasApplication?'No application':isAdmitted?'Approved':isRejected?'Rejected':application?.status==='action_required'?'Correction required':application?.status==='under_review'?'Under review':application?.status?.replace(/_/g,' ')||'Submitted';
 
   return (
     <div className="space-y-6">
@@ -178,11 +180,13 @@ export default function ApplicationsTabView({
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       isAdmitted
                         ? 'bg-emerald-100 text-emerald-800'
+                        : isRejected
+                        ? 'bg-red-100 text-red-800'
                         : application
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-slate-100 text-slate-700'
                     }`}>
-                      {application?.status ? application.status.replace(/_/g, ' ') : 'No application'}
+                      {applicationStatusLabel}
                     </span>
                   </div>
                   <h2 className="mt-1 text-lg font-black text-[#111A43]">
@@ -206,7 +210,7 @@ export default function ApplicationsTabView({
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     />
                     <path
-                      className={isAdmitted ? 'text-emerald-500' : 'text-[#c62839]'}
+                      className={isAdmitted ? 'text-emerald-500' : isRejected ? 'text-red-500' : 'text-[#c62839]'}
                       strokeDasharray={`${stageProgress}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
@@ -222,7 +226,7 @@ export default function ApplicationsTabView({
                 <div className="text-left text-xs leading-tight">
                   <strong className="block font-bold text-[#111A43]">Application</strong>
                   <span className="text-[11px] text-slate-500">
-                    {!hasApplication ? 'Not started' : isAdmitted ? 'Approved' : 'Stage '+applicationStage+' of 4'}
+                    {!hasApplication ? 'Not started' : hasDecision ? applicationStatusLabel : 'Stage '+applicationStage+' of 4'}
                   </span>
                 </div>
               </div>
