@@ -133,7 +133,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
       <div className="bg-[#081436] text-white py-1.5 px-3 sm:px-6 md:px-8 border-b border-[#0f2150] h-9 flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between text-[11px] sm:text-[12px] text-slate-200">
           {/* Continuous, clipped headline-style ticker on all viewport sizes. */}
-          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="UPEC contact information">
+          <div className="relative mr-4 min-w-0 flex-1 overflow-hidden" aria-label="University Pathway contact information">
             <div className="overflow-hidden">
               <div className="upec-utility-ticker">
                 {[0,1].map(copy=><div key={copy} aria-hidden={copy===1} className="upec-utility-ticker__group">
@@ -146,7 +146,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
 
           </div>
 
-          {/* Right Social Media Icons (Mockup arrangement: Facebook, Twitter/X, Instagram, LinkedIn) */}
+          {/* Right Social Media Icons (Mockup arrangement: Facebook, X, Instagram, TikTok) */}
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             {[
               {
