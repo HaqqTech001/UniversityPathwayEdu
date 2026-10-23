@@ -418,6 +418,13 @@ router.get('/finance/application-receipts',permit('finance.manage'),wrap(async(r
  if(error)throw error;
  res.json({receipts:data||[]});
 }));
+router.get('/finance/application-receipts/:id/details',permit('finance.manage'),wrap(async(req,res)=>{
+ if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
+ const {data,error}=await db.from('upec_application_payment_evidence').select('id,student_account_id,application_id,review_status,created_at,mime_type,file_size_bytes').eq('id',req.params.id).maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(404).json({error:'Receipt not found.'});
+ res.json({receipt:data});
+}));
 router.patch('/finance/application-receipts/:id/review',permit('finance.manage'),wrap(async(req,res)=>{
  const id=req.params.id;
  const status=req.body?.status;
