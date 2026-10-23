@@ -1,106 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-/**
- * Robust ScrollReveal component using IntersectionObserver.
- * Triggers entrance animations (fade-in, slide up/left/right/scale) when elements enter viewport.
- * Unobserves after entering to prevent layout reflows and flicker.
- * Respects prefers-reduced-motion.
- */
-export default function ScrollReveal({
-  children,
-  from = 'up',
-  delay = 0,
-  className = '',
-  as: Tag = 'div',
-  threshold = 0.1,
-  once = true,
-}) {
-  const elementRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasAnimated, setHasAnimated] = useState(false);
-
-  useEffect(() => {
-    const el = elementRef.current;
-    if (!el) return;
-
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
-      setIsVisible(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            setHasAnimated(true);
-            if (once) {
-              observer.unobserve(entry.target);
-            }
-          } else {
-            if (!once) {
-              setIsVisible(false);
-            }
-          }
-        });
-      },
-      {
-        threshold,
-        rootMargin: '0px 0px -20px 0px',
-      }
-    );
-
-    observer.observe(el);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [threshold, once]);
-
-  const getTransformClass = () => {
-    if (isVisible) return 'opacity-100 translate-x-0 translate-y-0 scale-100';
-
-    switch (from) {
-      case 'left':
-        return 'opacity-0 -translate-x-10 translate-y-0';
-      case 'right':
-        return 'opacity-0 translate-x-10 translate-y-0';
-      case 'down':
-        return 'opacity-0 translate-x-0 -translate-y-10';
-      case 'scale':
-        return 'opacity-0 scale-95 translate-y-0';
-      case 'up':
-      default:
-        return 'opacity-0 translate-x-0 translate-y-10';
-    }
-  };
-
-  // Instant disappear when not visible, 1000ms (1s) transition & delay when appearing/reappearing
-  const transitionStyle = isVisible
-    ? {
-        transitionProperty: 'opacity, transform',
-        transitionDuration: '750ms',
-        transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        transitionDelay: `${delay}ms`,
-      }
-    : {
-        transitionProperty: 'none',
-        transitionDuration: '0ms',
-        transitionDelay: '0ms',
-      };
-
-  return (
-    <Tag
-      ref={elementRef}
-      className={`will-change-[opacity,transform] ${getTransformClass()} ${className}`}
-      style={transitionStyle}
-      data-reveal={from}
-    >
-      {children}
-    </Tag>
-  );
+/** Scroll-triggered, once-only entrance; styles do not rely on Tailwind class extraction. */
+export default function ScrollReveal({ children, from='up', delay=0, className='', as:Tag='div', threshold=0.08, once=true }) {
+  const ref=useRef(null);
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    const element=ref.current;
+    if(!element)return;
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduced||!('IntersectionObserver' in window)){setVisible(true);return;}
+    const observer=new IntersectionObserver(entries=>{
+      if(entries.some(entry=>entry.isIntersecting)){
+        setVisible(true);
+        if(once)observer.disconnect();
+      }else if(!once){setVisible(false);}
+    },{threshold,rootMargin:'0px 0px -36px 0px'});
+    observer.observe(element);
+    return()=>observer.disconnect();
+  },[threshold,once]);
+  const offsets={left:'translate3d(-44px,0,0)',right:'translate3d(44px,0,0)',down:'translate3d(0,-32px,0)',scale:'translate3d(0,20px,0) scale(.96)',up:'translate3d(0,38px,0)'};
+  return <Tag ref={ref} className={className} data-reveal={from} style={{
+    opacity:visible?1:0,
+    transform:visible?'translate3d(0,0,0) scale(1)':(offsets[from]||offsets.up),
+    transition:'opacity 780ms cubic-bezier(.22,1,.36,1), transform 780ms cubic-bezier(.22,1,.36,1)',
+    transitionDelay:visible?Math.max(0,delay)+'ms':'0ms'
+  }}>{children}</Tag>;
 }
