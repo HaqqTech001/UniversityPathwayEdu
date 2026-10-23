@@ -105,10 +105,11 @@ export default function DocumentsTabView({
     finally{setUploading(false);}
   };
   const viewDocument=async(type:string)=>{
-    const record=records.find(entry=>entry.document_type===type);
+    const record=records.filter(entry=>entry.document_type===type).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())[0];
     if(!record)return;
     try{
       const result=await request(api+'/documents/'+encodeURIComponent(record.id)+'/view');
+      if(typeof result.url!=='string'||!/^https:\/\//i.test(result.url))throw Error('A secure document preview link was not returned.');
       window.open(result.url,'_blank','noopener,noreferrer');
     }catch(error){setUploadError(error instanceof Error?error.message:'Unable to open document.');}
   };
