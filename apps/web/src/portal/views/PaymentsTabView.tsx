@@ -50,35 +50,7 @@ export default function PaymentsTabView({
   const [evidenceRef, setEvidenceRef] = useState('');
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
 
-  const payments: PaymentRecord[] = [
-    {
-      id: 'p1',
-      reference: 'PAY-2026-0814',
-      category: 'First Tuition Instalment',
-      channel: 'Direct Bank Transfer',
-      amount: 150000,
-      date: '15 Oct 2026',
-      status: 'verified',
-    },
-    {
-      id: 'p2',
-      reference: 'PAY-2026-0421',
-      category: 'Registration & Enrolment Fee',
-      channel: 'Moniepoint POS / Transfer',
-      amount: 35000,
-      date: '08 Oct 2026',
-      status: 'verified',
-    },
-    {
-      id: 'p3',
-      reference: 'PAY-2026-0989',
-      category: 'Course Materials & Practical Kit',
-      channel: 'Bank Transfer',
-      amount: 25000,
-      date: '21 Oct 2026',
-      status: 'pending',
-    },
-  ];
+  const payments: PaymentRecord[] = []; // Show no transactions until the billing service supplies authenticated records.
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard?.writeText(text);
@@ -88,10 +60,8 @@ export default function PaymentsTabView({
 
   const handleEvidenceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setEvidenceSuccess('Payment evidence submitted to the finance registry. Verification takes 24–48 hours.');
-    setEvidenceAmount('');
-    setEvidenceBank('');
-    setEvidenceRef('');
+    setEvidenceSuccess('Payment evidence upload is not yet connected. No evidence has been submitted.');
+
     setTimeout(() => setEvidenceSuccess(''), 6000);
   };
 
@@ -127,7 +97,7 @@ export default function PaymentsTabView({
             Total Programme Fees
           </span>
           <strong className="text-2xl font-black text-[#111A43] block mt-1">
-            ₦285,000
+            Not available
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
             Full Session (IJMB 2026/2027)
@@ -145,7 +115,7 @@ export default function PaymentsTabView({
             </span>
           </div>
           <strong className="text-2xl font-black text-emerald-700 block mt-1">
-            ₦185,000
+            Not available
           </strong>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
             <div className="bg-emerald-500 h-full rounded-full w-[65%]" />
@@ -158,7 +128,7 @@ export default function PaymentsTabView({
             Outstanding Balance
           </span>
           <strong className="text-2xl font-black text-[#c62839] block mt-1">
-            ₦100,000
+            Not available
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
             Second Instalment Balance
@@ -447,7 +417,7 @@ export default function PaymentsTabView({
             <div className="mt-3 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-[#111A43]">
               <strong className="block text-amber-900 font-bold mb-1">Second Tuition Instalment</strong>
               <p className="text-slate-700 leading-relaxed">
-                The balance of ₦100,000 for the first semester is due by <strong>November 15, 2026</strong>. Late clearance incurs administrative review.
+                The balance of Not available for the first semester is due by <strong>November 15, 2026</strong>. Late clearance incurs administrative review.
               </p>
             </div>
           </div>
