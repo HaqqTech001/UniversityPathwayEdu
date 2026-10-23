@@ -550,7 +550,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                   <UserPlus size={16} />
                   <span>{authLoading ? 'Creating Account...' : 'Create Account'}</span>
                 </button>
-                {authLoading&&<p role="status" className="rounded-xl border border-[#dce4ef] bg-[#f7f9ff] p-3 text-xs leading-6 text-[#111A43]">Contacting UPEC securely… This may take a moment. If the server does not respond, we’ll stop waiting and show you how to retry. Please avoid submitting twice.</p>}
+                {authLoading&&<p role="status" className="rounded-xl border border-[#dce4ef] bg-[#f7f9ff] p-3 text-xs leading-6 text-[#111A43]">Contacting University Pathway securely… This may take a moment. If the server does not respond, we’ll stop waiting and show you how to retry. Please avoid submitting twice.</p>}
               </form>
             )}
 
@@ -572,7 +572,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                       required
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="e.g. UPEC/2025/0842 or email@address.com"
+                      placeholder="Enter your registration number or email"
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
                     />
                   </div>
