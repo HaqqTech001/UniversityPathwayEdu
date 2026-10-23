@@ -89,7 +89,7 @@ export default function PaymentsTabView({
             Not available
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Full Session (IJMB 2026/2027)
+            Programme fee statement pending
           </span>
         </div>
 
@@ -100,14 +100,14 @@ export default function PaymentsTabView({
               Amount Paid
             </span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-              65%
+              Awaiting statement
             </span>
           </div>
           <strong className="text-2xl font-black text-emerald-700 block mt-1">
             Not available
           </strong>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
-            <div className="bg-emerald-500 h-full rounded-full w-[65%]" />
+            <div className="bg-emerald-500 h-full rounded-full w-0" />
           </div>
         </div>
 
@@ -120,7 +120,7 @@ export default function PaymentsTabView({
             Not available
           </strong>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Second Instalment Balance
+            Balance requires issued statement
           </span>
         </div>
 
