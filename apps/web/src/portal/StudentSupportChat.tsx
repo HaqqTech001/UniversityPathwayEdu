@@ -13,6 +13,7 @@ export default function StudentSupportChat(){
  const [dragging,setDragging]=useState(false);
  const fileRef=useRef<HTMLInputElement|null>(null);
  const [emojiOpen,setEmojiOpen]=useState(false);
+ const emojiRef=useRef<HTMLDivElement|null>(null);
  const inputRef=useRef<HTMLTextAreaElement|null>(null);
  const [error,setError]=useState('');
  const [sending,setSending]=useState(false);
@@ -21,6 +22,7 @@ export default function StudentSupportChat(){
  const endRef=useRef<HTMLDivElement|null>(null);
  const historyRef=useRef<HTMLDivElement|null>(null);
  const mounted=useRef(true);
+ useEffect(()=>{if(!emojiOpen)return;const close=(event:PointerEvent)=>{if(emojiRef.current&&!emojiRef.current.contains(event.target as Node))setEmojiOpen(false);};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setEmojiOpen(false);};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};},[emojiOpen]);
  const shouldStickToBottom=useRef(true);
  const request=async(payload?:{body:string;attachmentPath?:string;attachmentName?:string;attachmentMime?:string;attachmentSize?:number})=>{
   const token=getStudentToken();
@@ -106,7 +108,7 @@ export default function StudentSupportChat(){
     <textarea ref={inputRef} maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
    </label>
    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4" className="hidden" onChange={e=>selectFile(e.target.files?.[0])}/><button type="button" onClick={()=>fileRef.current?.click()} className="min-h-11 self-end rounded-xl border border-slate-300 px-3 text-sm font-bold" aria-label="Attach file">📎 Attach</button>
-   <div className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] shadow-xl"><EmojiPicker width={320} height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
+   <div ref={emojiRef} className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl shadow-xl"><EmojiPicker width="min(320px, calc(100vw - 3rem))" height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
    <button type="submit" disabled={sending||(!draft.trim()&&!file)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{sending?'Sending…':'Send message'}</button>
   </form>
   <p className="mt-2 text-xs text-slate-500">Enter to send · Shift + Enter for a new line</p>
