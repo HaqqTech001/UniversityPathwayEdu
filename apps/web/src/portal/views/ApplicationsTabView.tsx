@@ -55,7 +55,9 @@ export default function ApplicationsTabView({
   const application = currentUser.application;
   const isAdmitted = application?.status === 'approved';
   const hasApplication=Boolean(application?.id);
-  const applicationStage = !hasApplication ? 0 : isAdmitted || application?.status==='rejected' ? 4 : application?.status==='under_review'||application?.status==='action_required' ? 3 : 2;
+  const hasDecision=isAdmitted||application?.status==='rejected';
+  const isUnderReview=hasApplication&&(hasDecision||application?.status==='under_review'||application?.status==='action_required');
+  const applicationStage = !hasApplication ? 0 : hasDecision ? 4 : isUnderReview ? 3 : 2;
   const stageProgress=applicationStage*25;
 
   return (
@@ -243,7 +245,7 @@ export default function ApplicationsTabView({
 
                 {/* Step 2 */}
                 <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className={`w-8 h-8 rounded-full ${hasApplication?'bg-emerald-500 text-white':'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs` }>
                     <CheckCircle2 size={16} />
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">2. Application</span>
@@ -253,20 +255,20 @@ export default function ApplicationsTabView({
                 {/* Step 3 */}
                 <div className="flex flex-col items-center text-center p-3 rounded-xl bg-amber-50/60 border border-amber-200">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs ${
-                    isAdmitted ? 'bg-emerald-500 text-white' : 'bg-[#c62839] text-white animate-pulse'
+                    hasDecision ? 'bg-emerald-500 text-white' : isUnderReview ? 'bg-[#c62839] text-white' : 'bg-slate-200 text-slate-500'
                   }`}>
-                    {isAdmitted ? <CheckCircle2 size={16} /> : <Clock size={16} />}
+                    {hasDecision ? <CheckCircle2 size={16} /> : isUnderReview ? <Clock size={16} /> : 3}
                   </div>
                   <span className="mt-2 text-xs font-bold text-[#111A43]">3. Review</span>
                   <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {isAdmitted ? 'Verified' : applicationStage>=3 ? 'In review' : 'Not started'}
+                    {hasDecision ? 'Reviewed' : isUnderReview ? 'In review' : 'Not started'}
                   </span>
                 </div>
 
                 {/* Step 4 */}
                 <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    isAdmitted ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                    isAdmitted ? 'bg-emerald-500 text-white' : application?.status==='rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'
                   }`}>
                     {isAdmitted ? <CheckCircle2 size={16} /> : 4}
                   </div>
