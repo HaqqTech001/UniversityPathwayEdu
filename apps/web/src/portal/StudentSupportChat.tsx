@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import EmojiPicker from 'emoji-picker-react';
 import {getStudentToken} from '../context/AuthContext';
 
 type Message={id:string;author_role:string;body:string;created_at:string};
@@ -6,6 +7,8 @@ const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/
 export default function StudentSupportChat(){
  const [messages,setMessages]=useState<Message[]>([]);
  const [draft,setDraft]=useState('');
+ const [emojiOpen,setEmojiOpen]=useState(false);
+ const inputRef=useRef<HTMLTextAreaElement|null>(null);
  const [error,setError]=useState('');
  const [sending,setSending]=useState(false);
  const [loading,setLoading]=useState(true);
@@ -68,8 +71,9 @@ export default function StudentSupportChat(){
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
   <form className="mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={send}>
    <label className="min-w-0 flex-1 text-xs font-bold text-[#111A43]">Your message
-    <textarea maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
+    <textarea ref={inputRef} maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
    </label>
+   <div className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] shadow-xl"><EmojiPicker width={320} height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
    <button type="submit" disabled={sending||!draft.trim()} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{sending?'Sending…':'Send message'}</button>
   </form>
   <p className="mt-2 text-xs text-slate-500">Enter to send · Shift + Enter for a new line</p>
