@@ -1,3 +1,4 @@
+import {notifyPortal} from '../components/PortalToasts';
 import {useEffect,useRef,useState} from 'react';
 import {getStudentToken} from '../context/AuthContext';
 import {studentConductRules} from '../components/StudentCodeOfConduct';
@@ -24,8 +25,8 @@ export default function ConductAcknowledgement({programme,onAccepted,onCancel}:P
  const confirmScroll=()=>{const el=scrollRef.current;if(el&&el.scrollTop+el.clientHeight>=el.scrollHeight-20)setReachedEnd(true);};
  const save=async()=>{
   setBusy(true);setError('');
-  try{await request('POST',{version:VERSION,accepted:true});setAccepted(true);onAccepted?.();}
-  catch(e){setError(e instanceof Error?e.message:String(e));}
+  try{await request('POST',{version:VERSION,accepted:true});setAccepted(true);notifyPortal('success','Code of Conduct acknowledgement saved.');onAccepted?.();}
+  catch(e){const message=e instanceof Error?e.message:String(e);setError(message);notifyPortal('error',message);}
   finally{setBusy(false);}
  };
  return <section aria-label="Student conduct acceptance" className="space-y-4">
