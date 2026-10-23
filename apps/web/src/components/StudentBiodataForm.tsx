@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import {notifyPortal} from './PortalToasts';
 import {
   User,
   Users,
@@ -89,6 +90,9 @@ export default function StudentBiodataForm({
 
   const isUtme = formData.programmeCategory === 'UTME (JAMB)';
 
+  const cleanText = (value: string) => value.normalize('NFC').trim().replace(/\s+/gu,' ');
+  const normalized = (field: string) => cleanText(String(formData[field as keyof typeof formData] ?? ''));
+
   const handleChange = (
     field: string,
     value: string | boolean
@@ -173,30 +177,33 @@ export default function StudentBiodataForm({
     setSaveError('');
     try {
     await updateBiodata({
-      surname: formData.surname,
-      firstName: formData.firstName,
-      otherNames: formData.middleName,
+      surname: normalized('surname'),
+      firstName: normalized('firstName'),
+      otherNames: normalized('middleName'),
       gender: formData.gender as 'Male' | 'Female',
       dateOfBirth: formData.dateOfBirth,
       phone: formData.phone,
       email: formData.email,
-      address: formData.currentAddress,
-      stateOfOrigin: formData.stateOfOrigin,
-      lga: formData.lga,
-      guardianName: formData.guardianName,
+      address: normalized('currentAddress'),
+      stateOfOrigin: normalized('stateOfOrigin'),
+      lga: normalized('lga'),
+      guardianName: normalized('guardianName'),
       guardianPhone: formData.guardianPhone,
       guardianRelationship: formData.guardianRelationship,
-      guardianAddress: formData.guardianAddress,
-      previousSchool: formData.currentSchool,
+      guardianAddress: normalized('guardianAddress'),
+      previousSchool: normalized('currentSchool'),
       targetInstitution: isUtme ? formData.targetInstitution : '',
       targetCourse: isUtme ? formData.targetCourse : '',
       targetExam: formData.programmeCategory,
     });
 
     setSuccessToast(true);
+    notifyPortal('success','Student profile saved successfully.');
     if (onSuccess) onSuccess();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not save biodata. Please retry.');
+      const message=error instanceof Error ? error.message : 'Could not save biodata. Please retry.';
+      setSaveError(message);
+      notifyPortal('error',message);
     } finally {
       setSaving(false);
     }
