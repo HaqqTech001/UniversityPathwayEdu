@@ -1,3 +1,4 @@
+import {notifyPortal} from '../components/PortalToasts';
 import {useEffect,useState} from 'react';
 import {getStudentToken} from '../context/AuthContext';
 import ConductAcknowledgement from './ConductAcknowledgement';
@@ -17,7 +18,7 @@ export default function ProgrammeEnrollment(){
   fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/programmes',{headers:{Authorization:'Bearer '+token}})
    .then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error||'Unable to load available programmes');return data;})
    .then(data=>{if(active)setProgrammes(data.programmes||[]);})
-   .catch(e=>{if(active)setError(e.message||'Could not load programmes');})
+   .catch(e=>{if(active){const message=e.message||'Could not load programmes';setError(message);notifyPortal('error',message);}})
    .finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;};
  },[]);
