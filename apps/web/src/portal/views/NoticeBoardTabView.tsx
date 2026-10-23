@@ -80,8 +80,28 @@ export default function NoticeBoardTabView({
   const pinnedNotices = filteredNotices.filter((n) => n.isPinned);
   const regularNotices = filteredNotices.filter((n) => !n.isPinned);
 
-  const markAllAsRead = () => {
-    setNoticeError('Read status must be saved by the server. Open each notice to review it; bulk read is not available yet.');
+  const [markingRead,setMarkingRead]=useState(false);
+  const markNoticeRead = async (notice:NoticeItem) => {
+    if(notice.isRead)return;
+    const token=getStudentToken();
+    if(!token){setNoticeError('Sign in to update notification status.');return;}
+    try{
+      await upecAuthApi.markNotificationRead(token,notice.id);
+      setNotices(prev=>prev.map(item=>item.id===notice.id?{...item,isRead:true}:item));
+      setSelectedNotice(prev=>prev?.id===notice.id?{...prev,isRead:true}:prev);
+    }catch(error){setNoticeError(error instanceof Error?error.message:'Could not save read status.');}
+  };
+  const markAllAsRead = async () => {
+    const token=getStudentToken();
+    if(!token){setNoticeError('Sign in to update notifications.');return;}
+    setMarkingRead(true);setNoticeError('');
+    const unread=notices.filter(n=>!n.isRead);
+    const results=await Promise.allSettled(unread.map(n=>upecAuthApi.markNotificationRead(token,n.id)));
+    const succeeded=new Set(unread.filter((_,i)=>results[i].status==='fulfilled').map(n=>n.id));
+    setNotices(prev=>prev.map(n=>succeeded.has(n.id)?{...n,isRead:true}:n));
+    setSelectedNotice(prev=>prev&&succeeded.has(prev.id)?{...prev,isRead:true}:prev);
+    if(succeeded.size<unread.length)setNoticeError('Some notices could not be marked as read. Please retry.');
+    setMarkingRead(false);
   };
 
   return (
@@ -101,7 +121,8 @@ export default function NoticeBoardTabView({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={markAllAsRead}
+            onClick={()=>void markAllAsRead()}
+            disabled={markingRead}
             className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-[#111A43] transition-colors cursor-pointer"
           >
             Mark All as Read
@@ -176,7 +197,7 @@ export default function NoticeBoardTabView({
 
                     <button
                       type="button"
-                      onClick={() => setSelectedNotice(notice)}
+                      onClick={() => {setSelectedNotice(notice);void markNoticeRead(notice);}}
                       className="mt-4 pt-3 border-t border-slate-200/60 inline-flex items-center gap-1 text-xs font-bold text-[#c62839] hover:underline cursor-pointer"
                     >
                       <span>Read Full Notice</span>
