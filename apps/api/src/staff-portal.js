@@ -411,7 +411,7 @@ router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
 }));
 router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId))return res.status(400).json({error:'Invalid student ID.'});
- const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at').eq('student_account_id',req.params.studentId).order('created_at',{ascending:true}).limit(200);
+ const {data,error}=await db.from('upec_support_messages').select('id,author_role,body,created_at,attachment_path,attachment_name,attachment_mime,attachment_size').eq('student_account_id',req.params.studentId).order('created_at',{ascending:true}).limit(200);
  if(error)throw error;res.json({messages:data||[]});
 }));
 router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
