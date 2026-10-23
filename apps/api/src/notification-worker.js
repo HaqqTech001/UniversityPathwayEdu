@@ -15,7 +15,9 @@ export async function processEmailOutbox(){
    if(paymentKey){
     const {data:bill,error:billError}=await db.from('upec_student_monthly_fees').select('status,amount_due_ngn,amount_paid_ngn').eq('id',paymentKey[1]).maybeSingle();
     if(billError)throw billError;
-    if(!bill||!['unpaid','partial'].includes(bill.status)||Number(bill.amount_paid_ngn)>=Number(bill.amount_due_ngn)){
+    const pending=bill?await db.from('upec_monthly_payment_evidence').select('id').eq('monthly_fee_id',paymentKey[1]).eq('review_status','pending').limit(1):{data:[],error:null};
+    if(pending.error)throw pending.error;
+    if(!bill||!['unpaid','partial'].includes(bill.status)||Number(bill.amount_paid_ngn)>=Number(bill.amount_due_ngn)||pending.data.length){
      const cancelled=await db.from('upec_email_outbox').update({status:'cancelled',claimed_until:null,last_error:'Payment settled or invoice no longer payable before delivery'}).eq('id',item.id).eq('status','sending').eq('attempts',item.attempts);
      if(cancelled.error)throw cancelled.error;
      results.cancelled=(results.cancelled||0)+1;
