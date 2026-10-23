@@ -27,16 +27,6 @@ interface PaymentsTabViewProps {
   onNavigateTab: (tab: string) => void;
 }
 
-interface PaymentRecord {
-  id: string;
-  reference: string;
-  category: string;
-  channel: string;
-  amount: number;
-  date: string;
-  status: 'verified' | 'pending';
-}
-
 export default function PaymentsTabView({
   currentUser,
   onNavigateTab,
@@ -50,7 +40,6 @@ export default function PaymentsTabView({
   const [evidenceRef, setEvidenceRef] = useState('');
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
 
-  const payments: PaymentRecord[] = []; // Show no transactions until the billing service supplies authenticated records.
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard?.writeText(text);
@@ -176,71 +165,8 @@ export default function PaymentsTabView({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         {/* LEFT COLUMN */}
         <div className="space-y-6">
-          {/* Subtab 1: Payment History */}
-          {activeSubTab === 'history' && (
-            <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <h2 className="text-sm font-extrabold text-[#111A43]">
-                  Recorded Payment History
-                </h2>
-                <span className="text-xs text-slate-400">Official Transactions</span>
-              </div>
-
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[550px]">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 uppercase text-[10px] font-bold">
-                      <th className="py-2.5">Date</th>
-                      <th className="py-2.5">Reference</th>
-                      <th className="py-2.5">Category</th>
-                      <th className="py-2.5">Channel</th>
-                      <th className="py-2.5">Amount</th>
-                      <th className="py-2.5">Status</th>
-                      <th className="py-2.5 text-right">Receipt</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {payments.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/70">
-                        <td className="py-3.5 text-slate-500">{p.date}</td>
-                        <td className="py-3.5 font-mono font-bold text-[#111A43]">{p.reference}</td>
-                        <td className="py-3.5 text-slate-700 font-medium">{p.category}</td>
-                        <td className="py-3.5 text-slate-500">{p.channel}</td>
-                        <td className="py-3.5 font-bold text-[#111A43]">
-                          ₦{p.amount.toLocaleString()}
-                        </td>
-                        <td className="py-3.5">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            p.status === 'verified'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                            {p.status === 'verified' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                            <span className="capitalize">{p.status}</span>
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => alert(`Downloading official PDF receipt for ${p.reference}`)}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-[#c62839] hover:underline cursor-pointer"
-                          >
-                            <Download size={13} />
-                            <span>PDF</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Connected real component fallback if backend data exists */}
-              <div className="mt-6 pt-5 border-t border-slate-100">
-                <StudentPaymentHistory />
-              </div>
-            </div>
-          )}
+          {/* Server-backed payment ledger: no fabricated transactions. */}
+          {activeSubTab === 'history' && <StudentPaymentHistory />}
 
           {/* Subtab 2: Approved Payment Channels */}
           {activeSubTab === 'channels' && (
