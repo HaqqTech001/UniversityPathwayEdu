@@ -5,7 +5,7 @@ const isoDay=date=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Afric
 const relativeDate=(day,shift)=>{const date=new Date(day+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+shift);return date.toISOString().slice(0,10);};
 export async function queueMonthlyPaymentReminders(){
  const today=isoDay(new Date());
- const dates=[today,relativeDate(today,3),relativeDate(today,7)];
+ const dates=[today,relativeDate(today,3),relativeDate(today,7),relativeDate(today,-3)];
  const bills=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,due_on,amount_due_ngn,amount_paid_ngn,status').in('due_on',dates).in('status',['unpaid','partial']).order('due_on').limit(500);
  if(bills.error)throw bills.error;
  let queued=0,skipped=0;
@@ -24,15 +24,15 @@ export async function queueMonthlyPaymentReminders(){
   const canEmailStudent=Boolean(account?.verified_at&&account.email);
   const verifiedGuardian=guardianById.get(bill.student_account_id);
   if(!canEmailStudent&&!verifiedGuardian?.email){skipped++;continue;}
-  const remaining=[7,3,0].find(days=>relativeDate(today,days)===bill.due_on);
+  const remaining=[7,3,0,-3].find(days=>relativeDate(today,days)===bill.due_on);
   if(remaining===undefined)continue;
-  const stage=remaining===0?'due today':remaining===3?'due in three days':'due in one week';
+  const stage=remaining===-3?'overdue by three days':remaining===0?'due today':remaining===3?'due in three days':'due in one week';
   const subject='UPEC Monthly Lesson Fee Reminder — '+stage;
   const text=['Dear '+(account.full_name||'Student')+',','','MONTHLY LESSON FEE REMINDER','',
    'We hope this message finds you well. This is a courteous reminder from University Pathway Educational Consult (UPEC) regarding the upcoming payment for your registered programme.','',
    'Programme: '+bill.programme_code,'Monthly charge: '+currency(bill.amount_due_ngn),'Amount already recorded: '+currency(bill.amount_paid_ngn),
    'Outstanding balance: '+currency(outstanding),'Payment due date: '+bill.due_on,'',
-   remaining===0?'The recorded payment due date is today.':'The payment due date is approaching in '+remaining+' days.',
+   remaining===-3?'The recorded payment deadline passed three days ago, and an outstanding balance remains.':remaining===0?'The recorded payment due date is today.':'The payment due date is approaching in '+remaining+' days.',
    'If you have already paid and your payment is not reflected in your student portal, please contact the Accounts Office with your payment reference so your record can be reviewed.','',
    'For clarification, kindly contact the UPEC Admissions & Accounts Office through our official channels. Please use only officially confirmed payment instructions.','',
    'Thank you for your cooperation and continued commitment to your studies.','',
@@ -45,7 +45,7 @@ export async function queueMonthlyPaymentReminders(){
     'Registered programme: '+bill.programme_code,'Monthly lesson fee: '+currency(bill.amount_due_ngn),
     'Payment already recorded: '+currency(bill.amount_paid_ngn),'Outstanding balance: '+currency(outstanding),
     'Payment due date: '+bill.due_on,'',
-    remaining===0?'The fee is due today.':'The due date is approaching in '+remaining+' days.',
+    remaining===-3?'The recorded payment deadline passed three days ago, and an outstanding balance remains.':remaining===0?'The fee is due today.':'The due date is approaching in '+remaining+' days.',
     'If you have already paid, please contact our Accounts Office with the payment reference for verification. Use only the official payment information provided by the institution.','',
     'Thank you for your understanding and continued support of your ward’s education.','',
     'Yours faithfully,','Admissions & Accounts Office','University Pathway Educational Consult (UPEC)'].join('\n');
