@@ -16,7 +16,7 @@ export default function ProgrammeEnrollment({onClose}: {onClose?:()=>void}){
   const token=getStudentToken();
   if(!token){setError('Please sign in again to access available programmes.');notifyPortal('error','Sign in to start a programme application.');return;}
   setLoading(true);setError('');
-  fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/admissions/programmes',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+  fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/admissions/programmes',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
     .then(async r=>{const data=await r.json();if(!r.ok)throw Error(data.error||'Unable to load available programmes');return data;})
     .then(data=>{setProgrammes(Array.isArray(data.programmes)?data.programmes:[]);})
     .catch(e=>{if(controller.signal.aborted)return;const message=e instanceof Error?e.message:'Programme list could not be loaded';setError(message);notifyPortal('error',message);})
