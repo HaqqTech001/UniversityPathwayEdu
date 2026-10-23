@@ -448,6 +448,8 @@ router.post('/finance/monthly-receipts/confirm',wrap(async(req,res)=>{
  const stored=(files||[]).find(file=>file.name===name);
  const size=Number(stored?.metadata?.size);
  if(!Number.isInteger(size)||size<1||size>5242880)return res.status(409).json({error:'Receipt upload incomplete.'});
+ const actualType=stored?.metadata?.mimetype||stored?.metadata?.contentType;
+ if(actualType&&actualType!==mimeType)return res.status(409).json({error:'Uploaded receipt file type does not match.'});
  const {data,error}=await db.from('upec_monthly_payment_evidence').insert({student_account_id:req.actor.sub,monthly_fee_id:monthlyFeeId,storage_path:path,mime_type:mimeType,file_size_bytes:size,review_status:'pending'}).select('id,review_status').single();
  if(error)throw error;
  res.status(201).json({receipt:data});
