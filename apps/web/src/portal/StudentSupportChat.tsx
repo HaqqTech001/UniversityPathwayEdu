@@ -13,11 +13,9 @@ export default function StudentSupportChat(){
  const [groupPreviews,setGroupPreviews]=useState<Record<string,string>>({});
  const previewRequests=useRef(new Set<string>());
  const [draft,setDraft]=useState('');
- const [file,setFile]=useState<File|null>(null);
  const [files,setFiles]=useState<File[]>([]);
  const [localPreviews,setLocalPreviews]=useState<Record<string,string>>({});
  const [uploadedFiles,setUploadedFiles]=useState<Map<File,Upload>>(new Map());
- const uploadedRef=useRef<{file:File;upload:Upload}|null>(null);
  const [dragging,setDragging]=useState(false);
  const fileRef=useRef<HTMLInputElement|null>(null);
  const [emojiOpen,setEmojiOpen]=useState(false);
@@ -25,10 +23,10 @@ export default function StudentSupportChat(){
  const inputRef=useRef<HTMLTextAreaElement|null>(null);
  const [error,setError]=useState('');
  const [sending,setSending]=useState(false);
+ const [uploadedCount,setUploadedCount]=useState(0);
  const [uploadProgress,setUploadProgress]=useState<'idle'|'uploading'|'sending'>('idle');
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
- const endRef=useRef<HTMLDivElement|null>(null);
  const historyRef=useRef<HTMLDivElement|null>(null);
  const mounted=useRef(true);
  useEffect(()=>{if(!emojiOpen)return;const close=(event:PointerEvent)=>{if(emojiRef.current&&!emojiRef.current.contains(event.target as Node))setEmojiOpen(false);};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setEmojiOpen(false);};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};},[emojiOpen]);
@@ -74,11 +72,6 @@ export default function StudentSupportChat(){
  const selectFiles=(selected:File[])=>{
   const next=[...files];for(const f of selected){if(next.length>=10){setError('Maximum 10 files per message.');break;}if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(f.type)||f.size<1||f.size>20971520||f.name.length>180){setError('Files must be JPG, PNG, WebP, PDF or MP4, up to 20 MB each.');continue;}if(!next.some(x=>x.name===f.name&&x.size===f.size&&x.lastModified===f.lastModified))next.push(f);}setFiles(next);
  };
- const selectFile=(selected?:File)=>{
-  if(!selected)return;
-  if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(selected.type)||selected.size>20971520||selected.size<1||selected.name.length>180){setError('Select a JPG, PNG, WebP, PDF or MP4 file up to 20 MB.');return;}
-  uploadedRef.current=null;setFile(selected);setError('');
- };
  const upload=async(selected:File):Promise<Upload>=>{
   const token=getStudentToken();if(!token)throw Error('Sign in again.');
   const signed=await fetch(base+'/api/student/support/attachments/upload-url',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:selected.name,mimeType:selected.type,sizeBytes:selected.size})});
@@ -112,15 +105,15 @@ export default function StudentSupportChat(){
   if((!message&&!files.length)||sending)return;
   setSending(true);setError('');
   try{
-   if(files.length)setUploadProgress('uploading');
+   if(files.length){setUploadProgress('uploading');setUploadedCount(0);}
    const attachments:Upload[]=[];
-   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);}
+   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);setUploadedCount(attachments.length);}
    setUploadProgress('sending');
    await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))});
-   if(mounted.current){setDraft('');setFile(null);setFiles([]);setUploadedFiles(new Map());uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';await refresh(true);}
+   if(mounted.current){setDraft('');setFiles([]);setUploadedFiles(new Map());if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
    if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
-  }finally{if(mounted.current){setSending(false);setUploadProgress('idle');}}
+  }finally{if(mounted.current){setSending(false);setUploadProgress('idle');setUploadedCount(0);}}
  };
  return <section className="flex h-[min(75dvh,720px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-7" aria-label="Student support conversation">
   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -129,18 +122,16 @@ export default function StudentSupportChat(){
   </div>
   <div ref={historyRef} onScroll={e=>{const el=e.currentTarget;shouldStickToBottom.current=el.scrollHeight-el.scrollTop-el.clientHeight<100;}} className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-xl bg-[#f7f8fc] p-3 sm:p-4" role="log" aria-label="Support messages" aria-live="polite" aria-relevant="additions text">
    {loading?<p className="text-sm text-slate-500">Loading conversation…</p>:messages.length===0?<p className="text-sm text-slate-500">No messages yet. Send a question to begin.</p>:messages.map(m=><div key={m.id} className={'w-fit max-w-[92%] break-words rounded-xl p-3 text-sm sm:max-w-[80%] '+(m.author_role==='student'?'ml-auto bg-[#111A43] text-white':'mr-auto border border-slate-200 bg-white text-slate-800')}>{m.body&&<p className="whitespace-pre-wrap break-words leading-6">{m.body.split(/(https?:\/\/\S+)/g).map((part,i)=>part.startsWith("https://")||part.startsWith("http://")?<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="break-all underline">{part}</a>:part)}</p>}{m.attachments&&m.attachments.length>0&&<div className="mt-2 grid grid-cols-2 gap-2" aria-label="Shared files">{m.attachments.map(a=><button key={a.id} type="button" onClick={()=>void openAttachment(a.id,true)} className="flex min-w-0 flex-col items-center gap-2 rounded-xl border border-current/20 bg-white/10 p-3 text-center">{a.mime_type.startsWith('image/')&&groupPreviews[a.id]?<img src={groupPreviews[a.id]} alt={a.file_name} loading="lazy" className="h-28 w-full rounded-lg object-cover"/>:a.mime_type.startsWith('video/')&&groupPreviews[a.id]?<span className="relative block w-full"><video src={groupPreviews[a.id]} preload="metadata" muted playsInline className="h-28 w-full rounded-lg object-cover"/><span className="absolute inset-0 flex items-center justify-center text-3xl text-white drop-shadow">▶</span></span>:<span className="text-2xl">{a.mime_type.startsWith('image/')?'🖼️':a.mime_type.startsWith('video/')?'▶️':'📄'}</span>}<span className="w-full truncate text-xs font-semibold" title={a.file_name}>{a.file_name}</span><span className="text-[10px] opacity-75">{(a.size_bytes/1048576).toFixed(1)} MB</span></button>)}</div>}{m.attachment_path&&previews[m.id]&&m.attachment_mime?.startsWith('image/')&&<button type="button" onClick={()=>void openAttachment(m.id)} className="mt-2 block w-full" aria-label="Open image"><img src={previews[m.id]} alt={m.attachment_name||'Shared image'} loading="lazy" className="max-h-72 w-full rounded-lg object-contain"/></button>}{m.attachment_path&&previews[m.id]&&m.attachment_mime?.startsWith('video/')&&<video src={previews[m.id]} controls preload="metadata" playsInline className="mt-2 max-h-72 w-full rounded-lg" aria-label={m.attachment_name||'Shared video'}/>}{m.attachment_path&&<button type="button" onClick={()=>void openAttachment(m.id)} className="mt-2 flex w-full items-center gap-3 rounded-lg border border-current/20 bg-white/10 p-3 text-left hover:ring-2 hover:ring-current/30"><span aria-hidden="true" className="text-2xl">{m.attachment_mime?.startsWith('image/')?'🖼️':m.attachment_mime?.startsWith('video/')?'▶️':'📄'}</span><span className="min-w-0"><span className="block truncate font-semibold">{m.attachment_name||'Attachment'}</span><span className="block text-xs opacity-75">{m.attachment_mime?.split('/')[1]?.toUpperCase()} · {((m.attachment_size||0)/1024/1024).toFixed(1)} MB · Open</span></span></button>}<time className="mt-2 block text-xs opacity-70">{new Date(m.created_at).toLocaleString()}</time></div>)}
-   <div ref={endRef}/>
   </div>
   {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
   {files.length>0&&<div className="mt-2 shrink-0 rounded-xl border border-slate-200 bg-[#f7f8fc] p-2"><p className="mb-2 text-xs font-bold text-[#111A43]">{files.length}/10 files selected</p><div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{files.map((item,i)=><div key={i} className="flex min-w-0 items-center gap-2 rounded-lg bg-white p-2 text-xs">{localPreviews[item.name+'|'+item.size+'|'+item.lastModified]?<span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">{item.type.startsWith('image/')?<img src={localPreviews[item.name+'|'+item.size+'|'+item.lastModified]} alt="" className="h-full w-full object-cover"/>:<><video src={localPreviews[item.name+'|'+item.size+'|'+item.lastModified]} muted preload="metadata" className="h-full w-full object-cover"/><span className="absolute inset-0 flex items-center justify-center text-white">▶</span></>}</span>:<span aria-hidden="true">📄</span>}<span className="min-w-0 flex-1 truncate" title={item.name}>{item.name}</span><button type="button" aria-label={'Remove '+item.name} className="font-bold text-[#c62839]" onClick={()=>{setFiles(v=>v.filter(f=>f!==item));setUploadedFiles(v=>{const n=new Map(v);n.delete(item);return n;});}}>×</button></div>)}</div></div>}
-  {false&&file&&<div className="mt-2 flex shrink-0 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] p-2 text-xs"><span className="truncate">📎 {file.name} ({(file.size/1048576).toFixed(1)} MB)</span><button type="button" onClick={()=>{setFile(null);uploadedRef.current=null;if(fileRef.current)fileRef.current.value='';}} aria-label="Remove attachment" className="font-bold text-[#c62839]">Remove</button></div>}
   <form onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);selectFiles(Array.from(e.dataTransfer.files));}} className={'mt-4 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-end '+(dragging?'rounded-xl ring-2 ring-[#c62839]':'')} onSubmit={send}>
    <label className="min-w-0 flex-1 text-xs font-bold text-[#111A43]">Your message
     <textarea ref={inputRef} maxLength={3000} rows={2} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} className="mt-1 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-[#111A43] focus:outline-none focus:ring-2 focus:ring-[#111A43]/20" placeholder="How can we help you?" aria-label="Your support message"/>
    </label>
    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4" className="hidden" multiple onChange={e=>{selectFiles(Array.from(e.target.files||[]));e.target.value='';}}/><button type="button" onClick={()=>fileRef.current?.click()} className="min-h-11 self-end rounded-xl border border-slate-300 px-3 text-sm font-bold" aria-label="Attach file">📎 Attach</button>
    <div ref={emojiRef} className="relative shrink-0 self-end"><button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={()=>setEmojiOpen(v=>!v)} className="min-h-11 rounded-xl border border-slate-300 px-3 text-xl" title="Choose emoji">😀</button>{emojiOpen&&<div className="absolute bottom-full right-0 z-30 mb-2 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl shadow-xl"><EmojiPicker width="min(320px, calc(100vw - 3rem))" height={360} lazyLoadEmojis onEmojiClick={emoji=>{const el=inputRef.current;const start=el?.selectionStart??draft.length;const end=el?.selectionEnd??start;const next=draft.slice(0,start)+emoji.emoji+draft.slice(end);if(next.length<=3000){setDraft(next);requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+emoji.emoji.length,start+emoji.emoji.length);});}}}/></div>}</div>
-   <button type="submit" disabled={sending||(!draft.trim()&&!files.length)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploadProgress==='uploading'?'Uploading…':sending?'Sending…':'Send message'}</button>
+   <button type="submit" disabled={sending||(!draft.trim()&&!files.length)} className="min-h-11 rounded-xl bg-[#c62839] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{uploadProgress==='uploading'?'Uploading '+uploadedCount+'/'+files.length+'…':sending?'Sending…':'Send message'}</button>
   </form>
   <p className="mt-2 text-xs text-slate-500">Enter to send · Shift + Enter for a new line</p>
  </section>;
