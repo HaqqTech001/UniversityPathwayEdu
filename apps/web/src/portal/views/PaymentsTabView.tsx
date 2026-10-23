@@ -33,6 +33,19 @@ export default function PaymentsTabView({
 }: PaymentsTabViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<'history' | 'channels' | 'evidence' | 'statement'>('history');
   const [copiedAccount, setCopiedAccount] = useState(false);
+  const [bankAccount,setBankAccount]=useState<{bank_name:string;account_name:string;account_number:string}|null>(null);
+  const [bankError,setBankError]=useState('');
+  useEffect(()=>{
+    const token=getStudentToken();
+    if(!token){setBankError('Sign in to view the verified payment account.');return;}
+    const controller=new AbortController();
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/finance/bank-account',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Bank account could not be verified.');return data;})
+      .then(data=>{if(data.account)setBankAccount(data.account);else setBankError('No active payment account is configured.');})
+      .catch(error=>{if(!controller.signal.aborted)setBankError(error instanceof Error?error.message:'Unable to load payment account.');});
+    return ()=>controller.abort();
+  },[]);
+
 
   // Evidence Form State
   const [evidenceAmount, setEvidenceAmount] = useState('');
@@ -185,13 +198,14 @@ export default function PaymentsTabView({
                 </div>
 
                 <div className="mt-5 p-5 rounded-2xl bg-gradient-to-br from-[#f8faff] to-[#eef3ff] border border-blue-200/60 space-y-4">
+                  {bankError && <p role="alert" className="text-xs text-red-700">{bankError}</p>}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-slate-400 font-bold uppercase text-[10px] block">
                         Bank Name
                       </span>
                       <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
-                        Moniepoint Microfinance Bank
+                        {bankAccount?.bank_name || 'Unavailable'}
                       </strong>
                     </div>
 
@@ -200,7 +214,7 @@ export default function PaymentsTabView({
                         Account Name
                       </span>
                       <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
-                        University Pathway Educational Consult
+                        {bankAccount?.account_name || 'Unavailable'}
                       </strong>
                     </div>
 
@@ -210,11 +224,12 @@ export default function PaymentsTabView({
                       </span>
                       <div className="flex items-center gap-3 mt-1">
                         <strong className="text-xl font-mono font-black text-[#111A43] tracking-wider">
-                          8234567890
+                          {bankAccount?.account_number || 'Unavailable'}
                         </strong>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('8234567890')}
+                          onClick={() => bankAccount && copyToClipboard(bankAccount.account_number)}
+                          disabled={!bankAccount}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#111A43] hover:bg-slate-50 shadow-xs cursor-pointer"
                         >
                           {copiedAccount ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
