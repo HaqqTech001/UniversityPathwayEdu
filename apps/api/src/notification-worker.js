@@ -43,7 +43,7 @@ export async function queueExamReminders(){
   if(accounts.error)throw accounts.error;
   for(const account of accounts.data||[]){
    if(!account.email)continue;
-   await queueEmail({key:'exam:'+exam.id+':'+exam.opens_at+':'+account.id,to:account.email,subject:'UPEC examination reminder — '+exam.title,text:'Your assigned assessment '+exam.title+' opens on '+new Date(exam.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Sign in to the student portal for details.'});
+   await queueEmail({key:'exam:'+exam.id+':'+exam.opens_at+':'+account.id,to:account.email,subject:'Examination reminder — '+exam.title+' | University Pathway Educational Consult',text:'Your assigned assessment '+exam.title+' opens on '+new Date(exam.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Sign in to the student portal for details.'});
    queued++;
   }
  }
