@@ -1,3 +1,4 @@
+import {notifyPortal} from '../components/PortalToasts';
 import StudentPaymentHistory from '../portal/StudentPaymentHistory';
 import StudentFeeStatement from '../portal/StudentFeeStatement';
 import StudentRegistrationFees from '../portal/StudentRegistrationFees';
@@ -220,7 +221,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       targetCourse: editForm.targetCourse,
     });
     setIsEditingBiodata(false);
-    setEditSuccessMsg('Your biodata records have been updated successfully.');
+    notifyPortal('success','Your biodata was saved successfully.');
     setTimeout(() => setEditSuccessMsg(null), 4000);
   };
 
@@ -754,7 +755,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
               onCancel={() => setIsEditingBiodata(false)}
               onSuccess={() => {
                 setIsEditingBiodata(false);
-                setEditSuccessMsg('Candidate biodata updated successfully.');
+                notifyPortal('success','Your biodata was saved successfully.');
                 setTimeout(() => setEditSuccessMsg(null), 4000);
               }}
             />
