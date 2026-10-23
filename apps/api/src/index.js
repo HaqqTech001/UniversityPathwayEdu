@@ -48,6 +48,13 @@ if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'
   });
 }
 app.get('/api/backend/status',async(_req,res)=>{ const {error}=await supabaseAdmin .from('local_accounts').select('id',{head:true,count:'exact'});res.status(error?503:200).json({database:error?'not_ready':'connected',service:'supabase',detail:error?.message}); });
-app.use((err,req,res,next)=>{console.error(err);res.status(err.status>=400&&err.status<500?err.status:500).json({error:err.status>=400&&err.status<500?err.message:'Internal server error'});});
+app.use((err,req,res,next)=>{
+ console.error(err);
+ const raw=String(err?.message||'')+' '+String(err?.details||'')+' '+String(err?.cause?.message||'');
+ const networkFailure=/fetch failed|ConnectTimeoutError|UND_ERR_CONNECT_TIMEOUT|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(raw);
+ if(networkFailure)return res.status(503).json({error:'The database connection is temporarily unavailable. Your changes were not confirmed as saved. Please check the connection and retry.',code:'DATABASE_CONNECTION_UNAVAILABLE',retryable:true});
+ const status=err?.status>=400&&err.status<500?err.status:500;
+ res.status(status).json({error:status===500?'Internal server error':err.message});
+});
 const port=Number(process.env.PORT||4000);
 app.listen(port,()=>console.log('UPEC API listening on '+port));
