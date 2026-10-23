@@ -17,7 +17,7 @@ async function sendCode(account,purpose){
  const code=String(randomInt(0,1000000)).padStart(6,'0');
  const {error}=await db.from('local_auth_challenges').insert({account_id:account.id,purpose,token_hash:otpHash(account.id,purpose,code),expires_at:new Date(Date.now()+600000).toISOString()});
  if(error)throw error;
- await sendEmail({to:account.email,subject:purpose==='signup'?'Verify your UPEC account':'Reset your UPEC password',text:'Your UPEC verification code is '+code+'. It expires in 10 minutes. Never share it.'});
+ await sendEmail({to:account.email,subject:purpose==='signup'?'Verify your account — University Pathway Educational Consult':'Reset your password — University Pathway Educational Consult',text:'Your verification code is '+code+'. It expires in 10 minutes. Never share it.'});
 }
 async function checkCode(account,purpose,code){
  if(!/^\d{6}$/.test(String(code||'')))return false;
