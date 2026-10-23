@@ -89,15 +89,17 @@ export default function DocumentsTabView({
     setSelectedFile(f);
   };
   const handleUploadSubmit=async()=>{
-    if(!selectedFile)return;
+    if(!selectedFile||uploading)return;
     if(!applicationId){setUploadError('Submit a programme application before uploading documents.');return;}
     setUploading(true);setUploadError('');setUploadNotice('');
     try{
       const route=api+'/applications/'+encodeURIComponent(applicationId)+'/documents';
       const signed=await request(route+'/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mimeType:selectedFile.type,sizeBytes:selectedFile.size})});
+      if(typeof signed.signedUrl!=='string'||!signed.signedUrl.startsWith('https://')||typeof signed.path!=='string'||!signed.path)throw Error('The server did not provide a valid secure document upload destination.');
       const upload=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':selectedFile.type},body:selectedFile});
       if(!upload.ok)throw Error('Storage upload failed ('+upload.status+'). Nothing was confirmed.');
-      await request(route+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:signed.path,mimeType:selectedFile.type,documentType:selectedKind,filename:selectedFile.name})});
+      const confirmed=await request(route+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:signed.path,mimeType:selectedFile.type,documentType:selectedKind,filename:selectedFile.name})});
+      if(confirmed?.error)throw Error(confirmed.error);
       await refreshDocuments();
       setUploadNotice('Document uploaded and recorded for review.');
       setSelectedFile(null);if(fileInputRef.current)fileInputRef.current.value='';
