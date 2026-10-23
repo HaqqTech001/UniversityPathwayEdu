@@ -8,7 +8,7 @@ export class UpecApiError extends Error {constructor(message:string,public statu
 function statusError(status:number,message?:string){const fallback:Record<number,string>={401:'Your session has expired. Please sign in again.',403:'You do not have permission to perform this action.',404:'The requested information could not be found.',429:'Too many requests. Please wait before trying again.',500:'The server encountered a problem. Please try again.',503:'The service is temporarily unavailable.'};return new UpecApiError(message||fallback[status]||'Unable to complete your request.',status);}
 function requestFailure(error:unknown):Error {
  if(error instanceof DOMException&&(error.name==='TimeoutError'||error.name==='AbortError'))return new Error('The server is taking too long to respond. Please check your connection and try again.');
- if(error instanceof TypeError)return new Error('Cannot connect to UPEC right now. Check your internet connection and try again.');
+ if(error instanceof TypeError)return new Error('Cannot reach University Pathway services right now. Check your connection and try again.');
  return error instanceof Error?error:new Error('Something went wrong. Please try again.');
 }
 async function post<T>(path: string, payload: Record<string, unknown>): Promise<T> {
