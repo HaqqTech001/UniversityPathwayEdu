@@ -12,7 +12,7 @@ export default function StaffLogin({onSuccess}){
   finally{setBusy(false);}
  };
  return <main className="shell"><section className="panel">
-  <div className="mb-5 flex justify-center"><img src="/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="mx-auto block h-auto w-full max-w-[310px] object-contain" /></div>
+  <div className="staff-login-logo"><img src="/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" /></div>
   <span className="eyebrow">University Pathway · STAFF OPERATIONS</span>
   <h1>Staff Sign In</h1>
   <p>Authorized staff only. Your access is determined by permissions assigned by University Pathway administration.</p>
