@@ -24,6 +24,7 @@ export default function StudentSupportChat(){
  const [error,setError]=useState('');
  const [sending,setSending]=useState(false);
  const [uploadedCount,setUploadedCount]=useState(0);
+ const [failedFile,setFailedFile]=useState('');
  const [uploadProgress,setUploadProgress]=useState<'idle'|'uploading'|'sending'>('idle');
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
@@ -104,16 +105,16 @@ export default function StudentSupportChat(){
   e.preventDefault();
   const message=draft.trim();
   if((!message&&!files.length)||sending)return;
-  setSending(true);setError('');
+  setSending(true);setError('');setFailedFile('');
   try{
    if(files.length){setUploadProgress('uploading');setUploadedCount(0);}
    const attachments:Upload[]=[];
-   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);setUploadedCount(attachments.length);}
+   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){setFailedFile(item.name);uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);setUploadedCount(attachments.length);setFailedFile('');}
    setUploadProgress('sending');
    await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))});
    if(mounted.current){setDraft('');setFiles([]);setUploadedFiles(new Map());if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
-   if(mounted.current)setError(e instanceof Error?e.message:'Message not sent. Please retry.');
+   if(mounted.current)setError((failedFile?'File upload failed. ':'')+(e instanceof Error?e.message:'Message not sent. Please retry.')+' You can retry without re-uploading completed files.');
   }finally{if(mounted.current){setSending(false);setUploadProgress('idle');setUploadedCount(0);}}
  };
  return <section className="flex h-[min(75dvh,720px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-7" aria-label="Student support conversation">
