@@ -31,6 +31,7 @@ interface DocumentItem {
   type: string;
   required: boolean;
   status: 'verified' | 'under_review' | 'rejected' | 'not_uploaded';
+  reviewNote?: string;
   filename?: string;
   filesize?: string;
   uploadedAt?: string;
@@ -80,7 +81,7 @@ export default function DocumentsTabView({
   const documents:DocumentItem[]=requirements.map(item=>{
     const match=records.filter(record=>record.document_type===item.type).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())[0];
     return {...item,status:!match?'not_uploaded':match.review_status==='verified'?'verified':match.review_status==='rejected'?'rejected':'under_review',
-      filename:match?.original_filename,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
+      filename:match?.original_filename,reviewNote:match?.review_note,uploadedAt:match?.created_at?new Date(match.created_at).toLocaleDateString():undefined};
   });
   const handleFileSelect=(f?:File)=>{
     if(!f||uploading)return;
@@ -234,6 +235,7 @@ export default function DocumentsTabView({
                           'PDF, JPG or PNG up to 5 MB'
                         )}
                       </p>
+                      {doc.status==='rejected'&&doc.reviewNote&&<p className="mt-2 max-w-lg rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800" role="note">Review feedback: {doc.reviewNote}</p>}
                     </div>
                   </div>
 
@@ -309,7 +311,7 @@ export default function DocumentsTabView({
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                       item.status === 'verified'
                         ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
+                        : item.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                     }`}>
                       {item.status === 'verified' ? 'Verified' : item.status === 'rejected' ? 'Rejected' : 'In Review'}
                     </span>
