@@ -40,7 +40,13 @@ export function getMailer() {
 export async function sendEmail({ to, subject, text, html }) {
   if (!to || !subject || (!text && !html)) throw new Error('Missing email fields');
   const sender = required('MAIL_FROM');
-  if (!html && text) html = '<html><body><div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;color:#111A43"><h2>University Pathway Educational Consult</h2><hr style="border-color:#C62839"><div style="white-space:pre-line;line-height:1.6">'+text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div></body></html>';
+  if (!html && text) {
+    const origin=process.env.PUBLIC_WEB_URL || process.env.WEB_URL || '';
+    const logo=origin.startsWith('https://') ? origin.replace(/\/$/,'')+'/images/pathway-logos/pathway-header.png' : '';
+    const safe=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const image=logo ? '<img src="'+safe(logo)+'" alt="University Pathway Educational Consult" style="display:block;max-width:210px;max-height:72px;margin-bottom:16px">' : '';
+    html='<html><body style="margin:0;padding:24px 12px;background:#F7F8FC;font-family:Arial,sans-serif"><div style="max-width:600px;margin:auto;background:white;border-radius:12px;overflow:hidden"><div style="padding:28px;background:#111A43;color:white">'+image+'<strong>University Pathway Educational Consult</strong></div><div style="padding:28px;color:#111A43"><h2 style="font-size:22px">'+safe(subject)+'</h2><div style="white-space:pre-line;line-height:1.65;color:#334155">'+safe(text)+'</div></div><div style="padding:20px 28px;background:#F7F8FC;color:#64748b;font-size:12px">University Pathway Educational Consult · 23 Olaiya Street, Sawmill Garage, Ilorin</div></div></body></html>';
+  }
   return getMailer().sendMail({
     from: { name: process.env.MAIL_FROM_NAME || 'University Pathway Educational Consult', address: sender },
     to, subject, text, ...(html ? { html } : {}),
