@@ -238,61 +238,10 @@ export default function NoticeBoardTabView({
 
         {/* RIGHT COLUMN: Sidebar Widgets */}
         <div className="space-y-6">
-          {/* Featured Notice Banner */}
-          <div className="bg-gradient-to-br from-[#111A43] to-[#1c3275] rounded-2xl p-6 text-white shadow-md border-2 border-[#d5a75b]/30">
-            <div className="flex items-center gap-2 pb-2">
-              <AlertCircle size={18} className="text-[#d5a75b]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#d5a75b]">
-                Featured Notice
-              </h3>
-            </div>
-            <strong className="text-sm font-bold block mt-1">
-              Submission of Original Credentials
-            </strong>
-            <p className="mt-2 text-xs leading-relaxed text-slate-200">
-              All students must present their original O'Level certificate or statement of results and National Identity Number (NIN) slip during orientation week.
-            </p>
-          </div>
-
-          {/* Important Dates Timeline */}
-          <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Calendar size={18} className="text-[#c62839]" />
-              <h3 className="text-sm font-extrabold text-[#111A43]">
-                Important Dates
-              </h3>
-            </div>
-            <div className="mt-4 space-y-3.5 text-xs">
-              <div className="flex items-start gap-3">
-                <span className="w-12 text-[10px] font-bold uppercase text-[#c62839] shrink-0 pt-0.5">
-                  28 Oct
-                </span>
-                <div className="min-w-0">
-                  <strong className="text-[#111A43] block">Document Clearance</strong>
-                  <span className="text-[11px] text-slate-500">Registry Office</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-12 text-[10px] font-bold uppercase text-[#c62839] shrink-0 pt-0.5">
-                  05 Nov
-                </span>
-                <div className="min-w-0">
-                  <strong className="text-[#111A43] block">Mock CBT Examination</strong>
-                  <span className="text-[11px] text-slate-500">Online Simulator</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-12 text-[10px] font-bold uppercase text-[#c62839] shrink-0 pt-0.5">
-                  12 Nov
-                </span>
-                <div className="min-w-0">
-                  <strong className="text-[#111A43] block">Orientation Lecture</strong>
-                  <span className="text-[11px] text-slate-500">Main Campus</span>
-                </div>
-              </div>
-            </div>
+          {/* Notices and dates must originate from the authenticated notifications API. */}
+          <div className="rounded-2xl border border-[#dce5f0] bg-white p-6">
+            <h3 className="text-sm font-bold text-[#111A43]">Official announcements</h3>
+            <p className="mt-2 text-xs text-slate-600">Important dates and clearance instructions will appear in the notices list when published by the institution.</p>
           </div>
 
           {/* Quick Reminders */}
@@ -307,7 +256,7 @@ export default function NoticeBoardTabView({
               </li>
               <li className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c62839] mt-1.5 shrink-0" />
-                <span>Support desk hours: 8:00 AM – 5:00 PM (Mon–Fri).</span>
+                <span>Use the Messages section to contact student support.</span>
               </li>
             </ul>
           </div>
