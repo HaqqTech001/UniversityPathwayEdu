@@ -255,7 +255,7 @@ export default function ProgrammesPage({ onNavigate }: PageProps) {
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <p className="text-xs font-extrabold uppercase tracking-widest text-[#c62839]">Beyond examination programmes</p>
           <h2 id="extra-coaching-title" className="mt-2 font-serif text-3xl font-extrabold text-[#111A43]">Intensive Extramural &amp; Special Coaching</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">UPEC also advertises flexible academic support outside its formal programme applications. These lessons are requested as a service, not as an examination registration.</p>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">University Pathway also offers flexible academic support outside its formal programme applications. These lessons are requested as a service, not as an examination registration.</p>
           <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {['Post-JAMB coaching','Holiday & after-school coaching','School of Nursing entrance examination preparation','Private / home lessons','Undergraduate special coaching','Adult education','Computer training'].map(service=>(
               <div key={service} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-[#111A43] shadow-sm">
