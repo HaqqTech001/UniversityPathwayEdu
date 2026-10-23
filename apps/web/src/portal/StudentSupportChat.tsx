@@ -77,13 +77,14 @@ export default function StudentSupportChat(){
  const upload=async(selected:File):Promise<Upload>=>{
   const token=getStudentToken();if(!token)throw Error('Sign in again.');
   const signed=await fetch(base+'/api/student/support/attachments/upload-url',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({name:selected.name,mimeType:selected.type,sizeBytes:selected.size})});
-  const info=await signed.json();if(!signed.ok)throw Error(info.error||'Unable to prepare attachment.');
+  const info=await signed.json().catch(()=>({}));if(!signed.ok)throw Error(info.error||'Unable to prepare attachment.');
+  if(typeof info.uploadUrl!=='string'||!info.uploadUrl.startsWith('https://')||typeof info.path!=='string'||!info.path)throw Error('The server did not provide a valid secure attachment upload destination.');
   const sent=await fetch(info.uploadUrl,{method:'PUT',headers:{'Content-Type':selected.type,'x-upsert':'false'},body:selected});
   if(!sent.ok)throw Error('Attachment upload failed.');
   return {path:info.path,name:selected.name,mime:selected.type,size:selected.size};
  };
  const openAttachment=async(id:string,grouped=false)=>{
-  try{const token=getStudentToken();const response=await fetch(base+'/api/student/support/'+(grouped?'files/':'attachments/')+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token}});const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to open attachment.');window.open(result.url,'_blank','noopener,noreferrer');}
+  try{const token=getStudentToken();if(!token)throw Error('Sign in again to open attachments.');const response=await fetch(base+'/api/student/support/'+(grouped?'files/':'attachments/')+encodeURIComponent(id),{headers:{Authorization:'Bearer '+token}});const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to open attachment.');if(typeof result.url!=='string'||!result.url.startsWith('https://'))throw Error('A secure attachment link was not returned.');window.open(result.url,'_blank','noopener,noreferrer');}
   catch(e){setError(e instanceof Error?e.message:'Unable to open attachment.');}
  };
  useEffect(()=>{
@@ -106,15 +107,16 @@ export default function StudentSupportChat(){
   const message=draft.trim();
   if((!message&&!files.length)||sending)return;
   setSending(true);setError('');setFailedFile('');
+  let failedUploadName='';
   try{
    if(files.length){setUploadProgress('uploading');setUploadedCount(0);}
    const attachments:Upload[]=[];
-   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){setFailedFile(item.name);uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);setUploadedCount(attachments.length);setFailedFile('');}
+   for(const item of files){let uploaded=uploadedFiles.get(item);if(!uploaded){failedUploadName=item.name;setFailedFile(item.name);uploaded=await upload(item);setUploadedFiles(previous=>new Map(previous).set(item,uploaded!));uploadedFiles.set(item,uploaded);}attachments.push(uploaded);setUploadedCount(attachments.length);failedUploadName='';setFailedFile('');}
    setUploadProgress('sending');
    await request({body:message,attachments:attachments.map(a=>({path:a.path,name:a.name,mime:a.mime,size:a.size}))});
    if(mounted.current){setDraft('');setFiles([]);setUploadedFiles(new Map());if(fileRef.current)fileRef.current.value='';await refresh(true);}
   }catch(e){
-   if(mounted.current)setError((failedFile?'File upload failed. ':'')+(e instanceof Error?e.message:'Message not sent. Please retry.')+' You can retry without re-uploading completed files.');
+   if(mounted.current)setError((failedUploadName?'File upload failed ('+failedUploadName+'). ':'')+(e instanceof Error?e.message:'Message not sent. Please retry.')+' You can retry without re-uploading completed files.');
   }finally{if(mounted.current){setSending(false);setUploadProgress('idle');setUploadedCount(0);}}
  };
  return <section className="flex h-[min(75dvh,720px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-7" aria-label="Student support conversation">
