@@ -21,7 +21,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  const students=await db.from('local_accounts').select('id,full_name').in('id',ids);
  if(students.error)throw students.error;
  const names=new Map((students.data||[]).map(row=>[row.id,row.full_name]));
- const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',req.params.id).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(1000):{data:[],error:null};
+ const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',req.params.id).order('submitted_at',{ascending:false,nullsFirst:false}).limit(1000):{data:[],error:null};
  if(attempts.error)throw attempts.error;
  const scores=new Map();
  for(const attempt of attempts.data||[])if(!scores.has(attempt.student_account_id))scores.set(attempt.student_account_id,attempt);
