@@ -208,7 +208,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
       {/* =========================================================================
           SECTION B: MAIN NAVIGATION BAR
           ========================================================================= */}
-      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-2">
+      <nav className="border-b border-slate-100 shadow-[0_2px_15px_rgba(11,26,66,0.06)] px-4 sm:px-8 py-0.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo on Left */}
           <a
@@ -217,10 +217,10 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               handleLinkClick('/');
             }}
-            className="block w-56 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-60 lg:w-64 xl:w-72"
+            className="block w-60 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-64 lg:w-72 xl:w-80"
           >
             {/* <UniversityPathwayLogo variant="header" /> */}
-            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-12 w-full object-contain object-left sm:h-14" />
+            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-[66px] w-full object-contain object-left sm:h-[72px]" />
 
             
           </a>
