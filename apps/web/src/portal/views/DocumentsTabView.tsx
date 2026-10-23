@@ -99,9 +99,9 @@ export default function DocumentsTabView({
       const upload=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':selectedFile.type},body:selectedFile});
       if(!upload.ok)throw Error('Storage upload failed ('+upload.status+'). Nothing was confirmed.');
       const confirmed=await request(route+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:signed.path,mimeType:selectedFile.type,documentType:selectedKind,filename:selectedFile.name})});
-      if(confirmed?.error)throw Error(confirmed.error);
+      if(!confirmed?.document?.id)throw Error('The server did not confirm a document record. Please refresh before trying again.');
       const refreshed=await refreshDocuments();
-      setUploadNotice(refreshed?'Document uploaded and recorded for review.':'Document confirmed by the server, but the document list could not be refreshed. Use Refresh to check its review status.');
+      setUploadNotice(refreshed?'Document uploaded and recorded for review.':'Document confirmed by the server, but the document list could not be refreshed. Please reload this page to check its review status before uploading again.');
       setSelectedFile(null);if(fileInputRef.current)fileInputRef.current.value='';
     }catch(error){setUploadError(error instanceof Error?error.message:'Document upload failed.');}
     finally{setUploading(false);}
