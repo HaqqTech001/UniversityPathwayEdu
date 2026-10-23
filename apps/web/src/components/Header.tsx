@@ -137,9 +137,10 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
             <div className="overflow-hidden">
               <div className="upec-utility-ticker">
                 {[0,1].map(copy=><div key={copy} aria-hidden={copy===1} className="upec-utility-ticker__group">
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><MapPin size={12} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</span>
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><Phone size={12} className="text-[#e5b05c]"/>09133903600 | 09166664266</span>
-                  <span className="inline-flex shrink-0 items-center gap-1.5"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</span>
+                  <a href="https://www.google.com/maps/search/?api=1&query=23%20Olaiya%20Street%2C%20Sawmill%20Garage%2C%20Ilorin%2C%20Kwara%20State%2C%20Nigeria" target="_blank" rel="noopener noreferrer" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Open University Pathway address in Google Maps"><MapPin size={12} className="text-[#e5b05c]"/>23, Olaiya Street, Sawmill Garage, Ilorin, Kwara State</a>
+                  <a href="tel:+2349133903600" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Call 09133903600"><Phone size={12} className="text-[#e5b05c]"/>09133903600</a>
+                  <a href="tel:+2349166664266" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Call 09166664266"><Phone size={12} className="text-[#e5b05c]"/>09166664266</a>
+                  <a href="mailto:unipathway2020@gmail.com" tabIndex={copy===1?-1:0} className="inline-flex shrink-0 items-center gap-1.5 hover:text-white hover:underline focus-visible:underline" aria-label="Email University Pathway"><Mail size={12} className="text-[#e5b05c]"/>unipathway2020@gmail.com</a>
                 </div>)}
               </div>
             </div>
@@ -216,16 +217,16 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
               e.preventDefault();
               handleLinkClick('/');
             }}
-            className="block w-48 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-52 lg:w-56"
+            className="block w-56 shrink-0 transition-opacity duration-300 hover:opacity-90 sm:w-60 lg:w-64 xl:w-72"
           >
             {/* <UniversityPathwayLogo variant="header" /> */}
-            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-11 w-full object-contain object-left sm:h-12" />
+            <img src="/images/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" className="block h-12 w-full object-contain object-left sm:h-14" />
 
             
           </a>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <div className="hidden lg:flex items-center gap-4 xl:gap-6">
             {navLinks.map((link) => {
               const active = isLinkActive(link.path);
               const hasDropdown = Boolean(link.hasDropdown);
