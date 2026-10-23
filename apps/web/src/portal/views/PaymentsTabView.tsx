@@ -87,6 +87,7 @@ export default function PaymentsTabView({
 
   // Evidence Form State
   const [evidenceSuccess, setEvidenceSuccess] = useState('');
+  const [evidenceError,setEvidenceError]=useState('');
   const [evidenceReceiptId,setEvidenceReceiptId]=useState<string|null>(null);
 
 
@@ -100,12 +101,12 @@ export default function PaymentsTabView({
   const [evidenceUploading,setEvidenceUploading]=useState(false);
   const handleEvidenceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEvidenceSuccess('');
+    setEvidenceSuccess('');setEvidenceError('');
     setEvidenceReceiptId(null);
-    if(!evidenceFile){setEvidenceSuccess('Choose a payment receipt before submitting.');return;}
-    if(!['application/pdf','image/jpeg','image/png'].includes(evidenceFile.type)||evidenceFile.size<1||evidenceFile.size>5242880){setEvidenceSuccess('Choose a PDF, JPG or PNG receipt up to 5 MB.');return;}
+    if(!evidenceFile){setEvidenceError('Choose a payment receipt before submitting.');return;}
+    if(!['application/pdf','image/jpeg','image/png'].includes(evidenceFile.type)||evidenceFile.size<1||evidenceFile.size>5242880){setEvidenceError('Choose a PDF, JPG or PNG receipt up to 5 MB.');return;}
     const token=getStudentToken();
-    if(!token){setEvidenceSuccess('Sign in before submitting payment evidence.');return;}
+    if(!token){setEvidenceError('Sign in before submitting payment evidence.');return;}
     setEvidenceUploading(true);
     try{
       const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/application-payment';
@@ -116,6 +117,7 @@ export default function PaymentsTabView({
         return data;
       };
       const signed=await request('/upload-url',{mimeType:evidenceFile.type,sizeBytes:evidenceFile.size});
+      if(typeof signed.signedUrl!=='string'||!signed.signedUrl.startsWith('https://')||typeof signed.path!=='string'||!signed.path)throw Error('The server did not provide a valid secure upload destination.');
       const upload=await fetch(signed.signedUrl,{method:'PUT',headers:{'Content-Type':evidenceFile.type},body:evidenceFile});
       if(!upload.ok)throw Error('Receipt storage upload failed.');
       const confirmed=await request('/confirm',{path:signed.path,mimeType:evidenceFile.type});
@@ -124,7 +126,7 @@ export default function PaymentsTabView({
       setReceiptReload(value=>value+1);
       setEvidenceSuccess('Application payment receipt received for review. Reference: '+confirmed.receipt.id+'. This is not a verified payment.');
       setEvidenceFile(null);
-    }catch(error){setEvidenceSuccess(error instanceof Error?error.message:'Unable to submit receipt.');}
+    }catch(error){setEvidenceError(error instanceof Error?error.message:'Unable to submit receipt.');}
     finally{setEvidenceUploading(false);}
   };
 
@@ -356,24 +358,26 @@ export default function PaymentsTabView({
                     onDrop={(event) => {
                       event.preventDefault();
                       const file = event.dataTransfer.files?.[0];
-                      if (file) setEvidenceFile(file);
+                      if (file && !evidenceUploading) {setEvidenceFile(file);setEvidenceError('');}
                     }}
                   >
                     <UploadCloud size={28} className="text-red-700" />
                     <span className="text-xs font-bold">{evidenceFile?.name || 'Drag and drop your receipt here'}</span>
                     <span className="text-xs text-slate-600">or Browse files from your device</span>
                     <span className="text-xs text-slate-500">PDF, JPG, PNG - up to 5 MB</span>
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" aria-label="Browse payment receipt files" onChange={(event) => setEvidenceFile(event.target.files?.[0] || null)} />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" aria-label="Browse payment receipt files" disabled={evidenceUploading} onChange={(event) => {setEvidenceFile(event.target.files?.[0] || null);setEvidenceError('');}} />
                   </label>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={evidenceUploading}
+                  disabled={evidenceUploading||!evidenceFile}
                   className="px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
                 >
                   {evidenceUploading ? "Uploading receipt…" : "Submit Application Payment Receipt"}
                 </button>
+                {evidenceError && <p role="alert" className="text-xs font-semibold text-red-700">{evidenceError}</p>}
+                {evidenceSuccess && <p role="status" className="text-xs font-semibold text-emerald-700">{evidenceSuccess}</p>}
               </form>
             </div>
           )}
