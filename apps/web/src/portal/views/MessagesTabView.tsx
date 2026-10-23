@@ -61,18 +61,20 @@ export default function MessagesTabView({
   }];
   const [messages, setMessages] = useState<Message[]>([]);
   const [sendError, setSendError] = useState('');
+  const [loadingMessages,setLoadingMessages]=useState(false);
 
   // Real backend sync with support endpoint
   useEffect(() => {
     const token = getStudentToken();
-    if (!token) return;
+    if (!token) {setSendError('Sign in to load your messages.');return;}
+    setLoadingMessages(true);
     const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
     fetch(base + '/api/student/support/messages', {
       headers: { Authorization: 'Bearer ' + token },
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {if(!r.ok)throw Error('Could not load support messages ('+r.status+').');return r.json();})
       .then((data) => {
-        if (data?.messages && data.messages.length > 0) {
+        if (Array.isArray(data?.messages)) {
           const apiMessages: Message[] = data.messages.map((m: any) => ({
             id: m.id,
             author: m.author_role === 'student' ? 'student' : 'support',
@@ -83,7 +85,8 @@ export default function MessagesTabView({
           setMessages(apiMessages);
         }
       })
-      .catch(() => {});
+      .catch((e) => setSendError(e instanceof Error?e.message:'Could not load support messages.'))
+      .finally(()=>setLoadingMessages(false));
   }, [currentUser.fullName]);
 
   useEffect(() => {
@@ -96,14 +99,6 @@ export default function MessagesTabView({
     if (!text || sending) return;
 
     setSending(true);
-    const newMsg: Message = {
-      id: 'temp-' + Date.now(),
-      author: 'student',
-      authorName: currentUser.fullName,
-      body: text,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
     setSendError('');
 
     // Try sending to real backend
@@ -116,8 +111,10 @@ export default function MessagesTabView({
           headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ body: text }),
         });
-        if (!response.ok) throw new Error('Support service rejected the message');
-        setMessages((prev) => [...prev, newMsg]);
+        const result=await response.json().catch(()=>({}));
+        if (!response.ok || !result.message?.id) throw new Error(result.error||'Support service rejected the message');
+        const saved=result.message;
+        setMessages((prev) => [...prev, {id:saved.id,author:'student',authorName:currentUser.fullName,body:saved.body,time:new Date(saved.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}]);
         setDraft('');
       } else { throw new Error('You must sign in before sending a message'); }
     } catch (e) {
@@ -149,6 +146,7 @@ export default function MessagesTabView({
         </div>
       </div>
 
+      {loadingMessages && <p role="status" className="p-3 text-xs text-slate-600">Loading messages…</p>}
       {sendError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{sendError}</p>}
       {/* Two-Column Chat Card (Matching Mockup) */}
       <div className="bg-white rounded-2xl border border-[#dce5f0] shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-[320px_1fr] min-h-[580px]">
