@@ -19,6 +19,7 @@ export default function StudentSupportChat(){
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
  const endRef=useRef<HTMLDivElement|null>(null);
+ const historyRef=useRef<HTMLDivElement|null>(null);
  const mounted=useRef(true);
  const request=async(payload?:{body:string;attachmentPath?:string;attachmentName?:string;attachmentMime?:string;attachmentSize?:number})=>{
   const token=getStudentToken();
@@ -51,7 +52,7 @@ export default function StudentSupportChat(){
   },10000);
   return ()=>{mounted.current=false;window.clearInterval(timer);};
  },[]);
- useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[messages.length]);
+ useEffect(()=>{const el=historyRef.current;if(el)el.scrollTop=el.scrollHeight;},[messages.length]);
  const selectFile=(selected?:File)=>{
   if(!selected)return;
   if(!['image/jpeg','image/png','image/webp','application/pdf','video/mp4'].includes(selected.type)||selected.size>20971520||selected.size<1||selected.name.length>180){setError('Select a JPG, PNG, WebP, PDF or MP4 file up to 20 MB.');return;}
@@ -93,7 +94,7 @@ export default function StudentSupportChat(){
    <div><h2 className="text-xl font-bold text-[#111A43]">Message Student Support</h2><p className="mt-1 text-sm text-slate-500">Private conversation with the University Pathway support team. Replies update automatically.</p></div>
    <button type="button" disabled={refreshing} onClick={()=>void refresh()} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">{refreshing?'Checking…':'Refresh messages'}</button>
   </div>
-  <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-xl bg-[#f7f8fc] p-3 sm:p-4" role="log" aria-label="Support messages" aria-live="polite" aria-relevant="additions text">
+  <div ref={historyRef} className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-xl bg-[#f7f8fc] p-3 sm:p-4" role="log" aria-label="Support messages" aria-live="polite" aria-relevant="additions text">
    {loading?<p className="text-sm text-slate-500">Loading conversation…</p>:messages.length===0?<p className="text-sm text-slate-500">No messages yet. Send a question to begin.</p>:messages.map(m=><div key={m.id} className={'w-fit max-w-[92%] break-words rounded-xl p-3 text-sm sm:max-w-[80%] '+(m.author_role==='student'?'ml-auto bg-[#111A43] text-white':'mr-auto border border-slate-200 bg-white text-slate-800')}>{m.body&&<p className="whitespace-pre-wrap break-words leading-6">{m.body.split(/(https?:\/\/\S+)/g).map((part,i)=>part.startsWith("https://")||part.startsWith("http://")?<a key={i} href={part} target="_blank" rel="noopener noreferrer" className="break-all underline">{part}</a>:part)}</p>}{m.attachment_path&&previews[m.id]&&m.attachment_mime?.startsWith('image/')&&<button type="button" onClick={()=>void openAttachment(m.id)} className="mt-2 block w-full" aria-label="Open image"><img src={previews[m.id]} alt={m.attachment_name||'Shared image'} loading="lazy" className="max-h-72 w-full rounded-lg object-contain"/></button>}{m.attachment_path&&previews[m.id]&&m.attachment_mime?.startsWith('video/')&&<video src={previews[m.id]} controls preload="metadata" playsInline className="mt-2 max-h-72 w-full rounded-lg" aria-label={m.attachment_name||'Shared video'}/>}{m.attachment_path&&<button type="button" onClick={()=>void openAttachment(m.id)} className="mt-2 flex w-full items-center gap-3 rounded-lg border border-current/20 bg-white/10 p-3 text-left hover:ring-2 hover:ring-current/30"><span aria-hidden="true" className="text-2xl">{m.attachment_mime?.startsWith('image/')?'🖼️':m.attachment_mime?.startsWith('video/')?'▶️':'📄'}</span><span className="min-w-0"><span className="block truncate font-semibold">{m.attachment_name||'Attachment'}</span><span className="block text-xs opacity-75">{m.attachment_mime?.split('/')[1]?.toUpperCase()} · {((m.attachment_size||0)/1024/1024).toFixed(1)} MB · Open</span></span></button>}<time className="mt-2 block text-xs opacity-70">{new Date(m.created_at).toLocaleString()}</time></div>)}
    <div ref={endRef}/>
   </div>
