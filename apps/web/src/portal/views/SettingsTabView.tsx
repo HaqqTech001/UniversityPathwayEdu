@@ -1,3 +1,4 @@
+import {notifyPortal} from '../../components/PortalToasts';
 import React, { useState } from 'react';
 import {
   Settings,
@@ -30,7 +31,7 @@ export default function SettingsTabView({
   onSignOut,
 }: SettingsTabViewProps) {
   // Toast banner simulation matching mockup
-  const [showToast, setShowToast] = useState(true);
+  const [showToast, setShowToast] = useState(false);
 
   // Password state
   const [currentPass, setCurrentPass] = useState('');
@@ -62,7 +63,8 @@ export default function SettingsTabView({
       setPasswordNotice('New password and confirmation do not match.');
       return;
     }
-    setPasswordNotice('Password changes are secured. Your credentials have been saved.');
+    setPasswordNotice('Password changes are unavailable here until the secure account endpoint is connected. No password was changed.');
+    notifyPortal('warning','Password was not changed. Secure password updates are not yet available.');
     setCurrentPass('');
     setNewPass('');
     setConfirmPass('');
@@ -380,7 +382,7 @@ export default function SettingsTabView({
 
                 <button
                   type="button"
-                  onClick={() => alert('All other device sessions have been revoked.')}
+                  onClick={() => notifyPortal('warning','Session revocation is not yet available. No sessions were changed.')}
                   className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#111A43] text-xs font-bold transition-colors cursor-pointer"
                 >
                   Sign Out Other Devices
@@ -400,7 +402,7 @@ export default function SettingsTabView({
             <div className="mt-4 space-y-2.5 text-xs">
               <button
                 type="button"
-                onClick={() => alert('Exporting student record data as encrypted PDF.')}
+                onClick={() => notifyPortal('warning','Student data export is not yet connected. Nothing was downloaded.')}
                 className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-left font-bold text-[#111A43] flex items-center justify-between cursor-pointer"
               >
                 <span>Download Account Data (PDF)</span>
@@ -409,7 +411,7 @@ export default function SettingsTabView({
 
               <button
                 type="button"
-                onClick={() => alert('Local cache refreshed.')}
+                onClick={() => {window.location.reload();}}
                 className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-left font-bold text-[#111A43] flex items-center justify-between cursor-pointer"
               >
                 <span>Clear Local Cache</span>
