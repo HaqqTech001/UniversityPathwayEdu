@@ -155,3 +155,16 @@ h1, h2, h3, h4, p {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+
+/* Public sections: actual viewport entrances independent of utility marquee. */
+.pathway-section-reveal {
+  opacity: 0;
+  transform: translate3d(0,32px,0);
+  transition: opacity 800ms cubic-bezier(.22,1,.36,1), transform 800ms cubic-bezier(.22,1,.36,1);
+}
+.pathway-section-reveal[data-reveal-direction="left"] { transform: translate3d(-36px,0,0); }
+.pathway-section-reveal[data-reveal-direction="right"] { transform: translate3d(36px,0,0); }
+.pathway-section-reveal.pathway-section-visible { opacity: 1; transform: translate3d(0,0,0); }
+@media (prefers-reduced-motion:reduce) {
+  .pathway-section-reveal { opacity:1; transform:none; transition:none; }
+}
