@@ -1,6 +1,7 @@
 import {studentLessonFeeChangeEmail,lessonFeeChangeEmail} from './fee-email-templates.js';
 import {queueEmail} from './notification-worker.js';
 import academicRoutes from './academic-routes.js';
+import guardianCbtRoutes from './guardian-cbt-routes.js';
 import {Router} from 'express';
 import crypto from 'node:crypto';
 import {supabaseAdmin as db} from './db.js';
@@ -43,6 +44,7 @@ router.use(wrap(async(req,res,next)=>{
  next();
 }));
 router.use('/academic',academicRoutes);
+router.use('/assessments',guardianCbtRoutes);
 router.get('/me',(req,res)=>res.json({role:req.staff.role,permissions:req.staff.permissions}));
 const permit=permission=>(req,res,next)=>req.staff.permissions.includes(permission)?next():res.status(403).json({error:'Insufficient staff permissions.'});
 router.get('/members',permit('staff.manage'),wrap(async(req,res)=>{const {data,error}=await db.from('local_staff_members').select('account_id,role,permissions,active').limit(100);if(error)throw error;res.json({members:data||[]});}));
