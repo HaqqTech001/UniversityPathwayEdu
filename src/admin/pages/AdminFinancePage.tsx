@@ -249,7 +249,7 @@ export default function AdminFinancePage() {
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by student name, application ID, invoice..."
+            placeholder="Search recorded payment reference or invoice ID"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none"
@@ -303,7 +303,7 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
-      <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ledgerLoading?'Loading verified transactions…':ledgerError||'Transaction table displays recorded payments only. Other finance figures are placeholders.'}</p>
+      <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ledgerLoading?'Loading verified transactions…':ledgerError||'Showing recorded payments only; receipt review and invoicing are managed above.'}</p>
       {/* Mid Section: Transactions Table + Fee Structure Card */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Transactions Table */}
@@ -389,115 +389,10 @@ export default function AdminFinancePage() {
           </div>
         </div>
 
-        {/* Right Column: Current Fee Structure & Monthly Lesson Fees */}
-        <div className="xl:col-span-4 space-y-5">
-          {/* Current Fee Structure */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt size={16} className="text-[#111A43]" />
-                <h3 className="text-sm font-bold text-[#111A43]">Current Fee Structure</h3>
-              </div>
-              <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">Manage Fees</button>
-            </div>
-
-            {/* Subtabs */}
-            <div className="border-b border-slate-200">
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
-                {['Registration Fees', 'Monthly Lesson Fees', 'Other Fees'].map((tab) => {
-                  const isActive = feeTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => setFeeTab(tab)}
-                      className={`pb-2 transition-colors relative ${
-                        isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-700'
-                      }`}
-                    >
-                      {tab}
-                      {isActive && (
-                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              {[
-                { prog: 'IJMB Programme', amount: '₦15,000' },
-                { prog: 'JAMB Programme', amount: '₦15,000' },
-                { prog: 'WAEC Programme', amount: '₦15,000' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                  <div>
-                    <p className="font-semibold text-[#111A43]">{item.prog}</p>
-                    <p className="text-[11px] text-slate-400">Fixed Registration Fee</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#111A43]">{item.amount}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><Edit2 size={12} /></button>
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><MoreHorizontal size={12} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
       </div>
 
       {/* Bottom Row: Revenue Trend + Payment Status + Recent Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Revenue Trend */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#111A43]">Revenue Trend</h3>
-            <select className="text-xs bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">
-              <option>This Session</option>
-            </select>
-          </div>
-
-          {/* Bar Chart Representation */}
-          <div className="flex items-end justify-between gap-3 h-40 px-2 pt-4 border-b border-slate-100">
-            {[
-              { month: 'Jan', h1: 40, h2: 20, h3: 10 },
-              { month: 'Feb', h1: 55, h2: 25, h3: 15 },
-              { month: 'Mar', h1: 65, h2: 30, h3: 18 },
-              { month: 'Apr', h1: 75, h2: 35, h3: 20 },
-              { month: 'May', h1: 85, h2: 40, h3: 25 },
-              { month: 'Jun', h1: 90, h2: 45, h3: 28 },
-              { month: 'Jul', h1: 95, h2: 50, h3: 30 },
-            ].map((m) => (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                <div className="flex items-end gap-1 w-full justify-center">
-                  <div className="w-2.5 bg-[#111A43] rounded-t" style={{ height: `${m.h1}%` }} />
-                  <div className="w-2.5 bg-[#C62839] rounded-t" style={{ height: `${m.h2}%` }} />
-                  <div className="w-2.5 bg-amber-500 rounded-t" style={{ height: `${m.h3}%` }} />
-                </div>
-                <span className="text-[10px] font-medium text-slate-500 mt-1">{m.month}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-center gap-6 text-xs pt-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded bg-[#111A43]" />
-              <span className="text-slate-600">Registration</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded bg-[#C62839]" />
-              <span className="text-slate-600">Lesson Fees</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded bg-amber-500" />
-              <span className="text-slate-600">Other Fees</span>
-            </div>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 items-start">
         {/* Payment Status */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
