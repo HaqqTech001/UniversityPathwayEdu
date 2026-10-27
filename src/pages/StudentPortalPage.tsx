@@ -271,7 +271,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       onTabChange={selectPortalTab}
       onNavigate={onNavigate}
     >
-      <div className="mx-auto w-full max-w-[1250px] min-w-0 space-y-4 sm:space-y-5">
+      <div className="mx-auto w-full max-w-[1250px] min-w-0 space-y-4 sm:space-y-5 site-page-enter">
         {/* Success Alert */}
         {editSuccessMsg && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
