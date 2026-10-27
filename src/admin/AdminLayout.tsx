@@ -212,7 +212,7 @@ export default function AdminLayout({
 
               {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white text-[#111A43] shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white text-[#111A43] shadow-2xl border border-slate-200 py-2 z-50 site-dropdown-enter">
                   <div className="px-4 py-3 border-b border-slate-100">
                     <p className="text-xs font-bold text-[#111A43]">Administrator Account</p>
                     <p className="text-[11px] text-slate-500 truncate">admin@universitypathway.edu.ng</p>
