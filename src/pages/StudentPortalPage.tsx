@@ -176,6 +176,15 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
 
   // Edit biodata modal state
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);
+  React.useEffect(() => {
+    if (!isEditingBiodata) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsEditingBiodata(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isEditingBiodata]);
+
   const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     surname: '',
