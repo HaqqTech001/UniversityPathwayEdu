@@ -197,3 +197,16 @@ h1, h2, h3, h4, p {
 @media (prefers-reduced-motion: reduce) {
   .site-kpi-grid > * { animation: none !important; }
 }
+
+
+/* Shared dropdown reveal for public navigation and staff account menus. */
+@keyframes siteDropdownEnter {
+  from { opacity: 0; transform: translate3d(0, -6px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-dropdown-enter { transform-origin: top center; animation: siteDropdownEnter 180ms cubic-bezier(.22,1,.36,1) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-dropdown-enter { animation: none !important; }
+}
