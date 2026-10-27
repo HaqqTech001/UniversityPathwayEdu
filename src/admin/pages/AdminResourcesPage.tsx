@@ -286,6 +286,7 @@ export default function AdminResourcesPage() {
         </div>
       </div>
 
+      {activeTab==='All Resources'?<>
       {/* Search & Filters */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -689,6 +690,11 @@ export default function AdminResourcesPage() {
           </div>
         </div>
       </div>
+      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
+        <p className="mt-2 text-sm text-slate-600">This resource category is awaiting live file retrieval, upload and access-control integration.</p>
+        <p className="mt-2 text-xs text-amber-700">All Resources currently contains design-preview files and statistics, not verified library records.</p>
+      </section>}
     </div>
   );
 }
