@@ -1,3 +1,4 @@
+import LiveStaffDirectory from '../components/LiveStaffDirectory';
 import React, { useState } from 'react';
 import {
   Users,
@@ -271,6 +272,8 @@ export default function AdminStaffPage() {
         </div>
       </div>
 
+      {activeTab==='All Staff'?<LiveStaffDirectory />:<section className="rounded-2xl border bg-white p-5"><h2 className="font-bold text-[#111A43]">{activeTab}</h2><p className="mt-2 text-sm text-slate-600">This staff-management section is awaiting authorized backend actions. No account or permission changes are available here yet.</p></section>}
+      {false&&<>
       {/* Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -748,6 +751,7 @@ export default function AdminStaffPage() {
           </div>
         </div>
       </div>
+      </>}
     </div>
   );
 }
