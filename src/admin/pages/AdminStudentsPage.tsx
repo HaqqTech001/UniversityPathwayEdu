@@ -122,6 +122,53 @@ export default function AdminStudentsPage() {
     }catch(error){setReviewFeedback(error instanceof Error?error.message:'Could not save review.');}
     finally{setReviewSaving(false);}
   };
+  type ApplicationDocument={id:string;document_type:string;original_filename:string;review_status:string;review_note:string|null;created_at:string};
+  const [documents,setDocuments]=useState<ApplicationDocument[]>([]);
+  const [documentsLoading,setDocumentsLoading]=useState(false);
+  const [documentError,setDocumentError]=useState('');
+  const [documentNote,setDocumentNote]=useState<Record<string,string>>({});
+  const [documentSaving,setDocumentSaving]=useState<string|null>(null);
+  const [documentReload,setDocumentReload]=useState(0);
+  const apiBase=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+  useEffect(()=>{
+    setDocuments([]);setDocumentError('');
+    if(!selectedStudent)return;
+    const controller=new AbortController();
+    setDocumentsLoading(true);
+    fetch(apiBase+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId)+'/documents',{
+      headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')},signal:controller.signal
+    }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load documents.');return data;})
+      .then(data=>{if(!controller.signal.aborted)setDocuments(data.documents||[]);})
+      .catch(error=>{if(!controller.signal.aborted)setDocumentError(error instanceof Error?error.message:'Unable to load documents.');})
+      .finally(()=>{if(!controller.signal.aborted)setDocumentsLoading(false);});
+    return()=>controller.abort();
+  },[selectedStudent,documentReload]);
+  const viewDocument=async(id:string)=>{
+    try{
+      setDocumentError('');
+      const response=await fetch(apiBase+'/api/staff/documents/'+encodeURIComponent(id)+'/view',{headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')}});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||'Document unavailable.');
+      if(typeof data.url!=='string')throw Error('Document link unavailable.');
+      window.open(data.url,'_blank','noopener,noreferrer');
+    }catch(error){setDocumentError(error instanceof Error?error.message:'Could not open document.');}
+  };
+  const reviewDocument=async(id:string,status:'verified'|'rejected')=>{
+    const note=(documentNote[id]||'').trim();
+    if(status==='rejected'&&note.length<5){setDocumentError('Provide a rejection reason of at least five characters.');return;}
+    if(!window.confirm('Confirm document '+status+'?'))return;
+    setDocumentSaving(id);setDocumentError('');
+    try{
+      const response=await fetch(apiBase+'/api/staff/documents/'+encodeURIComponent(id)+'/review',{
+        method:'PATCH',headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token'),'Content-Type':'application/json'},
+        body:JSON.stringify({status,note})
+      });
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||'Could not review document.');
+      setDocumentReload(n=>n+1);
+    }catch(error){setDocumentError(error instanceof Error?error.message:'Could not review document.');}
+    finally{setDocumentSaving(null);}
+  };
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
@@ -508,6 +555,22 @@ export default function AdminStudentsPage() {
               </label>
               {reviewFeedback&&<p role="status" className="text-xs text-slate-700">{reviewFeedback}</p>}
               <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
+            </section>
+            <section className="mb-4 rounded-xl border border-slate-200 p-4 space-y-3" aria-label="Application documents">
+              <h4 className="text-sm font-bold text-[#111A43]">Submitted documents</h4>
+              {documentsLoading?<p className="text-xs">Loading documents…</p>:documents.length===0&&!documentError?<p className="text-xs text-slate-500">No documents submitted.</p>:null}
+              {documentError&&<p role="alert" className="text-xs text-rose-700">{documentError}</p>}
+              {documents.map(doc=><div key={doc.id} className="rounded-lg border border-slate-200 p-3 text-xs space-y-2">
+                <p className="font-semibold break-all">{doc.original_filename||doc.document_type}</p>
+                <p className="text-slate-500">{doc.document_type} · {doc.review_status}</p>
+                {doc.review_note&&<p className="text-slate-600">Previous note: {doc.review_note}</p>}
+                <button type="button" onClick={()=>viewDocument(doc.id)} className="text-[#111A43] underline font-semibold">View document</button>
+                <textarea aria-label={'Review note for '+doc.original_filename} value={documentNote[doc.id]||''} onChange={event=>setDocumentNote(previous=>({...previous,[doc.id]:event.target.value}))} maxLength={1000} rows={2} placeholder="Review note (required when rejecting)" className="w-full rounded-lg border border-slate-300 p-2" />
+                <div className="flex gap-2">
+                  <button type="button" disabled={documentSaving!==null} onClick={()=>reviewDocument(doc.id,'verified')} className="rounded-lg bg-emerald-700 px-3 py-2 font-semibold text-white disabled:opacity-50">Verify</button>
+                  <button type="button" disabled={documentSaving!==null} onClick={()=>reviewDocument(doc.id,'rejected')} className="rounded-lg bg-[#C62839] px-3 py-2 font-semibold text-white disabled:opacity-50">Reject</button>
+                </div>
+              </div>)}
             </section>
             {/* Profile Header */}
             <div className="flex items-start gap-4">
