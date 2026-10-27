@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CreditCard,
   DollarSign,
@@ -35,128 +35,6 @@ interface Transaction {
   avatar: string;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: 1,
-    name: 'Adebayo, Chisom',
-    appId: 'APP-2025-001',
-    programme: 'IJMB',
-    paymentType: 'Registration Fee',
-    amount: '₦15,000',
-    date: '14 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 2,
-    name: 'Okafor, Daniel',
-    appId: 'APP-2025-002',
-    programme: 'JAMB',
-    paymentType: 'Lesson Fee',
-    amount: '₦50,000',
-    date: '13 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 3,
-    name: 'Mohammed, Aisha',
-    appId: 'APP-2025-003',
-    programme: 'WAEC',
-    paymentType: 'Registration Fee',
-    amount: '₦15,000',
-    date: '13 Jul 2025',
-    status: 'Pending',
-    proofValid: false,
-    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 4,
-    name: 'Eze, Victoria',
-    appId: 'APP-2025-004',
-    programme: 'IJMB',
-    paymentType: 'Lesson Fee',
-    amount: '₦50,000',
-    date: '12 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 5,
-    name: 'Yusuf, Ibrahim',
-    appId: 'APP-2025-005',
-    programme: 'JAMB',
-    paymentType: 'Hostel Fee',
-    amount: '₦80,000',
-    date: '12 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 6,
-    name: 'Bello, Fatimah',
-    appId: 'APP-2025-006',
-    programme: 'WAEC',
-    paymentType: 'Registration Fee',
-    amount: '₦15,000',
-    date: '11 Jul 2025',
-    status: 'Failed',
-    proofValid: false,
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 7,
-    name: 'Ahmed, Khalid',
-    appId: 'APP-2025-007',
-    programme: 'IJMB',
-    paymentType: 'Lesson Fee',
-    amount: '₦50,000',
-    date: '10 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 8,
-    name: 'Lawal, Zainab',
-    appId: 'APP-2025-008',
-    programme: 'JAMB',
-    paymentType: 'Exam Fee',
-    amount: '₦15,000',
-    date: '10 Jul 2025',
-    status: 'Pending',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 9,
-    name: 'Ibrahim, Musa',
-    appId: 'APP-2025-009',
-    programme: 'WAEC',
-    paymentType: 'Lesson Fee',
-    amount: '₦50,000',
-    date: '09 Jul 2025',
-    status: 'Paid',
-    proofValid: false,
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
-  },
-  {
-    id: 10,
-    name: 'Aliyu, Khadijah',
-    appId: 'APP-2025-010',
-    programme: 'IJMB',
-    paymentType: 'Other Fee',
-    amount: '₦10,000',
-    date: '08 Jul 2025',
-    status: 'Paid',
-    proofValid: true,
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
-  },
-];
 
 export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState('Transactions');
@@ -166,7 +44,27 @@ export default function AdminFinancePage() {
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [searchFilter, setSearchFilter] = useState('');
 
-  const filtered = mockTransactions.filter((t) => {
+  const [transactions,setTransactions]=useState<Transaction[]>([]);
+  const [ledgerError,setLedgerError]=useState('');
+  const [ledgerLoading,setLedgerLoading]=useState(true);
+  useEffect(()=>{
+    const controller=new AbortController();
+    const token=sessionStorage.getItem('upec_staff_token');
+    if(!token){setLedgerError('Staff login required.');setLedgerLoading(false);return;}
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
+      .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{id:string;type:string;amount_ngn:number;recorded_at:string;invoice?:{programme_code?:string}},index:number)=>({
+        id:index+1,name:'Verified payment',appId:entry.id,
+        programme:(entry.invoice?.programme_code||'IJMB') as Transaction['programme'],
+        paymentType:entry.type==='registration'?'Registration Fee':'Lesson Fee',
+        amount:new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(entry.amount_ngn),
+        date:new Date(entry.recorded_at).toLocaleDateString('en-NG'),status:'Paid',proofValid:false,avatar:''
+      })));})
+      .catch(error=>{if(!controller.signal.aborted)setLedgerError(error instanceof Error?error.message:'Unable to load payments.');})
+      .finally(()=>{if(!controller.signal.aborted)setLedgerLoading(false);});
+    return()=>controller.abort();
+  },[]);
+  const filtered = transactions.filter((t) => {
     if (selectedType !== 'All Types' && t.paymentType !== selectedType) return false;
     if (selectedProgramme !== 'All Programmes' && t.programme !== selectedProgramme) return false;
     if (selectedStatus !== 'All Status' && t.status !== selectedStatus) return false;
@@ -382,6 +280,7 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
+      <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ledgerLoading?'Loading verified transactions…':ledgerError||'Transaction table displays recorded payments only. Other finance figures are placeholders.'}</p>
       {/* Mid Section: Transactions Table + Fee Structure Card */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Transactions Table */}
@@ -409,7 +308,7 @@ export default function AdminFinancePage() {
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
                         <img
-                          src={t.avatar}
+                          src={t.avatar || undefined}
                           alt={t.name}
                           className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200"
                         />
@@ -441,7 +340,7 @@ export default function AdminFinancePage() {
           {/* Table Pagination */}
           <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div>
-              Showing <span className="font-semibold text-slate-700">1 - 10</span> of <span className="font-semibold text-slate-700">1,248</span>
+              Showing <span className="font-semibold text-slate-700">{filtered.length}</span> verified records
             </div>
             <div className="flex items-center gap-1.5">
               <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
