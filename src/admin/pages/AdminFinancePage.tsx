@@ -43,8 +43,9 @@ interface Transaction {
 export default function AdminFinancePage() {
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
-  const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [searchFilter, setSearchFilter] = useState('');
+  const [page,setPage]=useState(1);
+  const [pageSize,setPageSize]=useState(10);
 
   const [summary,setSummary]=useState<{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;unpaid:number;partial:number;settled:number}|null>(null);
   const [summaryError,setSummaryError]=useState('');
@@ -82,7 +83,6 @@ export default function AdminFinancePage() {
   const filtered = transactions.filter((t) => {
     if (selectedType !== 'All Types' && t.paymentType !== selectedType) return false;
     if (selectedProgramme !== 'All Programmes' && t.programme !== selectedProgramme) return false;
-    if (selectedStatus !== 'All Status' && t.status !== selectedStatus) return false;
     if (
       searchFilter &&
       !t.name.toLowerCase().includes(searchFilter.toLowerCase()) &&
@@ -93,6 +93,17 @@ export default function AdminFinancePage() {
     return true;
   });
 
+  const pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
+  const safePage=Math.min(page,pageCount);
+  const pageRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize);
+  useEffect(()=>{setPage(1);},[selectedType,selectedProgramme,searchFilter,pageSize]);
+  const exportLedger=()=>{
+    const rows=[['Payment record ID','Programme','Payment type','Amount (NGN)','Date','Status'],
+      ...filtered.map(t=>[t.appId,t.programme,t.paymentType,t.amount,t.date,t.status])];
+    const csv=rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='recorded-payments.csv';a.click();URL.revokeObjectURL(url);
+  };
   const getPaymentTypeBadge = (type: Transaction['paymentType']) => {
     switch (type) {
       case 'Registration Fee':
@@ -206,6 +217,7 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
+      <div className="flex justify-end"><button type="button" onClick={exportLedger} disabled={ledgerLoading||Boolean(ledgerError)||filtered.length===0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Export filtered payments (CSV)</button></div>
       {/* Search & Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -241,14 +253,6 @@ export default function AdminFinancePage() {
             <option value="WAEC">WAEC</option>
           </select>
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
-          >
-            <option value="All Status">Status: All Status</option>
-            <option value="Paid">Paid</option>
-          </select>
 
         </div>
       </div>
@@ -263,28 +267,21 @@ export default function AdminFinancePage() {
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-3 w-8 text-center">#</th>
-                  <th className="py-3 px-3">Student Name</th>
-                  <th className="py-3 px-3">Application ID</th>
+                  <th className="py-3 px-3">Record</th>
+                  <th className="py-3 px-3">Payment record ID</th>
                   <th className="py-3 px-2">Programme</th>
                   <th className="py-3 px-3">Payment Type</th>
                   <th className="py-3 px-3">Amount</th>
                   <th className="py-3 px-2">Date</th>
                   <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2 text-center">Payment Proof</th>
-                  <th className="py-3 px-2 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map((t, idx) => (
+                {pageRows.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
+                    <td className="py-3 px-3 text-center text-slate-400 font-medium">{(safePage-1)*pageSize+idx+1}</td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <img
-                          src={t.avatar || undefined}
-                          alt={t.name}
-                          className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200"
-                        />
                         <span className="font-semibold text-[#111A43] whitespace-nowrap">{t.name}</span>
                       </div>
                     </td>
@@ -294,47 +291,19 @@ export default function AdminFinancePage() {
                     <td className="py-3 px-3 font-bold text-[#111A43]">{t.amount}</td>
                     <td className="py-3 px-2 text-slate-500 whitespace-nowrap">{t.date}</td>
                     <td className="py-3 px-2">{getStatusBadge(t.status)}</td>
-                    <td className="py-3 px-2 text-center">
-                      <button className={`p-1.5 rounded-lg border ${t.proofValid ? 'text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100' : 'text-rose-600 border-rose-200 bg-rose-50/50 hover:bg-rose-100'}`}>
-                        <FileText size={14} />
-                      </button>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <button className="p-1 text-slate-400 hover:text-slate-600 rounded">
-                        <MoreVertical size={14} />
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Table Pagination */}
-          <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <div>
-              Showing <span className="font-semibold text-slate-700">{filtered.length}</span> verified records
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronLeft size={14} />
-              </button>
-              <button className="w-6 h-6 rounded-lg bg-[#111A43] text-white font-bold text-xs flex items-center justify-center">1</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">2</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">3</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">4</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">5</button>
-              <span className="text-slate-400">...</span>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">125</button>
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <select className="border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white text-slate-600">
-                <option>10 per page</option>
-                <option>25 per page</option>
-              </select>
+          <div className="p-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+            <span>Showing {filtered.length===0?0:(safePage-1)*pageSize+1}–{Math.min(safePage*pageSize,filtered.length)} of {filtered.length} recorded payments (latest 100 returned by API)</span>
+            <div className="flex items-center gap-2">
+              <button type="button" disabled={safePage===1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="rounded-lg border px-2 py-1 disabled:opacity-40" aria-label="Previous page">Previous</button>
+              <span>Page {safePage} of {pageCount}</span>
+              <button type="button" disabled={safePage>=pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))} className="rounded-lg border px-2 py-1 disabled:opacity-40" aria-label="Next page">Next</button>
+              <select aria-label="Records per page" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} className="rounded-lg border p-1"><option value={10}>10 per page</option><option value={25}>25 per page</option><option value={50}>50 per page</option></select>
             </div>
           </div>
         </div>
