@@ -446,34 +446,6 @@ export default function AdminFinancePage() {
             </div>
           </div>
 
-          {/* Monthly Lesson Fees (Placeholder) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[#111A43] font-bold">💳</span>
-              <h3 className="text-sm font-bold text-[#111A43]">Monthly Lesson Fees (Placeholder)</h3>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              {[
-                { prog: 'IJMB Programme', amount: '₦50,000' },
-                { prog: 'JAMB Programme', amount: '₦50,000' },
-                { prog: 'WAEC Programme', amount: '₦50,000' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                  <div>
-                    <p className="font-semibold text-[#111A43]">{item.prog}</p>
-                    <p className="text-[11px] text-slate-400">Monthly Tuition</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#111A43]">{item.amount}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><Edit2 size={12} /></button>
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><MoreHorizontal size={12} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -535,67 +507,12 @@ export default function AdminFinancePage() {
             </select>
           </div>
 
-          {/* Donut representation */}
-          <div className="flex flex-col items-center justify-center pt-2">
-            <div className="relative w-32 h-32 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-slate-100"
-                  strokeWidth="4"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-emerald-500"
-                  strokeDasharray="68, 100"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-base font-black text-[#111A43]">₦24.8M</span>
-                <p className="text-[10px] text-slate-400">Total</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-xs pt-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span className="text-slate-600">Paid</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-slate-700">68%</span>
-                <span className="font-bold text-[#111A43]">₦16.7M</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <span className="text-slate-600">Pending</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-slate-700">22%</span>
-                <span className="font-bold text-[#111A43]">₦5.4M</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                <span className="text-slate-600">Failed</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-slate-700">10%</span>
-                <span className="font-bold text-[#111A43]">₦2.7M</span>
-              </div>
-            </div>
+          <div className="space-y-2 text-xs">
+            <p className="text-slate-500">Monthly lesson invoices · all available months</p>
+            <p className="text-lg font-bold text-[#111A43]">{summary?money(summary.billedNgn):'—'} billed</p>
+            <p className="text-emerald-700">{summary?money(summary.paidNgn):'—'} received</p>
+            <p className="text-amber-700">{summary?money(summary.outstandingNgn):'—'} outstanding</p>
+            <p className="text-slate-600">{summary?summary.settled:'—'} paid · {summary?summary.partial:'—'} partial · {summary?summary.unpaid:'—'} unpaid</p>
           </div>
         </div>
 
@@ -606,55 +523,11 @@ export default function AdminFinancePage() {
             <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All</button>
           </div>
 
-          <div className="space-y-3 text-xs">
-            {[
-              {
-                title: 'Payment confirmed',
-                desc: '₦50,000 Lesson Fee – Okafor, Daniel',
-                time: '10 minutes ago',
-                icon: 'check',
-                color: 'bg-emerald-100 text-emerald-700',
-              },
-              {
-                title: 'New payment uploaded',
-                desc: '₦15,000 Registration – Adebayo, Chisom',
-                time: '1 hour ago',
-                icon: 'upload',
-                color: 'bg-blue-100 text-blue-700',
-              },
-              {
-                title: 'Payment failed',
-                desc: '₦50,000 Lesson Fee – Bello, Fatimah',
-                time: '2 hours ago',
-                icon: 'alert',
-                color: 'bg-rose-100 text-rose-700',
-              },
-              {
-                title: 'Refund processed',
-                desc: '₦15,000 – Ahmed, Khalid',
-                time: '4 hours ago',
-                icon: 'refresh',
-                color: 'bg-amber-100 text-amber-700',
-              },
-              {
-                title: 'Fee structure updated',
-                desc: 'JAMB Lesson Fee changed to ₦50,000',
-                time: '5 hours ago',
-                icon: 'receipt',
-                color: 'bg-purple-100 text-purple-700',
-              },
-            ].map((act, i) => (
-              <div key={i} className="flex items-start gap-2.5 pb-2 border-b border-slate-100 last:border-0 last:pb-0">
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${act.color}`}>
-                  <CreditCard size={12} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-[#111A43] leading-snug">{act.title}</p>
-                  <p className="text-[11px] text-slate-500 truncate mt-0.5">{act.desc}</p>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">{act.time}</span>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-2 text-xs">
+            {transactions.length===0?<p className="text-slate-500">No recorded payment activity available.</p>:transactions.slice(0,5).map(t=><div key={t.id} className="border-b border-slate-100 py-2">
+              <p className="font-semibold text-[#111A43]">{t.paymentType} · {t.amount}</p>
+              <p className="text-slate-500">{t.appId} · {t.date}</p>
+            </div>)}
           </div>
         </div>
       </div>
