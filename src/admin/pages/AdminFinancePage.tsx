@@ -26,7 +26,7 @@ interface Transaction {
   id: number;
   name: string;
   appId: string;
-  programme: 'IJMB' | 'JAMB' | 'WAEC';
+  programme: 'IJMB' | 'JAMB' | 'WAEC' | '—';
   paymentType: 'Registration Fee' | 'Lesson Fee' | 'Hostel Fee' | 'Exam Fee' | 'Other Fee';
   amount: string;
   date: string;
@@ -38,12 +38,25 @@ interface Transaction {
 
 export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState('Transactions');
-  const [feeTab, setFeeTab] = useState('Registration Fees');
+  const [feeTab, setFeeTab] = useState('Registration Revenue (unavailable)');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [searchFilter, setSearchFilter] = useState('');
 
+  const [summary,setSummary]=useState<{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;unpaid:number;partial:number;settled:number}|null>(null);
+  const [summaryError,setSummaryError]=useState('');
+  useEffect(()=>{
+    const controller=new AbortController();
+    const token=sessionStorage.getItem('upec_staff_token');
+    if(!token)return;
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance/summary',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    .then(async res=>{const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not load summary');return data;})
+    .then(data=>{if(!controller.signal.aborted)setSummary(data);})
+    .catch(err=>{if(!controller.signal.aborted)setSummaryError(err instanceof Error?err.message:'Summary unavailable');});
+    return()=>controller.abort();
+  },[]);
+  const money=(value:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(value);
   const [transactions,setTransactions]=useState<Transaction[]>([]);
   const [ledgerError,setLedgerError]=useState('');
   const [ledgerLoading,setLedgerLoading]=useState(true);
@@ -55,7 +68,7 @@ export default function AdminFinancePage() {
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
       .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{id:string;type:string;amount_ngn:number;recorded_at:string;invoice?:{programme_code?:string}},index:number)=>({
         id:index+1,name:'Verified payment',appId:entry.id,
-        programme:(entry.invoice?.programme_code||'IJMB') as Transaction['programme'],
+        programme:(entry.invoice?.programme_code||'—') as Transaction['programme'],
         paymentType:entry.type==='registration'?'Registration Fee':'Lesson Fee',
         amount:new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(entry.amount_ngn),
         date:new Date(entry.recorded_at).toLocaleDateString('en-NG'),status:'Paid',proofValid:false,avatar:''
@@ -128,6 +141,8 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
+      {summaryError&&<p role="alert" className="text-sm text-rose-700">{summaryError}</p>}
+      <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
@@ -135,9 +150,9 @@ export default function AdminFinancePage() {
             <CreditCard size={20} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#111A43] leading-none">₦24,800,000</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Total Revenue</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 18% <span className="font-normal text-slate-400">This Session</span></p>
+            <p className="text-lg font-black text-[#111A43] leading-none">{summary?money(summary.billedNgn):'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Monthly Fees Billed</p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Monthly invoices</p>
           </div>
         </div>
 
@@ -146,9 +161,9 @@ export default function AdminFinancePage() {
             <Receipt size={20} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#111A43] leading-none">₦16,700,000</p>
+            <p className="text-lg font-black text-[#111A43] leading-none">—</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Registration Fees</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 12% <span className="font-normal text-slate-400">420 students</span></p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Not included in monthly summary</p>
           </div>
         </div>
 
@@ -157,9 +172,9 @@ export default function AdminFinancePage() {
             <DollarSign size={20} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#111A43] leading-none">₦5,400,000</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Lesson Fees</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 26% <span className="font-normal text-slate-400">302 payments</span></p>
+            <p className="text-lg font-black text-[#111A43] leading-none">{summary?money(summary.paidNgn):'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Monthly Fees Received</p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Recorded monthly payments</p>
           </div>
         </div>
 
@@ -168,9 +183,9 @@ export default function AdminFinancePage() {
             <Calendar size={20} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#111A43] leading-none">₦2,700,000</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Other Fees</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 15% <span className="font-normal text-slate-400">Hostel, Exams, etc.</span></p>
+            <p className="text-lg font-black text-[#111A43] leading-none">{summary?money(summary.outstandingNgn):'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Monthly Fees Outstanding</p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Monthly invoice balances</p>
           </div>
         </div>
 
@@ -179,9 +194,9 @@ export default function AdminFinancePage() {
             <FileText size={20} />
           </div>
           <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">315</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Pending Payments</p>
-            <p className="text-[10px] font-semibold text-rose-600 mt-0.5">↓ 8% <span className="font-normal text-slate-400">Total: ₦12.45M</span></p>
+            <p className="text-xl font-black text-[#111A43] leading-none">{summary?summary.unpaid+summary.partial:'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Unpaid / Partial Invoices</p>
+            <p className="text-[10px] font-semibold text-rose-600 mt-0.5">Monthly invoice statuses</p>
           </div>
         </div>
 
@@ -190,9 +205,9 @@ export default function AdminFinancePage() {
             <TrendingUp size={20} />
           </div>
           <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">92%</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Payment Rate</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 6% <span className="font-normal text-slate-400">This Session</span></p>
+            <p className="text-xl font-black text-[#111A43] leading-none">{summary&&summary.billedNgn>0?Math.round(summary.paidNgn/summary.billedNgn*100)+'%':'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Monthly Fee Collection Rate</p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Monthly billed vs paid</p>
           </div>
         </div>
       </div>
