@@ -248,6 +248,7 @@ export default function AdminCbtPage() {
         </div>
       </div>
 
+      {activeTab==='Overview'?<>
       {/* Mid Section: Recent Examinations + Quick Actions & Question Bank */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Recent Examinations */}
@@ -505,6 +506,11 @@ export default function AdminCbtPage() {
           </div>
         </div>
       </div>
+      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
+        <p className="mt-2 text-sm text-slate-600">This section is not yet connected to live CBT records. Its controls will be enabled after authenticated backend integration.</p>
+        <p className="mt-2 text-xs text-amber-700">Overview figures are design samples, not verified examination statistics.</p>
+      </section>}
     </div>
   );
 }
