@@ -88,7 +88,7 @@ export default function AdminStudentsPage() {
     const controller=new AbortController();
     setDetailLoading(true);
     const token=sessionStorage.getItem('upec_staff_token');
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId),{
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId),{
       headers:{Authorization:'Bearer '+token},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application details.');return data;})
       .then(data=>{if(!controller.signal.aborted)setApplicationDetail(data);})
