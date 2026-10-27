@@ -178,11 +178,39 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
   const [isEditingBiodata, setIsEditingBiodata] = useState(false);
   React.useEffect(() => {
     if (!isEditingBiodata) return;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsEditingBiodata(false);
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const dialog = document.querySelector<HTMLElement>('[data-student-biodata-dialog]');
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+    ) ?? []).filter((element) => element.getClientRects().length > 0);
+    const frame = window.requestAnimationFrame(() => (focusable()[0] ?? dialog)?.focus());
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsEditingBiodata(false);
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) { event.preventDefault(); dialog?.focus(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
   }, [isEditingBiodata]);
 
   const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
@@ -491,7 +519,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
           COMPREHENSIVE STUDENT BIODATA FORM MODAL
           ========================================================================= */}
       {isEditingBiodata && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto site-modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit student biodata" onClick={() => setIsEditingBiodata(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto site-modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit student biodata" tabIndex={-1} data-student-biodata-dialog onClick={() => setIsEditingBiodata(false)}>
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-4 sm:p-8 my-auto max-h-[95vh] overflow-y-auto site-modal-panel" onClick={(event) => event.stopPropagation()}>
             <StudentBiodataForm
               onCancel={() => setIsEditingBiodata(false)}
