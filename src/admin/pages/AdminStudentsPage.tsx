@@ -31,7 +31,7 @@ interface Student {
   name: string;
   appId: string;
   programme: 'IJMB' | 'JAMB' | 'WAEC';
-  status: 'Admitted' | 'Pending' | 'Awaiting Docs' | 'Suspended';
+  status: 'Admitted' | 'Pending' | 'Awaiting Docs' | 'Suspended' | 'Rejected';
   year: string;
   phone: string;
   email: string;
@@ -69,7 +69,7 @@ export default function AdminStudentsPage() {
       .then(data=>{if(!controller.signal.aborted)setStudents((data.applications||[]).map((item:{id:string;reference_number:string;programme:string;academic_session:string;status:string;submitted_at:string},index:number)=>({
         id:index+1,name:'Applicant',appId:item.reference_number||item.id,
         programme:item.programme as Student['programme'],
-        status:item.status==='approved'?'Admitted':item.status==='action_required'?'Awaiting Docs':item.status==='rejected'?'Suspended':'Pending',
+        status:item.status==='approved'?'Admitted':item.status==='action_required'?'Awaiting Docs':item.status==='rejected'?'Rejected':'Pending',
         year:item.academic_session||'',phone:'',email:'',dob:'',gender:'',address:'',nationality:'',guardian:'',guardianPhone:'',class:'',mode:'',
         admissionDate:item.submitted_at||'',studentId:item.id,expectedCompletion:'',avatar:''
       })));})
@@ -116,8 +116,18 @@ export default function AdminStudentsPage() {
     return true;
   });
 
+  const exportApplications = () => {
+    const rows = [['Application Reference','Programme','Academic Session','Application Status','Submitted At'],
+      ...filteredStudents.map(s=>[s.appId,s.programme,s.year,s.status,s.admissionDate])];
+    const csv = rows.map(row=>row.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const anchor=document.createElement('a');anchor.href=url;anchor.download='applications.csv';anchor.click();
+    URL.revokeObjectURL(url);
+  };
   const getStatusBadge = (status: Student['status']) => {
     switch (status) {
+      case 'Rejected':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Rejected</span>;
       case 'Admitted':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Admitted</span>;
       case 'Pending':
