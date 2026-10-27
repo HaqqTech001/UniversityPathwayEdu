@@ -344,7 +344,7 @@ export default function AdminStudentsPage() {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredStudents.map((s, index) => {
                   const isChecked = checkedIds.includes(s.id);
-                  const isSelected = selectedStudent.id === s.id;
+                  const isSelected = selectedStudent?.id === s.id;
                   return (
                     <tr
                       key={s.id}
