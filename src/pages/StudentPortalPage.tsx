@@ -491,8 +491,8 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
           COMPREHENSIVE STUDENT BIODATA FORM MODAL
           ========================================================================= */}
       {isEditingBiodata && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto site-modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit student biodata">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-4 sm:p-8 my-auto max-h-[95vh] overflow-y-auto site-modal-panel">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto site-modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit student biodata" onClick={() => setIsEditingBiodata(false)}>
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-4 sm:p-8 my-auto max-h-[95vh] overflow-y-auto site-modal-panel" onClick={(event) => event.stopPropagation()}>
             <StudentBiodataForm
               onCancel={() => setIsEditingBiodata(false)}
               onSuccess={() => {
