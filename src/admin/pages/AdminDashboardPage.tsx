@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   FileText,
@@ -29,6 +29,22 @@ interface AdminDashboardPageProps {
 export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDashboardPageProps) {
   const [session, setSession] = useState('2025/2026 Academic Session');
   const [trendRange, setTrendRange] = useState<'this' | 'last' | '2years'>('this');
+  const [applicationMetrics, setApplicationMetrics] = useState<{total:number;submitted:number;under_review:number;action_required:number}|null>(null);
+  const [metricsError, setMetricsError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    const token = sessionStorage.getItem('upec_staff_token');
+    if (!token) { setMetricsError('Sign in to view live application metrics.'); return; }
+    fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api/staff/applications/metrics', {
+      headers: { Authorization: 'Bearer ' + token }, signal: controller.signal
+    }).then(async response => {
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error || 'Unable to load application metrics.');
+      if (!controller.signal.aborted) setApplicationMetrics(data);
+    }).catch(error => { if (!controller.signal.aborted) setMetricsError(error instanceof Error ? error.message : 'Unable to load application metrics.'); });
+    return () => controller.abort();
+  }, []);
+
 
   return (
     <div className="space-y-6">
@@ -73,6 +89,8 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         </div>
       </div>
 
+      {metricsError && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{metricsError}</p>}
+      <p className="text-xs text-amber-800">Only application counts are connected to live records so far. Other dashboard figures are design placeholders and must not be used for decisions.</p>
       {/* =========================================================================
           ROW 1: 6 TOP KPI CARDS
           ========================================================================= */}
@@ -86,15 +104,15 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
             <Users size={20} />
           </div>
           <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
-            1,248
+            {applicationMetrics ? applicationMetrics.total.toLocaleString("en-NG") : "—"}
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
-            Total Students
+            Total Applications
           </span>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
             <TrendingUp size={12} />
-            <span>12%</span>
-            <span className="text-slate-400 font-normal">vs last session</span>
+            <span>Live count</span>
+            <span className="text-slate-400 font-normal">from applications API</span>
           </div>
         </div>
 
@@ -107,15 +125,15 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
             <FileText size={20} />
           </div>
           <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
-            86
+            {applicationMetrics ? applicationMetrics.submitted.toLocaleString("en-NG") : "—"}
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
-            New Applications
+            Submitted Applications
           </span>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
             <TrendingUp size={12} />
-            <span>8%</span>
-            <span className="text-slate-400 font-normal truncate">Pending Review: 28</span>
+            <span>Live count</span>
+            <span className="text-slate-400 font-normal truncate">Pending Review: {applicationMetrics ? applicationMetrics.under_review : "—"}</span>
           </div>
         </div>
 
