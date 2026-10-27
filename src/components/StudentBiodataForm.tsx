@@ -149,14 +149,24 @@ export default function StudentBiodataForm({
 
     if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const modalScroller = document.querySelector<HTMLElement>('[data-student-biodata-dialog] .site-modal-panel');
+      if (modalScroller) {
+        modalScroller.scrollTo({ top: 0, behavior: 'auto' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const modalScroller = document.querySelector<HTMLElement>('[data-student-biodata-dialog] .site-modal-panel');
+      if (modalScroller) {
+        modalScroller.scrollTo({ top: 0, behavior: 'auto' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
     }
   };
 
