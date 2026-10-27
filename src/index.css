@@ -179,3 +179,21 @@ h1, h2, h3, h4, p {
 @media (prefers-reduced-motion: reduce) {
   .site-drawer-enter { animation: none !important; }
 }
+
+
+/* Small, sequenced KPI entrance on the administrative overview. */
+@keyframes siteKpiEnter {
+  from { opacity: .45; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-kpi-grid > * { animation: siteKpiEnter 360ms cubic-bezier(.22,1,.36,1) both; }
+  .site-kpi-grid > :nth-child(2) { animation-delay: 45ms; }
+  .site-kpi-grid > :nth-child(3) { animation-delay: 90ms; }
+  .site-kpi-grid > :nth-child(4) { animation-delay: 135ms; }
+  .site-kpi-grid > :nth-child(5) { animation-delay: 180ms; }
+  .site-kpi-grid > :nth-child(6) { animation-delay: 225ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-kpi-grid > * { animation: none !important; }
+}
