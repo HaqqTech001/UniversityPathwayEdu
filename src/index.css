@@ -166,3 +166,16 @@ h1, h2, h3, h4, p {
 @media (prefers-reduced-motion: reduce) {
   .site-page-enter { animation: none !important; }
 }
+
+
+/* Mobile navigation slides in without changing its existing layout. */
+@keyframes siteDrawerEnter {
+  from { opacity: .85; transform: translate3d(-18px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-drawer-enter { animation: siteDrawerEnter 240ms cubic-bezier(.22,1,.36,1) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-drawer-enter { animation: none !important; }
+}
