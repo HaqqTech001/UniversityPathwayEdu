@@ -129,3 +129,27 @@ h1, h2, h3, h4, p {
   animation: marquee 10s linear infinite;
 }
 
+
+
+/* Shared restrained motion: public website and authenticated workspaces. */
+@media (prefers-reduced-motion: no-preference) {
+  .site-motion-section {
+    transition: opacity 440ms cubic-bezier(.22,1,.36,1), transform 480ms cubic-bezier(.22,1,.36,1);
+  }
+  .site-motion-section:not(.site-motion-visible) {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  .site-motion-section.site-motion-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  button, a, [role="button"] {
+    transition-property: background-color, border-color, color, box-shadow, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-motion-section { opacity: 1 !important; transform: none !important; }
+}
