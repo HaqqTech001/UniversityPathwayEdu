@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from 'react';
+type Application={id:string;reference_number:string;programme:string;status:string;account_id:string};
 type Invoice={id:string;student_account_id:string;programme_code:string;billing_month:string;due_on:string;amount_due_ngn:number;amount_paid_ngn:number;status:string};
 const root=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance';
 const auth=()=>({Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')});
@@ -11,8 +12,23 @@ export default function InvoiceManager(){
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [reload,setReload]=useState(0);
-  const [studentId,setStudentId]=useState('');
-  const [programme,setProgramme]=useState('IJMB');
+  const [applicationQuery,setApplicationQuery]=useState('');
+  const [applications,setApplications]=useState<Application[]>([]);
+  const [selectedApplication,setSelectedApplication]=useState('');
+  const [searching,setSearching]=useState(false);
+  const chosen=applications.find(a=>a.id===selectedApplication);
+  const studentId=chosen?.account_id||'';
+  const programme=chosen?.programme||'';
+  const searchApplications=async(event:React.FormEvent)=>{
+    event.preventDefault();setError('');setApplications([]);setSelectedApplication('');
+    if(applicationQuery.trim().length<3){setError('Enter at least 3 characters of an application reference.');return;}
+    setSearching(true);
+    try{
+      const data=await parse(await fetch(root+'/application-search?q='+encodeURIComponent(applicationQuery.trim()),{headers:auth()}));
+      setApplications((data.applications||[]).filter((a:Application)=>a.status==='approved'&&['IJMB','JAMB','WAEC'].includes(a.programme)));
+    }catch(e){setError(e instanceof Error?e.message:'Application search failed.');}
+    finally{setSearching(false);}
+  };
   const [month,setMonth]=useState(()=>new Date().toISOString().slice(0,7));
   const [dueOn,setDueOn]=useState('');
   const [paymentInvoice,setPaymentInvoice]=useState('');
@@ -35,7 +51,8 @@ export default function InvoiceManager(){
   },[reload]);
   const create=async(event:React.FormEvent)=>{
     event.preventDefault();
-    if(!window.confirm('Create monthly invoice for '+programme+' in '+month+'?'))return;
+    if(!chosen||!studentId){setError('Select an approved programme application first.');return;}
+    if(!window.confirm('Create monthly invoice for '+chosen.reference_number+' ('+programme+') in '+month+'?'))return;
     setSaving(true);setError('');setNotice('');
     try{
       await parse(await fetch(root+'/invoices',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},
@@ -62,12 +79,16 @@ export default function InvoiceManager(){
   return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 className="text-lg font-bold text-[#111A43]">Monthly invoices and verified payments</h2>
     <p className="text-xs text-amber-800">Record a payment only after checking the actual bank transfer. Receipt approval alone is not proof of funds.</p>
+    <form onSubmit={searchApplications} className="flex flex-wrap items-end gap-3">
+      <label className="text-xs font-semibold">Application reference<input value={applicationQuery} onChange={e=>setApplicationQuery(e.target.value)} required minLength={3} maxLength={100} placeholder="Search reference" className="mt-1 block w-64 rounded-lg border p-2"/></label>
+      <button disabled={searching} className="rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-50">{searching?'Searching…':'Find approved student'}</button>
+    </form>
     <form onSubmit={create} className="flex flex-wrap items-end gap-3">
-      <label className="text-xs font-semibold">Student account ID<input required value={studentId} onChange={e=>setStudentId(e.target.value)} placeholder="Account UUID" className="mt-1 block w-64 rounded-lg border p-2"/></label>
-      <label className="text-xs font-semibold">Programme<select value={programme} onChange={e=>setProgramme(e.target.value)} className="mt-1 block rounded-lg border p-2">{['IJMB','JAMB','WAEC'].map(p=><option key={p}>{p}</option>)}</select></label>
+      <label className="text-xs font-semibold">Approved application<select required value={selectedApplication} onChange={e=>setSelectedApplication(e.target.value)} className="mt-1 block w-72 rounded-lg border p-2"><option value="">Select an approved application</option>{applications.map(a=><option key={a.id} value={a.id}>{a.reference_number} · {a.programme}</option>)}</select></label>
+      <p className="text-xs text-slate-500">Programme: {programme||'Select application'}</p>
       <label className="text-xs font-semibold">Billing month<input required type="month" value={month} onChange={e=>setMonth(e.target.value)} className="mt-1 block rounded-lg border p-2"/></label>
       <label className="text-xs font-semibold">Due date<input required type="date" value={dueOn} onChange={e=>setDueOn(e.target.value)} className="mt-1 block rounded-lg border p-2"/></label>
-      <button disabled={saving} className="rounded-lg bg-[#111A43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create invoice</button>
+      <button disabled={saving||!chosen} className="rounded-lg bg-[#111A43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create invoice</button>
     </form>
     {error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}
     {notice&&<p role="status" className="text-sm text-emerald-700">{notice}</p>}
