@@ -110,7 +110,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
     >
-      {renderActivePage()}
+      <div key={activeTab} className="site-page-enter">{renderActivePage()}</div>
     </AdminLayout>
   );
 }
