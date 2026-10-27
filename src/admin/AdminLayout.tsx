@@ -366,7 +366,7 @@ export default function AdminLayout({
             />
 
             {/* Drawer */}
-            <div className="relative w-4/5 max-w-xs bg-[#08163B] text-white flex flex-col z-50 shadow-2xl h-full justify-between overflow-y-auto">
+            <div className="relative w-4/5 max-w-xs bg-[#08163B] text-white flex flex-col z-50 shadow-2xl h-full justify-between overflow-y-auto site-drawer-enter">
               <div className="p-4 border-b border-white/10 flex items-center justify-between">
                 <div>
                   <span className="font-bold text-sm text-white uppercase block">
