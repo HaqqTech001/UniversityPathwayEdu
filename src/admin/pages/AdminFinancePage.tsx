@@ -224,6 +224,8 @@ export default function AdminFinancePage() {
       </div>
 
       <div className="flex justify-end"><button type="button" onClick={exportLedger} disabled={ledgerLoading||Boolean(ledgerError)||filtered.length===0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Export filtered payments (CSV)</button></div>
+      </>}
+      {activeTab==='Transactions'&&<>
       {/* Search & Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -316,6 +318,8 @@ export default function AdminFinancePage() {
 
       </div>
 
+      </>}
+      {(activeTab==='Transactions'||activeTab==='Financial Reports')&&<>
       {/* Bottom Row: Revenue Trend + Payment Status + Recent Activities */}
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 items-start">
         {/* Payment Status */}
