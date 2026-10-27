@@ -153,3 +153,16 @@ h1, h2, h3, h4, p {
 @media (prefers-reduced-motion: reduce) {
   .site-motion-section { opacity: 1 !important; transform: none !important; }
 }
+
+
+/* Route-level entrance, deliberately understated across all portals. */
+@keyframes sitePageEnter {
+  from { opacity: .72; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-page-enter { animation: sitePageEnter 280ms cubic-bezier(.22,1,.36,1) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-page-enter { animation: none !important; }
+}
