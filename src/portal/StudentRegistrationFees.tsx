@@ -11,7 +11,7 @@ export default function StudentRegistrationFees(){
    setLoading(true);setError('');
    try{
     const token=getStudentToken();if(!token)throw Error('Please sign in again.');
-    const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/finance/registration-invoices',{headers:{Authorization:'Bearer '+token},signal:controller.signal});
+    const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/finance/registration-invoices',{headers:{Authorization:'Bearer '+token},signal:controller.signal});
     const result=await response.json();
     if(!response.ok)throw Error(result.error||'Unable to load registration invoices.');
     if(!controller.signal.aborted)setInvoices(result.invoices||[]);
