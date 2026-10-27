@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReceiptReviewPanel from '../components/ReceiptReviewPanel';
 import FeeRateManager from '../components/FeeRateManager';
+import InvoiceManager from '../components/InvoiceManager';
 import {
   CreditCard,
   DollarSign,
@@ -145,6 +146,7 @@ export default function AdminFinancePage() {
 
       {summaryError&&<p role="alert" className="text-sm text-rose-700">{summaryError}</p>}
       <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
+      <InvoiceManager />
       <FeeRateManager />
       <ReceiptReviewPanel />
       {/* 6 KPI Cards */}
