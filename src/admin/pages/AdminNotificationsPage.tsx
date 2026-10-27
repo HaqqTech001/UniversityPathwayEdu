@@ -295,6 +295,7 @@ export default function AdminNotificationsPage() {
         </div>
       </div>
 
+      {activeTab==='All Notifications'?<>
       {/* Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -724,6 +725,11 @@ export default function AdminNotificationsPage() {
           </div>
         </div>
       </div>
+      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
+        <p className="mt-2 text-sm text-slate-600">This section is awaiting live records and authenticated management endpoints. No sample entries are presented as published or delivered records here.</p>
+        <p className="mt-2 text-xs text-amber-700">The All Notifications overview contains design-preview information and is not yet connected to production data.</p>
+      </section>}
     </div>
   );
 }
