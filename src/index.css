@@ -210,3 +210,21 @@ h1, h2, h3, h4, p {
 @media (prefers-reduced-motion: reduce) {
   .site-dropdown-enter { animation: none !important; }
 }
+
+
+/* Lightweight dialog reveal; no movement for reduced-motion visitors. */
+@keyframes siteModalBackdropEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes siteModalPanelEnter {
+  from { opacity: .6; transform: translate3d(0, 12px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-modal-backdrop { animation: siteModalBackdropEnter 180ms ease-out both; }
+  .site-modal-panel { animation: siteModalPanelEnter 240ms cubic-bezier(.22,1,.36,1) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-modal-backdrop, .site-modal-panel { animation: none !important; }
+}
