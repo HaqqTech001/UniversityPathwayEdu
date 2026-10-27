@@ -308,7 +308,7 @@ export default function StudentBiodataForm({
             STEP 1: STUDENT BIODATA & CONTACT DETAILS
             ===================================================================== */}
         {currentStep === 1 && (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-6 site-page-enter">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-base font-bold text-[#0b1a42]">
@@ -516,7 +516,7 @@ export default function StudentBiodataForm({
             STEP 2: GUARDIAN & EMERGENCY INFORMATION
             ===================================================================== */}
         {currentStep === 2 && (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-6 site-page-enter">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-base font-bold text-[#0b1a42]">
@@ -666,7 +666,7 @@ export default function StudentBiodataForm({
             STEP 3: EDUCATION & PROGRAMME SELECTION
             ===================================================================== */}
         {currentStep === 3 && (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-6 site-page-enter">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-base font-bold text-[#0b1a42]">
@@ -832,7 +832,7 @@ export default function StudentBiodataForm({
             STEP 4: REVIEW & FORMAL DECLARATION
             ===================================================================== */}
         {currentStep === 4 && (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-6 site-page-enter">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-base font-bold text-[#0b1a42]">
