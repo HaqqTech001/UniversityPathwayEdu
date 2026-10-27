@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReceiptReviewPanel from '../components/ReceiptReviewPanel';
 import {
   CreditCard,
   DollarSign,
@@ -143,6 +144,7 @@ export default function AdminFinancePage() {
 
       {summaryError&&<p role="alert" className="text-sm text-rose-700">{summaryError}</p>}
       <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
+      <ReceiptReviewPanel />
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
