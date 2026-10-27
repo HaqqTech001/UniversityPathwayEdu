@@ -19,16 +19,18 @@ export default function InvoiceManager(){
   const [paymentAmount,setPaymentAmount]=useState('');
   const [reference,setReference]=useState('');
   useEffect(()=>{
-    const controller=new AbortController();setLoading(true);setError('');
-    parse(awaitFetch());
-    async function awaitFetch(){return fetch(root+'/invoices',{headers:auth(),signal:controller.signal});}
-    async function parse(promise:Promise<Response>){
-      try{const data=await (await promise).json().then(data=>data);if(!controller.signal.aborted){
-        if(!Array.isArray(data.invoices))throw Error(data.error||'Unable to load invoices.');
-        setInvoices(data.invoices);
-      }}catch(e){if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load invoices.');}
-      finally{if(!controller.signal.aborted)setLoading(false);}
-    }
+    const controller=new AbortController();
+    setLoading(true);setError('');
+    (async()=>{
+      try{
+        const data=await parse(await fetch(root+'/invoices',{headers:auth(),signal:controller.signal}));
+        if(!controller.signal.aborted)setInvoices(Array.isArray(data.invoices)?data.invoices:[]);
+      }catch(e){
+        if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load invoices.');
+      }finally{
+        if(!controller.signal.aborted)setLoading(false);
+      }
+    })();
     return()=>controller.abort();
   },[reload]);
   const create=async(event:React.FormEvent)=>{
