@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   FileText,
@@ -49,249 +49,38 @@ interface Student {
   avatar: string;
 }
 
-const mockStudents: Student[] = [
-  {
-    id: 1,
-    name: 'Adebayo, Chisom',
-    appId: 'APP-2025-001',
-    programme: 'IJMB',
-    status: 'Admitted',
-    year: '2025',
-    phone: '0912 445 6789',
-    email: 'chisom.adebayo@mail.com',
-    dob: '12 March 2006',
-    gender: 'Male',
-    address: 'GRA, Ilorin, Kwara State',
-    nationality: 'Nigerian',
-    guardian: 'Mr. Adebayo (Father)',
-    guardianPhone: '0803 221 4455',
-    class: 'IJMB Class A',
-    mode: 'Physical',
-    admissionDate: '14 July 2025',
-    studentId: 'UP-2025-001',
-    expectedCompletion: 'July 2026',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 2,
-    name: 'Okafor, Daniel',
-    appId: 'APP-2025-002',
-    programme: 'JAMB',
-    status: 'Admitted',
-    year: '2025',
-    phone: '0903 221 4456',
-    email: 'daniel.okafor@mail.com',
-    dob: '05 May 2007',
-    gender: 'Male',
-    address: 'Tanke, Ilorin, Kwara State',
-    nationality: 'Nigerian',
-    guardian: 'Mrs. Okafor (Mother)',
-    guardianPhone: '0803 112 3344',
-    class: 'JAMB Alpha',
-    mode: 'Physical',
-    admissionDate: '10 July 2025',
-    studentId: 'UP-2025-002',
-    expectedCompletion: 'May 2026',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 3,
-    name: 'Mohammed, Aisha',
-    appId: 'APP-2025-003',
-    programme: 'WAEC',
-    status: 'Pending',
-    year: '2025',
-    phone: '0813 334 7788',
-    email: 'aisha.m@mail.com',
-    dob: '18 January 2007',
-    gender: 'Female',
-    address: 'Fate Road, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Alhaji Mohammed',
-    guardianPhone: '0802 334 5566',
-    class: 'WAEC Stream 1',
-    mode: 'Physical',
-    admissionDate: 'Pending Verification',
-    studentId: 'UP-2025-003',
-    expectedCompletion: 'June 2026',
-    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 4,
-    name: 'Eze, Victoria',
-    appId: 'APP-2025-004',
-    programme: 'IJMB',
-    status: 'Admitted',
-    year: '2025',
-    phone: '0706 221 9900',
-    email: 'victoria.eze@mail.com',
-    dob: '22 August 2006',
-    gender: 'Female',
-    address: 'Pipeline, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Chief Eze',
-    guardianPhone: '0803 445 6677',
-    class: 'IJMB Class B',
-    mode: 'Physical',
-    admissionDate: '12 July 2025',
-    studentId: 'UP-2025-004',
-    expectedCompletion: 'July 2026',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 5,
-    name: 'Yusuf, Ibrahim',
-    appId: 'APP-2025-005',
-    programme: 'JAMB',
-    status: 'Awaiting Docs',
-    year: '2025',
-    phone: '0803 667 2211',
-    email: 'ibrahim.yusuf@mail.com',
-    dob: '14 November 2006',
-    gender: 'Male',
-    address: 'Adewole Estate, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Mr. Yusuf',
-    guardianPhone: '0803 556 7788',
-    class: 'JAMB Beta',
-    mode: 'Physical',
-    admissionDate: 'Awaiting O-Level upload',
-    studentId: 'UP-2025-005',
-    expectedCompletion: 'May 2026',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 6,
-    name: 'Bello, Fatimah',
-    appId: 'APP-2025-006',
-    programme: 'WAEC',
-    status: 'Admitted',
-    year: '2024',
-    phone: '0901 223 4455',
-    email: 'fatimah.bello@mail.com',
-    dob: '30 September 2005',
-    gender: 'Female',
-    address: 'Post Office Area, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Hajiya Bello',
-    guardianPhone: '0806 778 8899',
-    class: 'WAEC Stream 2',
-    mode: 'Physical',
-    admissionDate: '15 August 2024',
-    studentId: 'UP-2024-042',
-    expectedCompletion: 'June 2025',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 7,
-    name: 'Ahmed, Khalid',
-    appId: 'APP-2025-007',
-    programme: 'IJMB',
-    status: 'Suspended',
-    year: '2024',
-    phone: '0812 990 4456',
-    email: 'khalid.ahmed@mail.com',
-    dob: '11 February 2005',
-    gender: 'Male',
-    address: 'Taiwo Isale, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Dr. Ahmed',
-    guardianPhone: '0802 334 1122',
-    class: 'IJMB Class A',
-    mode: 'Physical',
-    admissionDate: '01 September 2024',
-    studentId: 'UP-2024-089',
-    expectedCompletion: 'July 2025',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 8,
-    name: 'Lawal, Zainab',
-    appId: 'APP-2025-008',
-    programme: 'JAMB',
-    status: 'Admitted',
-    year: '2024',
-    phone: '0708 221 3344',
-    email: 'zainab.lawal@mail.com',
-    dob: '08 July 2006',
-    gender: 'Female',
-    address: 'Basorun, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Mr. Lawal',
-    guardianPhone: '0805 667 9900',
-    class: 'JAMB Alpha',
-    mode: 'Physical',
-    admissionDate: '10 July 2024',
-    studentId: 'UP-2024-112',
-    expectedCompletion: 'May 2025',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 9,
-    name: 'Ibrahim, Musa',
-    appId: 'APP-2025-009',
-    programme: 'WAEC',
-    status: 'Pending',
-    year: '2025',
-    phone: '0816 334 1122',
-    email: 'musa.ibrahim@mail.com',
-    dob: '19 April 2007',
-    gender: 'Male',
-    address: 'Gaa Akanbi, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Mallam Ibrahim',
-    guardianPhone: '0803 778 2211',
-    class: 'WAEC Stream 1',
-    mode: 'Physical',
-    admissionDate: 'Under Review',
-    studentId: 'UP-2025-009',
-    expectedCompletion: 'June 2026',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 10,
-    name: 'Aliyu, Khadijah',
-    appId: 'APP-2025-010',
-    programme: 'IJMB',
-    status: 'Admitted',
-    year: '2025',
-    phone: '0909 887 6655',
-    email: 'khadijah.aliyu@mail.com',
-    dob: '25 December 2006',
-    gender: 'Female',
-    address: 'Kulende, Ilorin',
-    nationality: 'Nigerian',
-    guardian: 'Hajia Aliyu',
-    guardianPhone: '0802 889 4433',
-    class: 'IJMB Class A',
-    mode: 'Physical',
-    admissionDate: '14 July 2025',
-    studentId: 'UP-2025-010',
-    expectedCompletion: 'July 2026',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-  },
-];
-
-const subTabs = [
-  'All Students',
-  'Applications',
-  'Admitted Students',
-  'Document Verification',
-  'Guardians',
-  'Alumni / Graduated',
-  'Suspended',
-  'Deleted',
-];
-
 export default function AdminStudentsPage() {
   const [activeSubTab, setActiveSubTab] = useState('All Students');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [selectedYear, setSelectedYear] = useState('All Years');
   const [searchFilter, setSearchFilter] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<Student>(mockStudents[0]);
+  const [students,setStudents]=useState<Student[]>([]);
+  const [apiLoading,setApiLoading]=useState(true);
+  const [apiError,setApiError]=useState('');
+  const [reload,setReload]=useState(0);
+  useEffect(()=>{
+    const controller=new AbortController();
+    const token=sessionStorage.getItem('upec_staff_token');
+    if(!token){setApiError('Staff sign-in required.');setApiLoading(false);return;}
+    setApiLoading(true);setApiError('');
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
+      .then(data=>{if(!controller.signal.aborted)setStudents((data.applications||[]).map((item:{id:string;reference_number:string;programme:string;academic_session:string;status:string;submitted_at:string},index:number)=>({
+        id:index+1,name:'Applicant',appId:item.reference_number||item.id,
+        programme:item.programme as Student['programme'],
+        status:item.status==='approved'?'Admitted':item.status==='action_required'?'Awaiting Docs':item.status==='rejected'?'Suspended':'Pending',
+        year:item.academic_session||'',phone:'',email:'',dob:'',gender:'',address:'',nationality:'',guardian:'',guardianPhone:'',class:'',mode:'',
+        admissionDate:item.submitted_at||'',studentId:item.id,expectedCompletion:'',avatar:''
+      })));})
+      .catch(error=>{if(!controller.signal.aborted)setApiError(error instanceof Error?error.message:'Unable to load applications.');})
+      .finally(()=>{if(!controller.signal.aborted)setApiLoading(false);});
+    return()=>controller.abort();
+  },[reload]);
+
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
 
   const toggleCheck = (id: number) => {
@@ -301,14 +90,14 @@ export default function AdminStudentsPage() {
   };
 
   const toggleCheckAll = () => {
-    if (checkedIds.length === mockStudents.length) {
+    if (checkedIds.length === students.length) {
       setCheckedIds([]);
     } else {
-      setCheckedIds(mockStudents.map((s) => s.id));
+      setCheckedIds(students.map((s) => s.id));
     }
   };
 
-  const filteredStudents = mockStudents.filter((s) => {
+  const filteredStudents = students.filter((s) => {
     if (activeSubTab === 'Applications' && s.status !== 'Pending') return false;
     if (activeSubTab === 'Admitted Students' && s.status !== 'Admitted') return false;
     if (activeSubTab === 'Document Verification' && s.status !== 'Awaiting Docs') return false;
@@ -344,6 +133,7 @@ export default function AdminStudentsPage() {
 
   return (
     <div className="space-y-6">
+      <div role="status" className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">{apiLoading?"Loading live applications…":apiError||`${students.length} application records loaded. Only the records list is connected; other figures and actions are design placeholders.`}<button type="button" disabled={apiLoading} onClick={()=>setReload(value=>value+1)} className="ml-3 rounded-lg border px-3 py-1 disabled:opacity-50">Refresh</button></div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -535,7 +325,7 @@ export default function AdminStudentsPage() {
                   <th className="py-3 px-3 w-10 text-center">
                     <input
                       type="checkbox"
-                      checked={checkedIds.length === mockStudents.length}
+                      checked={checkedIds.length === students.length}
                       onChange={toggleCheckAll}
                       className="rounded border-slate-300 text-[#C62839] focus:ring-[#C62839]"
                     />
