@@ -76,7 +76,7 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
       {/* =========================================================================
           ROW 1: 6 TOP KPI CARDS
           ========================================================================= */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 site-kpi-grid">
         {/* Card 1: Total Students */}
         <div
           onClick={() => onNavigateTab('students')}
