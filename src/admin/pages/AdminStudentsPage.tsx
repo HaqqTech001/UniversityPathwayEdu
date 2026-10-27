@@ -78,7 +78,24 @@ export default function AdminStudentsPage() {
     return()=>controller.abort();
   },[reload]);
 
+  const [applicationDetail,setApplicationDetail]=useState<{application:{status:string;form_data:Record<string,unknown>|null;subjects:unknown};reviews:{id:string;new_status:string;note:string;created_at:string}[]}|null>(null);
+  const [detailLoading,setDetailLoading]=useState(false);
+  const [detailError,setDetailError]=useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  useEffect(()=>{
+    setApplicationDetail(null);setDetailError('');
+    if(!selectedStudent)return;
+    const controller=new AbortController();
+    setDetailLoading(true);
+    const token=sessionStorage.getItem('upec_staff_token');
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId),{
+      headers:{Authorization:'Bearer '+token},signal:controller.signal
+    }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application details.');return data;})
+      .then(data=>{if(!controller.signal.aborted)setApplicationDetail(data);})
+      .catch(error=>{if(!controller.signal.aborted)setDetailError(error instanceof Error?error.message:'Unable to load details.');})
+      .finally(()=>{if(!controller.signal.aborted)setDetailLoading(false);});
+    return()=>controller.abort();
+  },[selectedStudent]);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
@@ -440,6 +457,16 @@ export default function AdminStudentsPage() {
               <X size={18} />
             </button>
 
+            <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Live application details">
+              <h4 className="text-sm font-bold text-[#111A43]">Application details (live)</h4>
+              {detailLoading?<p className="mt-2 text-xs">Loading application…</p>:detailError?<p role="alert" className="mt-2 text-xs text-red-700">{detailError}</p>:applicationDetail?(
+                <div className="mt-2 space-y-3 text-xs">
+                  <p><strong>Backend status:</strong> {applicationDetail.application.status}</p>
+                  <div><strong>Submitted fields:</strong><dl className="mt-2 grid gap-2">{Object.entries(applicationDetail.application.form_data||{}).filter(([,value])=>['string','number','boolean'].includes(typeof value)).map(([key,value])=><div key={key} className="break-words"><dt className="font-semibold text-slate-500">{key.replace(/_/g,' ')}</dt><dd>{String(value)}</dd></div>)}</dl></div>
+                  <div><strong>Review history:</strong>{applicationDetail.reviews.length===0?<p className="mt-1">No reviews recorded.</p>:applicationDetail.reviews.map(review=><p key={review.id} className="mt-2 border-t pt-2">{review.new_status} · {new Date(review.created_at).toLocaleDateString('en-NG')}<br/>{review.note}</p>)}</div>
+                </div>
+              ):null}
+            </section>
             {/* Profile Header */}
             <div className="flex items-start gap-4">
               <img
