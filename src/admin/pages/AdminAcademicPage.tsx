@@ -283,6 +283,7 @@ export default function AdminAcademicPage() {
         </div>
       </div>
 
+      {activeTab==='Programmes'?<>
       {/* Mid Section: Programmes Table + Programme Details Card */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Programmes Table */}
@@ -637,6 +638,11 @@ export default function AdminAcademicPage() {
           </div>
         </div>
       </div>
+      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
+        <p className="mt-2 text-sm text-slate-600">This section needs live academic records and authenticated management endpoints before it can be used.</p>
+        <p className="mt-2 text-xs text-amber-700">The Programmes overview contains design-preview data, not verified institutional records.</p>
+      </section>}
     </div>
   );
 }
