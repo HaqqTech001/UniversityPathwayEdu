@@ -41,8 +41,6 @@ interface Transaction {
 
 
 export default function AdminFinancePage() {
-  const [activeTab, setActiveTab] = useState('Transactions');
-  const [feeTab, setFeeTab] = useState('Registration Revenue (unavailable)');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
@@ -130,18 +128,6 @@ export default function AdminFinancePage() {
           <p className="text-sm text-slate-500 mt-1">Manage all payments, fees, invoices, and financial records.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
-            <Calendar size={15} className="text-[#111A43]" />
-            <div>
-              <p className="font-bold text-[#111A43]">2025/2026 Academic Session</p>
-              <p className="text-[10px] text-slate-400">Current Session</p>
-            </div>
-            <ChevronDown size={14} className="text-slate-400 ml-1" />
-          </div>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-[#C62839] hover:bg-[#b02232] text-white rounded-xl shadow-md transition-all">
-            <Plus size={15} />
-            Record Payment &gt;
-          </button>
         </div>
       </div>
 
@@ -220,29 +206,6 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
-      {/* Subtabs Bar */}
-      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['Transactions', 'Fee Structure', 'Invoices & Receipts', 'Pending Payments', 'Refunds', 'Financial Reports'].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Search & Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -265,9 +228,6 @@ export default function AdminFinancePage() {
             <option value="All Types">Payment Type: All Types</option>
             <option value="Registration Fee">Registration Fee</option>
             <option value="Lesson Fee">Lesson Fee</option>
-            <option value="Hostel Fee">Hostel Fee</option>
-            <option value="Exam Fee">Exam Fee</option>
-            <option value="Other Fee">Other Fee</option>
           </select>
 
           <select
@@ -288,18 +248,8 @@ export default function AdminFinancePage() {
           >
             <option value="All Status">Status: All Status</option>
             <option value="Paid">Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Failed">Failed</option>
           </select>
 
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600">
-            <Calendar size={13} className="text-slate-400" />
-            <span>01 Jul 2025 - 14 Jul 2025</span>
-          </div>
-
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#111A43] text-white rounded-xl hover:bg-[#1a275e]">
-            Filter
-          </button>
         </div>
       </div>
 
