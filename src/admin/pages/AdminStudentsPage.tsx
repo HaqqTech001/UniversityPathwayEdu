@@ -151,7 +151,7 @@ export default function AdminStudentsPage() {
           <p className="text-sm text-slate-500 mt-1">Manage all students, admissions, applications, documents and guardians.</p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
+          <button type="button" onClick={exportApplications} disabled={apiLoading || Boolean(apiError) || filteredStudents.length===0} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
             <Upload size={14} className="text-slate-500" />
             Import Students
           </button>
