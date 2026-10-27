@@ -488,7 +488,6 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
       </div>
 
       {/* =========================================================================
-      {/* =========================================================================
           COMPREHENSIVE STUDENT BIODATA FORM MODAL
           ========================================================================= */}
       {isEditingBiodata && (
