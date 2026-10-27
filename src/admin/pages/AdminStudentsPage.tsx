@@ -95,7 +95,33 @@ export default function AdminStudentsPage() {
       .catch(error=>{if(!controller.signal.aborted)setDetailError(error instanceof Error?error.message:'Unable to load details.');})
       .finally(()=>{if(!controller.signal.aborted)setDetailLoading(false);});
     return()=>controller.abort();
-  },[selectedStudent]);
+  },[selectedStudent,detailReload]);
+  const [reviewStatus,setReviewStatus]=useState('under_review');
+  const [reviewNote,setReviewNote]=useState('');
+  const [reviewSaving,setReviewSaving]=useState(false);
+  const [reviewFeedback,setReviewFeedback]=useState('');
+  const [detailReload,setDetailReload]=useState(0);
+  const submitReview=async()=>{
+    if(!selectedStudent||reviewSaving)return;
+    const note=reviewNote.trim();
+    if(['rejected','action_required'].includes(reviewStatus)&&note.length<5){
+      setReviewFeedback('Provide a reason of at least five characters.');return;
+    }
+    if(!window.confirm('Confirm application status change to '+reviewStatus.replace(/_/g,' ')+'?'))return;
+    setReviewSaving(true);setReviewFeedback('');
+    try{
+      const token=sessionStorage.getItem('upec_staff_token');
+      const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId)+'/status',{
+        method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({status:reviewStatus,note})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Could not save review.');
+      setReviewNote('');setReviewFeedback('Review saved successfully.');
+      setDetailReload(n=>n+1);setReload(n=>n+1);
+    }catch(error){setReviewFeedback(error instanceof Error?error.message:'Could not save review.');}
+    finally{setReviewSaving(false);}
+  };
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
@@ -466,6 +492,22 @@ export default function AdminStudentsPage() {
                   <div><strong>Review history:</strong>{applicationDetail.reviews.length===0?<p className="mt-1">No reviews recorded.</p>:applicationDetail.reviews.map(review=><p key={review.id} className="mt-2 border-t pt-2">{review.new_status} · {new Date(review.created_at).toLocaleDateString('en-NG')}<br/>{review.note}</p>)}</div>
                 </div>
               ):null}
+            </section>
+            <section className="mb-4 rounded-xl border border-slate-200 p-4 space-y-3" aria-label="Review application">
+              <h4 className="text-sm font-bold text-[#111A43]">Review application</h4>
+              <label className="block text-xs font-semibold text-slate-700">Decision
+                <select value={reviewStatus} onChange={event=>setReviewStatus(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2">
+                  <option value="under_review">Under review</option>
+                  <option value="approved">Approve</option>
+                  <option value="action_required">Request corrections</option>
+                  <option value="rejected">Reject</option>
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Review note
+                <textarea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} maxLength={2000} rows={3} placeholder="Explain your decision" className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+              </label>
+              {reviewFeedback&&<p role="status" className="text-xs text-slate-700">{reviewFeedback}</p>}
+              <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
             </section>
             {/* Profile Header */}
             <div className="flex items-start gap-4">
