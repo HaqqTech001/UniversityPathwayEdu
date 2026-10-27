@@ -22,7 +22,7 @@ export default function PublicWebsiteLayout({
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#0b1a42]">
       <Header currentPath={currentPath} onNavigate={onNavigate} />
-      <div className="flex-1">{children}</div>
+      <div key={currentPath} className="flex-1 site-page-enter">{children}</div>
       <Footer onNavigate={onNavigate} />
     </div>
   );

@@ -297,7 +297,7 @@ export default function Header({ currentPath, onNavigate }: HeaderProps) {
 
                   {/* Desktop Dropdown Card Menu */}
                   {hasDropdown && activeDesktopDropdown === link.label && (
-                    <div className="absolute top-full left-0 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-1">
+                    <div className="absolute top-full left-0 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 site-dropdown-enter">
                       {link.dropdown?.map((item) => {
                         const Icon = item.icon;
                         return (

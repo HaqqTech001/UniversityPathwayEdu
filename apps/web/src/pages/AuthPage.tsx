@@ -456,7 +456,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: REGISTER
                 ===================================================================== */}
             {authMode === 'register' && (
-              <form onSubmit={handleRegister} className="space-y-3">
+              <form onSubmit={handleRegister} className="space-y-3 site-page-enter">
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1">Full Name</label>
                   <div className="relative">
@@ -558,7 +558,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: SIGN IN
                 ===================================================================== */}
             {authMode === 'signin' && (
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-4 site-page-enter">
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
                     Registration Number or Email
@@ -622,7 +622,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: FORGOT PASSWORD
                 ===================================================================== */}
             {authMode === 'forgot-password' && (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
+              <form onSubmit={handleForgotPassword} className="space-y-4 site-page-enter">
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
                     Registered Email Address
@@ -668,7 +668,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: RESET PASSWORD
                 ===================================================================== */}
             {authMode === 'reset-password' && (
-              <form onSubmit={handleResetPassword} className="space-y-3">
+              <form onSubmit={handleResetPassword} className="space-y-3 site-page-enter">
                 <label className="block text-xs font-bold text-[#0b1a42]">New Password
                   <span className="relative block mt-1"><input type={visiblePasswords.new?'text':'password'} required minLength={10} value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="w-full px-3 pr-12 py-3 rounded-xl border border-slate-200" /><button type="button" onClick={()=>togglePassword('new')} aria-label={visiblePasswords.new?'Hide password':'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500">{visiblePasswords.new?<EyeOff size={17}/>:<Eye size={17}/>}</button></span>
                 </label>
@@ -683,7 +683,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: OTP VERIFICATION
                 ===================================================================== */}
             {authMode === 'otp-verify' && (
-              <form onSubmit={handleOtpVerify} className="space-y-4">
+              <form onSubmit={handleOtpVerify} className="space-y-4 site-page-enter">
                 <div>
                   <OtpInput id="security-otp" label="6-Digit OTP Code" value={otpCode} onChange={setOtpCode} disabled={authLoading}/>
                 </div>
@@ -702,7 +702,7 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 FORM: EMAIL VERIFICATION
                 ===================================================================== */}
             {authMode === 'email-verify' && (
-              <form onSubmit={handleEmailVerify} className="space-y-3">
+              <form onSubmit={handleEmailVerify} className="space-y-3 site-page-enter">
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1">Email Address</label>
                   <input

@@ -106,8 +106,15 @@ export default function App() {
     return <StudentPortalPage onNavigate={navigate} />;
   }
 
-  // System D: StaffPortalPage for protected staff administration desk
-  if (currentPath === '/staff' || currentPath === '/staff/login' || currentPath === '/staff/portal') {
+  // System D: StaffPortalPage for protected staff administration desk & admin portal
+  if (
+    currentPath === '/staff' ||
+    currentPath === '/staff/login' ||
+    currentPath === '/staff/portal' ||
+    currentPath === '/admin' ||
+    currentPath.startsWith('/admin/') ||
+    currentPath.startsWith('/staff/')
+  ) {
     return <StaffPortalPage onNavigate={navigate} />;
   }
 

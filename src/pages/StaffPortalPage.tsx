@@ -1,29 +1,61 @@
-import React from 'react';
-import { Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import AdminPortalApp from '../admin/AdminPortalApp';
 
-interface PageProps {
-  onNavigate: (path: string) => void;
-}
+const apiRoot = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+export const getStaffToken = () => sessionStorage.getItem('upec_staff_token');
+
+interface PageProps { onNavigate: (path: string) => void; }
 
 export default function StaffPortalPage({ onNavigate }: PageProps) {
-  return (
-    <main className="min-h-screen bg-[#f5f7fc] px-4 py-12 text-[#0b1a42] sm:px-6 lg:py-20">
-      <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-12">
-        <div className="mb-6 inline-flex rounded-2xl bg-[#08163b] p-4 text-white">
-          <ShieldCheck size={28} aria-hidden="true" />
-        </div>
-        <h1 className="font-serif text-2xl font-bold">UPEC Staff Desk</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
-          Staff access is currently restricted while authenticated staff accounts, permissions and administrative workflows are being configured.
-        </p>
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
-          <Lock size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p>No staff sign-in or application approval is available on this page yet. Contact the centre administrator for access information.</p>
-        </div>
-        <button type="button" onClick={() => onNavigate('/')} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#08163b] px-5 py-3 text-sm font-bold text-white hover:bg-[#152959]">
-          <ArrowLeft size={16} aria-hidden="true" /> Return to website
-        </button>
-      </div>
-    </main>
-  );
+  const [token, setToken] = useState<string | null>(getStaffToken);
+  const [checking, setChecking] = useState(Boolean(token));
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!token) { setChecking(false); return; }
+    const controller = new AbortController();
+    setChecking(true);
+    fetch(apiRoot + '/api/staff/me', { headers: { Authorization: 'Bearer ' + token }, signal: controller.signal })
+      .then(async response => { if (!response.ok) throw Error('Your staff session has expired. Please sign in again.'); })
+      .catch(err => {
+        if (controller.signal.aborted) return;
+        sessionStorage.removeItem('upec_staff_token');
+        setToken(null);
+        setError(err instanceof Error ? err.message : 'Unable to verify staff access.');
+      })
+      .finally(() => { if (!controller.signal.aborted) setChecking(false); });
+    return () => controller.abort();
+  }, [token]);
+
+  const signIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setBusy(true); setError('');
+    try {
+      const response = await fetch(apiRoot + '/api/staff/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.token) throw Error(result.error || 'Unable to sign in.');
+      sessionStorage.setItem('upec_staff_token', result.token);
+      setPassword('');
+      setToken(result.token);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to sign in.'); }
+    finally { setBusy(false); }
+  };
+
+  if (checking) return <main className="min-h-screen grid place-items-center bg-[#F7F8FC] text-[#111A43]">Verifying staff access…</main>;
+  if (!token) return <main className="min-h-screen grid place-items-center bg-[#F7F8FC] p-4">
+    <form onSubmit={signIn} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-xl space-y-5">
+      <h1 className="text-2xl font-extrabold text-[#111A43]">Staff sign in</h1>
+      <p className="text-sm text-slate-600">University Pathway Educational Consult administration</p>
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      <label className="block text-sm font-semibold text-[#111A43]">Email<input required type="email" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} className="mt-2 w-full rounded-lg border p-3" /></label>
+      <label className="block text-sm font-semibold text-[#111A43]">Password<input required type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border p-3" /></label>
+      <button disabled={busy} className="w-full rounded-lg bg-[#C62839] p-3 font-bold text-white disabled:opacity-50">{busy ? 'Signing in…' : 'Sign in'}</button>
+    </form>
+  </main>;
+  return <AdminPortalApp onNavigate={onNavigate} />;
 }
