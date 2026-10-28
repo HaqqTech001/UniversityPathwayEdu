@@ -172,9 +172,9 @@ export default function AdminResourcesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-5">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Learning Resources</h1>
           <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage study materials, past questions, lecture notes, videos and other learning resources.</p>
