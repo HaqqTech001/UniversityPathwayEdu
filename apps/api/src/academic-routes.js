@@ -106,8 +106,8 @@ router.delete('/timetable-plans/:id',grant('super_admin','admin'),wrap(async(req
 const academicEntities={
  classes:{table:'upec_academic_classes',fields:['programme_id','name','description','stream','academic_session','active'],required:['programme_id','name','description','academic_session']},
  timetable:{table:'upec_academic_timetable',fields:['class_id','plan_id','subject_id','weekday','starts_at','ends_at','room','learning_mode','period'],required:['subject_id','weekday','starts_at','ends_at']},
- attendance:{table:'upec_academic_attendance',fields:['class_id','student_id','attendance_date','status','notes'],required:['class_id','student_id','attendance_date','status']},
- assignments:{table:'upec_academic_assignments',fields:['class_id','subject_id','title','instructions','due_at','status'],required:['class_id','subject_id','title','due_at']}
+ attendance:{table:'upec_academic_attendance',fields:['class_id','programme_id','learning_mode','student_id','attendance_date','status','notes'],required:['programme_id','learning_mode','student_id','attendance_date','status']},
+ assignments:{table:'upec_academic_assignments',fields:['class_id','programme_id','learning_mode','subject_id','title','instructions','due_at','status'],required:['programme_id','learning_mode','subject_id','title','due_at']}
 };
 const academicFieldValid=(key,value)=>{
  if(['programme_id','class_id','subject_id','student_id'].includes(key))return uuid(value);
