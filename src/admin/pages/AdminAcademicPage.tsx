@@ -204,6 +204,29 @@ export default function AdminAcademicPage() {
           </div>
         </div>
       </>}
+      {/* Subtabs Bar */}
+      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
+        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
+          {['Overview', 'Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-3.5 whitespace-nowrap transition-colors relative ${
+                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
+                }`}
+              >
+                {tab}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {activeTab !== 'Overview' && <>
       {/* Contextual summary for the selected workspace */}
       <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
@@ -274,30 +297,8 @@ export default function AdminAcademicPage() {
         </div>
       </div>
 
-      </>}
 
-      {/* Subtabs Bar */}
-      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['Overview', 'Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      </>}
 
       {activeTab==='Programmes'?<>
       {/* Mid Section: Programmes Table + Programme Details Card */}
