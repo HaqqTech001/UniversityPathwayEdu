@@ -422,6 +422,7 @@ export default function AdminStudentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
+                {apiLoading&&Array.from({length:7},(_,i)=><tr key={`skeleton-${i}`} className="animate-pulse">{Array.from({length:8},(_,j)=><td key={j} className="px-3 py-4"><div className="h-3 rounded bg-slate-200"/></td>)}</tr>)}
                 {visibleStudents.map((s, index) => {
                   const isChecked = checkedIds.includes(s.id);
                   const isSelected = selectedStudent?.id === s.id;
