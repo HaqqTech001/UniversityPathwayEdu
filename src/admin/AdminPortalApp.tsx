@@ -71,7 +71,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       window.location.hash = tab;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
@@ -110,7 +110,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
     >
-      <div key={activeTab} className="site-page-enter">{renderActivePage()}</div>
+      <div key={activeTab} className="site-page-enter min-w-0 w-full">{renderActivePage()}</div>
     </AdminLayout>
   );
 }
