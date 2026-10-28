@@ -258,7 +258,7 @@ export default function AdminStudentsPage() {
       <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Student Management</h1>
-          <p className="hidden text-xs text-slate-500 sm:block">Manage all students, admissions, applications, documents and guardians.</p>
+          <p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage students, admissions, applications and documents</p>
         </div>
         <div className="hidden items-center gap-2 sm:flex sm:flex-wrap">
           <button type="button" onClick={()=>notifyAdmin("Student import is not yet available.","info")} disabled={false} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
@@ -279,7 +279,7 @@ export default function AdminStudentsPage() {
       <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Loaded application summary">
         {[{label:'Applications',value:students.length,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-            <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
+            <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
           </div>
         ))}
@@ -390,6 +390,7 @@ export default function AdminStudentsPage() {
         {/* Left Column: Student Directory Table */}
         <div className={`min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
           <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
+            {apiLoading&&Array.from({length:6},(_,i)=><div key={i} className="flex animate-pulse items-center gap-3 px-3 py-3" aria-label="Loading student"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-200"/><div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-slate-200"/><div className="h-2 w-1/2 rounded bg-slate-100"/></div></div>)}
             {visibleStudents.map(student=><div key={student.studentId} onClick={()=>{setSelectedStudent(student);setDrawerOpen(true);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){setSelectedStudent(student);setDrawerOpen(true);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.studentId===student.studentId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
               {student.avatar?<img src={student.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover"/>:<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#111A43]"><Users size={18}/></span>}
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#111A43]">{student.name}</p><button type="button" onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(student.appId).then(()=>notifyAdmin('Application ID copied','success')).catch(()=>notifyAdmin('Unable to copy ID','error'));}} className="mt-1 block max-w-full truncate text-left font-mono text-[11px] text-slate-500" title="Tap to copy application ID">{student.appId} · Copy</button></div>
