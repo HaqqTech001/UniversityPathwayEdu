@@ -1,2 +1,7 @@
 @import 'tailwindcss';
-:root { font-family: Inter, system-ui, sans-serif; color: #08163b; background: #f7f8fc; } body { margin: 0; }
+
+/* Admin components live outside apps/admin. Tailwind v4 must scan them explicitly. */
+@source '../../../src/admin';
+
+:root { font-family: Inter, system-ui, sans-serif; color: #08163b; background: #f7f8fc; }
+body { margin: 0; }
