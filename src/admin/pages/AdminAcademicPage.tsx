@@ -17,10 +17,15 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  RefreshCw,
+  ArrowLeft,
+  ClipboardCheck,
+  Layers3,
 } from 'lucide-react';
 
 export default function AdminAcademicPage() {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('Workspace');
+  const [refreshKey,setRefreshKey]=useState(0);
   const [selectedProgramme, setSelectedProgramme] = useState('IJMB Programme');
   const [programmeDetailTab, setProgrammeDetailTab] = useState('Overview');
 
@@ -169,138 +174,41 @@ export default function AdminAcademicPage() {
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-5">
-      {/* Page Header */}
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Academic Management</h1>
-          <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage programmes, subjects, classes, timetables, attendance and assignments.</p>
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-extrabold leading-tight tracking-tight text-[#111A43] sm:text-2xl">Academic Management</h1>
+          <p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Programmes, subjects, classes, schedules and academic records</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
-            <Calendar size={15} className="text-[#111A43]" />
-            <div>
-              <p className="font-bold text-[#111A43]">Academic session</p>
-              <p className="text-[10px] text-slate-400">Not selected</p>
-            </div>
-            <ChevronDown size={14} className="text-slate-400 ml-1" />
-          </div>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-[#C62839] hover:bg-[#b02232] text-white rounded-xl shadow-md transition-all">
-            <Plus size={15} />
-            Create New &gt;
-          </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" title="Refresh academic workspace" aria-label="Refresh academic workspace" onClick={()=>setRefreshKey(k=>k+1)} className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] hover:bg-slate-50"><RefreshCw size={17}/></button>
+          <button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message:'Academic record creation requires a connected management endpoint.',kind:'info'}}))} className="inline-flex items-center gap-1 rounded-lg bg-[#C62839] px-3 py-2 text-xs font-bold text-white hover:bg-[#b02232]"><Plus size={15}/><span>Create</span></button>
         </div>
       </div>
-
-      {activeTab === 'Overview' && <>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-[#111A43]">Academic workspace</h2>
-          <p className="mt-1 text-sm text-slate-500">Choose an area to manage. Detailed records and actions open in their own workspace.</p>
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {['Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map(section => (
-              <button key={section} type="button" onClick={() => setActiveTab(section)} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
-                <span>{section}</span><ChevronRight size={17} className="shrink-0 text-[#C62839]" />
-              </button>
-            ))}
+      {activeTab==='Workspace'?<>
+        <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            {label:'Programmes',icon:GraduationCap},
+            {label:'Subjects',icon:BookOpen},
+            {label:'Classes',icon:Users},
+            {label:'Attendance',icon:UserCheck}
+          ].map(({label,icon:Icon})=><div key={label} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-3"><span className="rounded-lg bg-[#F7F8FC] p-2 text-[#111A43]"><Icon size={18}/></span><div className="min-w-0"><p className="text-[10px] text-slate-500">{label}</p><p className="text-sm font-bold text-[#111A43]" title="Awaiting verified data">—</p></div></div>)}
+        </section>
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5">
+          <h2 className="text-sm font-bold text-[#111A43]">Academic workspace</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Select an area to open its dedicated management page.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              {label:'Programmes',icon:GraduationCap,desc:'Programme records'},
+              {label:'Subjects',icon:BookOpen,desc:'Courses and subjects'},
+              {label:'Classes & Streams',icon:Layers3,desc:'Class organisation'},
+              {label:'Timetable',icon:Calendar,desc:'Schedules'},
+              {label:'Attendance',icon:ClipboardCheck,desc:'Attendance records'},
+              {label:'Assignments',icon:FileText,desc:'Tasks and submissions'}
+            ].map(({label,icon:Icon,desc})=><button type="button" key={label} onClick={()=>setActiveTab(label)} className="group flex min-w-0 flex-col items-start gap-2 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left transition hover:border-[#C62839] hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839] sm:p-4"><span className="rounded-lg bg-white p-2 text-[#111A43] group-hover:text-[#C62839]"><Icon size={20}/></span><span className="min-w-0 text-xs font-bold text-[#111A43] sm:text-sm">{label}</span><span className="hidden text-[11px] text-slate-500 sm:block">{desc}</span></button>)}
           </div>
-        </div>
-      </>}
-      {/* Subtabs Bar */}
-      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['Overview', 'Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {activeTab !== 'Overview' && <>
-      {/* Contextual summary for the selected workspace */}
-      <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#111A43] flex items-center justify-center text-white shrink-0">
-            <GraduationCap size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">6</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Programmes</p>
-            <p className="text-[10px] text-slate-400">Active Programmes</p>
-          </div>
-        </div>
-
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#C62839] flex items-center justify-center text-white shrink-0">
-            <BookOpen size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">48</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Subjects</p>
-            <p className="text-[10px] text-slate-400">Across Programmes</p>
-          </div>
-        </div>
-
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0">
-            <Users size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">24</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Classes</p>
-            <p className="text-[10px] text-slate-400">Active Classes</p>
-          </div>
-        </div>
-
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0">
-            <UserCheck size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">128</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Lecturers</p>
-            <p className="text-[10px] text-slate-400">Active Lecturers</p>
-          </div>
-        </div>
-
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0">
-            <Calendar size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">86%</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Average Attendance</p>
-            <p className="text-[10px] text-slate-400">This Session</p>
-          </div>
-        </div>
-
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
-            <FileText size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-black text-[#111A43] leading-none">312</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Assignments</p>
-            <p className="text-[10px] text-slate-400">Total Submissions</p>
-          </div>
-        </div>
-      </div>
-
-
-      </>}
-
-      {activeTab==='Programmes'?<>
+        </section>
+      </>:<div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-200 pb-2"><button type="button" onClick={()=>setActiveTab('Workspace')} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111A43] hover:text-[#C62839]"><ArrowLeft size={15}/>Academic workspace</button><span className="truncate text-xs font-bold text-slate-600">{activeTab}</span></div>}
+      {activeTab==='Programmes'?<React.Fragment key={refreshKey}>
       {/* Mid Section: Programmes Table + Programme Details Card */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Programmes Table */}
@@ -655,9 +563,9 @@ export default function AdminAcademicPage() {
           </div>
         </div>
       </div>
-      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+      </React.Fragment>:activeTab!=='Workspace'?<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
         <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
-        <p className="mt-2 text-sm text-slate-600">This section needs live academic records and authenticated management endpoints before it can be used.</p>
+        <p className="mt-2 text-sm text-slate-600">The detailed records for this academic area are not connected to authenticated management endpoints yet.</p>
         <p className="mt-2 text-xs text-amber-700">The Programmes overview contains design-preview data, not verified institutional records.</p>
       </section>}
     </div>
