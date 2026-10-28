@@ -168,9 +168,9 @@ export default function AdminAcademicPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-5">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Academic Management</h1>
           <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage programmes, subjects, classes, timetables, attendance and assignments.</p>
@@ -179,8 +179,8 @@ export default function AdminAcademicPage() {
           <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
             <Calendar size={15} className="text-[#111A43]" />
             <div>
-              <p className="font-bold text-[#111A43]">2025/2026 Academic Session</p>
-              <p className="text-[10px] text-slate-400">Current Session</p>
+              <p className="font-bold text-[#111A43]">Academic session</p>
+              <p className="text-[10px] text-slate-400">Not selected</p>
             </div>
             <ChevronDown size={14} className="text-slate-400 ml-1" />
           </div>
