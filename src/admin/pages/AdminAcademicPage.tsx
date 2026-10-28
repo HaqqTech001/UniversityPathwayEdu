@@ -172,7 +172,7 @@ export default function AdminAcademicPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111A43] tracking-tight">Academic Management</h1>
+          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Academic Management</h1>
           <p className="text-sm text-slate-500 mt-1">Manage programmes, subjects, classes, timetables, attendance and assignments.</p>
         </div>
         <div className="flex items-center gap-3">
