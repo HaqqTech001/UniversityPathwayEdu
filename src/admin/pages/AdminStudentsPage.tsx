@@ -172,6 +172,8 @@ export default function AdminStudentsPage() {
     finally{setDocumentSaving(null);}
   };
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
 
@@ -208,6 +210,11 @@ export default function AdminStudentsPage() {
     return true;
   });
 
+  const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const visibleStudents = filteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize);
+  useEffect(() => setPage(1), [activeSubTab, selectedProgramme, selectedStatus, selectedYear, searchFilter, pageSize]);
+
   const exportApplications = () => {
     const rows = [['Application Reference','Programme','Academic Session','Application Status','Submitted At'],
       ...filteredStudents.map(s=>[s.appId,s.programme,s.year,s.status,s.admissionDate])];
@@ -234,7 +241,7 @@ export default function AdminStudentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-col gap-3 lg:h-full lg:overflow-hidden">
       <div role="status" className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">{apiLoading?"Loading live applications…":apiError||`${students.length} application records loaded. Only the records list is connected; other figures and actions are design placeholders.`}<button type="button" disabled={apiLoading} onClick={()=>setReload(value=>value+1)} className="ml-3 rounded-lg border px-3 py-1 disabled:opacity-50">Refresh</button></div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -258,67 +265,13 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      {/* 5 KPI Summary Cards */}
-      <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5">
-        {/* Card 1 */}
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <Users size={22} />
+      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Loaded application summary">
+        {[{label:'Applications',value:students.length},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length}].map(item=>(
+          <div key={item.label} className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <p className="text-lg font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p>
+            <p className="mt-1 truncate text-[11px] font-medium text-slate-600" title={item.label}>{item.label}</p>
           </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none break-words">1,248</p>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Total Students</p>
-            <p className="text-[11px] font-bold text-emerald-600 mt-0.5">↑ 12% <span className="font-normal text-slate-400">vs last session</span></p>
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-[#C62839] flex items-center justify-center text-white shrink-0 shadow-sm">
-            <FileText size={22} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none break-words">86</p>
-            <p className="text-xs font-semibold text-slate-500 mt-1">New Applications</p>
-            <p className="text-[11px] font-bold text-emerald-600 mt-0.5">↑ 8% <span className="font-normal text-slate-400">Pending Review: 28</span></p>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <GraduationCap size={22} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none break-words">1,142</p>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Admitted Students</p>
-            <p className="text-[11px] font-bold text-emerald-600 mt-0.5">91.5% <span className="font-normal text-slate-400">Acceptance Rate</span></p>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <FolderCheck size={22} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none break-words">48</p>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Pending Documents</p>
-            <p className="text-[11px] font-bold text-amber-600 mt-0.5">Needs Review</p>
-          </div>
-        </div>
-
-        {/* Card 5 */}
-        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <UserX size={22} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none break-words">12</p>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Suspended Students</p>
-            <p className="text-[11px] font-bold text-rose-600 mt-0.5">0.9% <span className="font-normal text-slate-400">of total</span></p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Sub Tabs */}
@@ -417,11 +370,11 @@ export default function AdminStudentsPage() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-12 lg:overflow-hidden">
         {/* Left Column: Student Directory Table */}
-        <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className={`min-w-0 min-h-[360px] lg:min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
+          <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+            <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-3 w-10 text-center">
@@ -444,7 +397,7 @@ export default function AdminStudentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
-                {filteredStudents.map((s, index) => {
+                {visibleStudents.map((s, index) => {
                   const isChecked = checkedIds.includes(s.id);
                   const isSelected = selectedStudent?.id === s.id;
                   return (
@@ -466,7 +419,7 @@ export default function AdminStudentsPage() {
                           className="rounded border-slate-300 text-[#C62839] focus:ring-[#C62839]"
                         />
                       </td>
-                      <td className="py-3 px-2 text-center text-slate-400 font-medium">{index + 1}</td>
+                      <td className="py-3 px-2 text-center text-slate-400 font-medium">{(safePage - 1) * pageSize + index + 1}</td>
                       <td className="py-3 px-2 text-center">
                         <img
                           src={s.avatar}
@@ -492,39 +445,20 @@ export default function AdminStudentsPage() {
             </table>
           </div>
 
-          {/* Table Pagination */}
-          <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <div>
-              Showing <span className="font-semibold text-slate-700">1 - 10</span> of <span className="font-semibold text-slate-700">1,248</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronLeft size={14} />
-              </button>
-              <button className="w-6 h-6 rounded-lg bg-[#111A43] text-white font-bold text-xs flex items-center justify-center shadow-sm">1</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">2</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">3</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">4</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">5</button>
-              <span className="text-slate-400">...</span>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">125</button>
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <select className="border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white text-slate-600">
-                <option>10 per page</option>
-                <option>25 per page</option>
-                <option>50 per page</option>
-              </select>
+          <div className="shrink-0 border-t border-slate-100 p-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+            <span>Showing {filteredStudents.length ? (safePage-1)*pageSize+1 : 0}–{Math.min(safePage*pageSize,filteredStudents.length)} of {filteredStudents.length}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" disabled={safePage===1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="rounded-lg border px-2 py-1 disabled:opacity-40">Previous</button>
+              <span>Page {safePage} of {pageCount}</span>
+              <button type="button" disabled={safePage===pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))} className="rounded-lg border px-2 py-1 disabled:opacity-40">Next</button>
+              <select aria-label="Records per page" value={pageSize} onChange={e=>setPageSize(Number(e.target.value))} className="rounded-lg border px-2 py-1"><option value={10}>10 per page</option><option value={25}>25 per page</option><option value={50}>50 per page</option></select>
             </div>
           </div>
         </div>
 
         {/* Right Column: Student Profile Details Drawer */}
         {drawerOpen && selectedStudent && (
-          <div className="xl:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 relative">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-4 sm:p-6 xl:relative xl:inset-auto xl:z-auto xl:col-span-5 xl:min-h-0 xl:overflow-y-auto xl:rounded-2xl xl:border xl:border-slate-200 xl:shadow-sm">
             <button
               onClick={() => setDrawerOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
