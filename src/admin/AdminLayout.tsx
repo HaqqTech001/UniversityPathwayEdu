@@ -94,11 +94,11 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FC] text-[#111A43] flex flex-col font-sans antialiased">
+    <div className="h-dvh min-h-0 overflow-hidden bg-[#F4F7FC] text-[#111A43] flex flex-col font-sans antialiased">
       {/* =========================================================================
           TOP BAR
           ========================================================================= */}
-      <header className="sticky top-0 z-40 bg-[#08163B] text-white border-b border-[#14234C] shadow-md">
+      <header className="relative shrink-0 z-40 bg-[#08163B] text-white border-b border-[#14234C] shadow-md">
         <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-5 lg:px-6">
           {/* Left: Mobile hamburger & Institutional Identity */}
           <div className="flex min-w-0 items-center gap-2 lg:gap-4">
@@ -256,9 +256,9 @@ export default function AdminLayout({
       {/* =========================================================================
           MAIN SHELL: SIDEBAR + CONTENT OUTLET
           ========================================================================= */}
-      <div className="flex min-w-0 flex-1 relative">
+      <div className="flex min-h-0 min-w-0 flex-1 relative">
         {/* DESKTOP SIDEBAR */}
-        <aside className="hidden lg:flex flex-col bg-[#08163B] text-white w-64 xl:w-72 border-r border-[#14234C] shrink-0 sticky top-16 h-[calc(100vh-64px)] justify-between overflow-y-auto">
+        <aside className="hidden lg:flex flex-col bg-[#08163B] text-white w-56 xl:w-64 border-r border-[#14234C] shrink-0 h-full min-h-0 justify-between overflow-y-auto">
           {/* Navigation Items (Exactly 10 Primary Links) */}
           <div className="py-4 space-y-1">
             <p className="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#D5A75B]/80">
@@ -375,7 +375,7 @@ export default function AdminLayout({
         )}
 
         {/* MAIN CONTENT OUTLET */}
-        <main className="flex-1 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 2xl:p-8 space-y-6">
+        <main className="flex-1 min-h-0 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 2xl:p-8 space-y-6">
           {children}
         </main>
       </div>
