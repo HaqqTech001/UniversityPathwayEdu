@@ -10,6 +10,20 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const [metrics,setMetrics]=useState<Metrics|null>(null);
   const [loading,setLoading]=useState(true);
   const [retry,setRetry]=useState(0);
+  const [notifications,setNotifications]=useState<{id:string;title:string;body:string;created_at:string}[]>([]);
+  const [notificationsReady,setNotificationsReady]=useState(false);
+  useEffect(()=>{
+    const token=sessionStorage.getItem('upec_staff_token');
+    if(!token){setNotificationsReady(true);return;}
+    const controller=new AbortController();
+    setNotificationsReady(false);
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/notifications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+      .then(async response=>{if(!response.ok)throw Error('Notifications unavailable');return response.json();})
+      .then(data=>{if(!controller.signal.aborted){const items=Array.isArray(data)?data:Array.isArray(data.notifications)?data.notifications:[];setNotifications(items.map((item:Record<string,unknown>)=>({id:String(item.id||''),title:String(item.title||'Notification'),body:String(item.message||item.body||''),created_at:String(item.created_at||item.sent_at||'')})).sort((a:{created_at:string},b:{created_at:string})=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,5));}})
+      .catch(()=>{if(!controller.signal.aborted)setNotifications([]);})
+      .finally(()=>{if(!controller.signal.aborted)setNotificationsReady(true);});
+    return()=>controller.abort();
+  },[retry]);
   useEffect(()=>{
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
@@ -28,16 +42,18 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     {label:'Under review',value:metrics?.under_review,icon:Users,tab:'students' as AdminTabId},
     {label:'Action required',value:metrics?.action_required,icon:AlertCircle,tab:'students' as AdminTabId},
   ];
-  const workspaces=[
-    {label:'Student & Applications',description:'Review applicants and student records',tab:'students' as AdminTabId,icon:Users},
-    {label:'Academic Management',description:'Programmes and academic operations',tab:'academic' as AdminTabId,icon:GraduationCap},
-    {label:'Finance & Payments',description:'Invoices, receipts and payment records',tab:'finance' as AdminTabId,icon:CreditCard},
-    {label:'CBT & Assessments',description:'Examinations, attempts and results',tab:'cbt' as AdminTabId,icon:ClipboardCheck},
-    {label:'Learning Resources',description:'Documents and learning materials',tab:'resources' as AdminTabId,icon:BookOpen},
-    {label:'Communications',description:'Conversations and messages',tab:'messages' as AdminTabId,icon:MessageSquare},
-    {label:'Notifications',description:'Delivery history and scheduling',tab:'notifications' as AdminTabId,icon:Bell},
-    {label:'Staff & Roles',description:'Staff accounts and permissions',tab:'staff' as AdminTabId,icon:Users},
+  const actions=[
+    {label:'Review applications',tab:'students' as AdminTabId,icon:ClipboardCheck},
+    {label:'Review payments',tab:'finance' as AdminTabId,icon:CreditCard},
+    {label:'Manage assessments',tab:'cbt' as AdminTabId,icon:BookOpen},
+    {label:'Send notification',tab:'notifications' as AdminTabId,icon:Bell},
   ];
+  const breakdown=[
+    {label:'Submitted',value:metrics?.submitted||0,color:'bg-[#111A43]'},
+    {label:'Under review',value:metrics?.under_review||0,color:'bg-[#D5A75B]'},
+    {label:'Action required',value:metrics?.action_required||0,color:'bg-[#C62839]'},
+  ];
+  const maxCount=Math.max(1,...breakdown.map(item=>item.value));
   return <div className="flex min-h-0 flex-col gap-4 lg:h-full lg:overflow-auto">
     <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
       <div><h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1><p className="mt-0.5 text-sm text-slate-500">Institution operations and available live application metrics</p></div>
@@ -48,15 +64,31 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
         <div className="min-w-0"><p className="text-lg font-extrabold leading-tight text-[#111A43]">{loading?'…':typeof value==='number'?value.toLocaleString('en-NG'):'—'}</p><p className="truncate text-[11px] font-medium text-slate-600" title={label}>{label}</p></div><Icon size={19} className="shrink-0 text-[#C62839]"/>
       </button>)}
     </section>
-    <section className="min-h-0 rounded-2xl border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-4 py-3 sm:px-5"><h2 className="text-sm font-bold text-[#111A43]">Workspaces</h2><p className="mt-0.5 text-xs text-slate-500">Select a module to view its own records and management tools.</p></div>
-      <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-4">
-        {workspaces.map(({label,description,tab,icon:Icon})=><button type="button" key={tab} onClick={()=>onNavigateTab(tab)} className="group flex min-w-0 items-start gap-3 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left transition hover:border-[#C62839] hover:bg-white">
-          <span className="rounded-lg bg-white p-2 text-[#111A43]"><Icon size={18}/></span>
-          <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#111A43]">{label}</span><span className="mt-1 block text-xs leading-relaxed text-slate-500">{description}</span></span>
-          <ArrowUpRight size={15} className="shrink-0 text-slate-400 group-hover:text-[#C62839]"/>
-        </button>)}
+    <section aria-label="Quick actions" className="shrink-0">
+      <h2 className="mb-2 text-sm font-bold text-[#111A43]">Quick actions</h2>
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {actions.map(({label,tab,icon:Icon})=><button key={label} type="button" onClick={()=>onNavigateTab(tab)} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-semibold text-[#111A43] hover:border-[#C62839]"><Icon size={17} className="shrink-0 text-[#C62839]"/><span className="min-w-0 flex-1">{label}</span><ArrowUpRight size={14} className="shrink-0 text-slate-400"/></button>)}
       </div>
+    </section>
+    <section className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Application status</h2><button type="button" onClick={()=>onNavigateTab('students')} className="text-xs font-semibold text-[#C62839]">View applications</button></div>
+        <div className="space-y-4">
+          {breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span className="text-slate-600">{item.label}</span><strong className="text-[#111A43]">{loading||!metrics?'—':item.value.toLocaleString('en-NG')}</strong></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}
+        </div>
+        <p className="mt-4 text-[11px] text-slate-400">Live application status counts. No historical trend is available from this endpoint.</p>
+      </div>
+      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Application overview</h2><span className="text-[11px] text-slate-400">Current records</span></div>
+        <div className="flex flex-col items-center justify-center gap-3 py-4 sm:flex-row">
+          <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style={{background:metrics&&metrics.total>0?`conic-gradient(#C62839 0% ${Math.min(100,(metrics.action_required/metrics.total)*100)}%, #111A43 ${Math.min(100,(metrics.action_required/metrics.total)*100)}% 100%)`:'#e2e8f0'}}><div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl font-extrabold text-[#111A43]">{loading||!metrics?'—':metrics.total}</strong><span className="text-[10px] text-slate-500">Applications</span></div></div>
+          <div className="text-xs text-slate-600"><p><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#C62839]"/>Action required: {metrics?.action_required??'—'}</p><p className="mt-2"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#111A43]"/>Other applications: {metrics?Math.max(0,metrics.total-metrics.action_required):'—'}</p></div>
+        </div>
+      </div>
+    </section>
+    <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Latest notifications</h2><p className="text-xs text-slate-500">Up to five most recent records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
+      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent notifications available from the staff API.':'Loading recent notifications…'}</p>}
     </section>
     {!loading&&!metrics&&<p className="text-xs text-slate-500">Live application totals are unavailable until staff authentication and the metrics API are accessible. No estimated figures are displayed.</p>}
   </div>;
