@@ -19,17 +19,17 @@ router.get('/catalogue',grant('super_admin','admin','teacher','cbt_manager','adm
  res.json({programmes:programmes.data||[],subjects:subjects.data||[]});
 }));
 router.post('/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
- const {code:programmeCode,name:programmeName}=req.body||{};
- if(!code(programmeCode)||!name(programmeName)||programmeName.trim().length<3)return res.status(400).json({error:'Invalid programme code or name.'});
- const {data,error}=await db.from('upec_academic_programmes').insert({code:programmeCode,name:programmeName.trim()}).select('id,code,name,active').single();
+ const {code:programmeCode,name:programmeName,active=true}=req.body||{};
+ if(!code(programmeCode)||!name(programmeName)||programmeName.trim().length<3||typeof active!=='boolean')return res.status(400).json({error:'Invalid programme code or name.'});
+ const {data,error}=await db.from('upec_academic_programmes').insert({code:programmeCode,name:programmeName.trim(),active}).select('id,code,name,active').single();
  if(error?.code==='23505')return res.status(409).json({error:'Programme code already exists.'});
  if(error)throw error;
  res.status(201).json({programme:data});
 }));
 router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
- const {programmeId,code:subjectCode,name:subjectName}=req.body||{};
- if(!uuid(programmeId)||!code(subjectCode)||!name(subjectName))return res.status(400).json({error:'Invalid subject details.'});
- const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:subjectCode,name:subjectName.trim()}).select('id,programme_id,code,name,active').single();
+ const {programmeId,code:subjectCode,name:subjectName,active=true}=req.body||{};
+ if(!uuid(programmeId)||!code(subjectCode)||!name(subjectName)||typeof active!=='boolean')return res.status(400).json({error:'Invalid subject details.'});
+ const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:subjectCode,name:subjectName.trim(),active}).select('id,programme_id,code,name,active').single();
  if(error?.code==='23505')return res.status(409).json({error:'Subject code already exists for the programme.'});
  if(error?.code==='23503')return res.status(404).json({error:'Programme not found.'});
  if(error)throw error;
