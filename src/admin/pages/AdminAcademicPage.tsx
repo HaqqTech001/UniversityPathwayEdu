@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminAcademicPage() {
-  const [activeTab, setActiveTab] = useState('Programmes');
+  const [activeTab, setActiveTab] = useState('Overview');
   const [selectedProgramme, setSelectedProgramme] = useState('IJMB Programme');
   const [programmeDetailTab, setProgrammeDetailTab] = useState('Overview');
 
@@ -191,7 +191,21 @@ export default function AdminAcademicPage() {
         </div>
       </div>
 
-      {/* 6 KPI Cards */}
+      {activeTab === 'Overview' && <>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-[#111A43]">Academic workspace</h2>
+          <p className="mt-1 text-sm text-slate-500">Choose an area to manage. Detailed records and actions open in their own workspace.</p>
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {['Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map(section => (
+              <button key={section} type="button" onClick={() => setActiveTab(section)} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
+                <span>{section}</span><ChevronRight size={17} className="shrink-0 text-[#C62839]" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </>}
+      {activeTab !== 'Overview' && <>
+      {/* Contextual summary for the selected workspace */}
       <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
         <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-[#111A43] flex items-center justify-center text-white shrink-0">
@@ -260,10 +274,12 @@ export default function AdminAcademicPage() {
         </div>
       </div>
 
+      </>}
+
       {/* Subtabs Bar */}
       <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
         <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map((tab) => {
+          {['Overview', 'Programmes', 'Subjects', 'Classes & Streams', 'Timetable', 'Attendance', 'Assignments'].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
