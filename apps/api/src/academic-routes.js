@@ -35,6 +35,32 @@ router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
  if(error)throw error;
  res.status(201).json({subject:data});
 }));
+
+for(const [resource,table] of Object.entries({programmes:'upec_academic_programmes',subjects:'upec_academic_subjects'})){
+ router.patch('/'+resource+'/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+  const input=req.body||{},changes={};
+  if(Object.hasOwn(input,'name')){if(!name(input.name))return res.status(400).json({error:'Invalid name.'});changes.name=input.name.trim();}
+  if(Object.hasOwn(input,'code')){if(!code(input.code))return res.status(400).json({error:'Invalid code.'});changes.code=input.code;}
+  if(Object.hasOwn(input,'active')){if(typeof input.active!=='boolean')return res.status(400).json({error:'Invalid active status.'});changes.active=input.active;}
+  if(resource==='subjects'&&Object.hasOwn(input,'programmeId')){if(!uuid(input.programmeId))return res.status(400).json({error:'Invalid programme.'});changes.programme_id=input.programmeId;}
+  if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
+  const {data,error}=await db.from(table).update(changes).eq('id',req.params.id).select('*').maybeSingle();
+  if(error?.code==='23505')return res.status(409).json({error:'Record code already exists.'});
+  if(error?.code==='23503')return res.status(409).json({error:'Referenced programme does not exist.'});
+  if(error)throw error;
+  if(!data)return res.status(404).json({error:'Record not found.'});
+  res.json({record:data});
+ }));
+ router.delete('/'+resource+'/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+  const {data,error}=await db.from(table).delete().eq('id',req.params.id).select('id').maybeSingle();
+  if(error?.code==='23503')return res.status(409).json({error:'Record is referenced by other academic data.'});
+  if(error)throw error;
+  if(!data)return res.status(404).json({error:'Record not found.'});
+  res.json({deleted:true});
+ }));
+}
 const questionRoles=['super_admin','admin','teacher','cbt_manager'];
 router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const subjectId=req.query.subjectId;
