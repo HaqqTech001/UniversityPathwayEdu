@@ -7,29 +7,30 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const uuid=v=>typeof v==='string'&&/^[0-9a-f-]{36}$/i.test(v);
 const code=v=>typeof v==='string'&&/^[A-Z0-9_-]{2,32}$/.test(v);
 const name=v=>typeof v==='string'&&v.trim().length>=2&&v.trim().length<=160;
+const validDescription=v=>typeof v==='string'&&v.trim().length>=5&&v.length<=2000;
 const grant=(...roles)=>(req,res,next)=>roles.includes(req.staff.role)?next():res.status(403).json({error:'Academic permission denied.'});
 
 router.get('/catalogue',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const [programmes,subjects]=await Promise.all([
   db.from('upec_academic_programmes').select('id,code,name,description,active').order('name').limit(200),
-  db.from('upec_academic_subjects').select('id,programme_id,code,name,active').order('name').limit(1000)
+  db.from('upec_academic_subjects').select('id,programme_id,code,name,description,active').order('name').limit(1000)
  ]);
  if(programmes.error)throw programmes.error;
  if(subjects.error)throw subjects.error;
  res.json({programmes:programmes.data||[],subjects:subjects.data||[]});
 }));
 router.post('/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
- const {code:programmeCode,name:programmeName,active=true}=req.body||{};
- if(!code(programmeCode)||!name(programmeName)||programmeName.trim().length<3||typeof active!=='boolean')return res.status(400).json({error:'Invalid programme code or name.'});
- const {data,error}=await db.from('upec_academic_programmes').insert({code:programmeCode,name:programmeName.trim(),active}).select('id,code,name,active').single();
+ const {code:programmeCode,name:programmeName,description,active=true}=req.body||{};
+ if(!code(programmeCode)||!name(programmeName)||programmeName.trim().length<3||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid programme code or name.'});
+ const {data,error}=await db.from('upec_academic_programmes').insert({code:programmeCode,name:programmeName.trim(),description:description.trim(),active}).select('id,code,name,active').single();
  if(error?.code==='23505')return res.status(409).json({error:'Programme code already exists.'});
  if(error)throw error;
  res.status(201).json({programme:data});
 }));
 router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
- const {programmeId,code:subjectCode,name:subjectName,active=true}=req.body||{};
- if(!uuid(programmeId)||!code(subjectCode)||!name(subjectName)||typeof active!=='boolean')return res.status(400).json({error:'Invalid subject details.'});
- const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:subjectCode,name:subjectName.trim(),active}).select('id,programme_id,code,name,active').single();
+ const {programmeId,code:subjectCode,name:subjectName,description,active=true}=req.body||{};
+ if(!uuid(programmeId)||!code(subjectCode)||!name(subjectName)||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid subject details.'});
+ const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:subjectCode,name:subjectName.trim(),description:description.trim(),active}).select('id,programme_id,code,name,active').single();
  if(error?.code==='23505')return res.status(409).json({error:'Subject code already exists for the programme.'});
  if(error?.code==='23503')return res.status(404).json({error:'Programme not found.'});
  if(error)throw error;
@@ -42,6 +43,7 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
   const input=req.body||{},changes={};
   if(Object.hasOwn(input,'name')){if(!name(input.name))return res.status(400).json({error:'Invalid name.'});changes.name=input.name.trim();}
   if(Object.hasOwn(input,'code')){if(!code(input.code))return res.status(400).json({error:'Invalid code.'});changes.code=input.code;}
+  if(Object.hasOwn(input,'description')){if(!validDescription(input.description))return res.status(400).json({error:'Description must contain 5–2000 characters.'});changes.description=input.description.trim();}
   if(Object.hasOwn(input,'active')){if(typeof input.active!=='boolean')return res.status(400).json({error:'Invalid active status.'});changes.active=input.active;}
   if(resource==='subjects'&&Object.hasOwn(input,'programmeId')){if(!uuid(input.programmeId))return res.status(400).json({error:'Invalid programme.'});changes.programme_id=input.programmeId;}
   if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
@@ -63,13 +65,16 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
 }
 
 const academicEntities={
- classes:{table:'upec_academic_classes',fields:['programme_id','name','stream','academic_session','active'],required:['programme_id','name','academic_session']},
- timetable:{table:'upec_academic_timetable',fields:['class_id','subject_id','weekday','starts_at','ends_at','room'],required:['class_id','subject_id','weekday','starts_at','ends_at']},
+ classes:{table:'upec_academic_classes',fields:['programme_id','name','description','stream','academic_session','active'],required:['programme_id','name','description','academic_session']},
+ timetable:{table:'upec_academic_timetable',fields:['class_id','subject_id','weekday','starts_at','ends_at','room','learning_mode','period'],required:['class_id','subject_id','weekday','starts_at','ends_at']},
  attendance:{table:'upec_academic_attendance',fields:['class_id','student_id','attendance_date','status','notes'],required:['class_id','student_id','attendance_date','status']},
  assignments:{table:'upec_academic_assignments',fields:['class_id','subject_id','title','instructions','due_at','status'],required:['class_id','subject_id','title','due_at']}
 };
 const academicFieldValid=(key,value)=>{
  if(['programme_id','class_id','subject_id','student_id'].includes(key))return uuid(value);
+ if(key==='description')return validDescription(value);
+ if(key==='learning_mode')return ['physical','online'].includes(value);
+ if(key==='period')return Number.isInteger(value)&&value>=1&&value<=6;
  if(key==='weekday')return Number.isInteger(value)&&value>=1&&value<=7;
  if(key==='active')return typeof value==='boolean';
  if(key==='status')return typeof value==='string'&&['present','absent','late','excused','draft','published','closed'].includes(value);
