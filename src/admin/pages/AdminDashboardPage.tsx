@@ -10,6 +10,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const [metrics,setMetrics]=useState<Metrics|null>(null);
   const [loading,setLoading]=useState(true);
   const [retry,setRetry]=useState(0);
+  const [activeGraph,setActiveGraph]=useState(0);
   const [notifications,setNotifications]=useState<{id:string;title:string;body:string;created_at:string}[]>([]);
   const [notificationsReady,setNotificationsReady]=useState(false);
   useEffect(()=>{
@@ -70,14 +71,16 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
         {actions.map(({label,tab,icon:Icon})=><button key={label} type="button" onClick={()=>onNavigateTab(tab)} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-semibold text-[#111A43] hover:border-[#C62839]"><Icon size={17} className="shrink-0 text-[#C62839]"/><span className="min-w-0 flex-1">{label}</span><ArrowUpRight size={14} className="shrink-0 text-slate-400"/></button>)}
       </div>
     </section>
-    <section className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
-      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Application status</h2><button type="button" onClick={()=>onNavigateTab('students')} className="text-xs font-semibold text-[#C62839]">View applications</button></div>
-        <div className="space-y-4">
-          {breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span className="text-slate-600">{item.label}</span><strong className="text-[#111A43]">{loading||!metrics?'—':item.value.toLocaleString('en-NG')}</strong></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}
+    <section aria-label="Dashboard charts" className="min-w-0">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-[#111A43]">Overview charts</h2>
+        <div className="flex items-center gap-1 sm:hidden">
+          <button type="button" aria-label="Previous chart" onClick={()=>setActiveGraph(0)} className={`rounded-lg px-3 py-1 text-xs ${activeGraph===0?'bg-[#111A43] text-white':'bg-white text-slate-600'}`}>1</button>
+          <button type="button" aria-label="Next chart" onClick={()=>setActiveGraph(1)} className={`rounded-lg px-3 py-1 text-xs ${activeGraph===1?'bg-[#111A43] text-white':'bg-white text-slate-600'}`}>2</button>
         </div>
-        <p className="mt-4 text-[11px] text-slate-400">Live application status counts. No historical trend is available from this endpoint.</p>
       </div>
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible" ref={element=>{if(element&&element.dataset.bound!=='true'){element.dataset.bound='true';}}}>
+        <div className={`min-w-0 w-full shrink-0 snap-center sm:w-auto ${activeGraph===0?'':'max-sm:hidden'}`}>
       <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Application overview</h2><span className="text-[11px] text-slate-400">Current records</span></div>
         <div className="flex flex-col items-center justify-center gap-3 py-4 sm:flex-row">
@@ -85,10 +88,20 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
           <div className="text-xs text-slate-600"><p><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#C62839]"/>Action required: {metrics?.action_required??'—'}</p><p className="mt-2"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#111A43]"/>Other applications: {metrics?Math.max(0,metrics.total-metrics.action_required):'—'}</p></div>
         </div>
       </div>
+        </div>
+        <div className={`min-w-0 w-full shrink-0 snap-center sm:w-auto ${activeGraph===1?'':'max-sm:hidden'}`}>
+          <div className="h-full rounded-2xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-4 text-sm font-bold text-[#111A43]">Application review distribution</h3>
+            <div className="space-y-4">
+              {breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span className="text-slate-600">{item.label}</span><strong>{loading||!metrics?'—':item.value.toLocaleString('en-NG')}</strong></div><div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Latest notifications</h2><p className="text-xs text-slate-500">Up to five most recent records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
-      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent notifications available from the staff API.':'Loading recent notifications…'}</p>}
+      <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
+      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent activity records are available from the staff API.':'Loading recent notifications…'}</p>}
     </section>
     {!loading&&!metrics&&<p className="text-xs text-slate-500">Live application totals are unavailable until staff authentication and the metrics API are accessible. No estimated figures are displayed.</p>}
   </div>;
