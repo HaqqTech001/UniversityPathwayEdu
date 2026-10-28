@@ -33,16 +33,16 @@ export default function AdminAcademicPage(){
   useEffect(()=>{setPage(1);},[query,status,pageSize]);
   const refresh=()=>{setRefreshCount(n=>n+1);toast('Academic records are awaiting a connected staff API; no demonstration data will be shown.');};
   return <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden">
-    <header className="flex shrink-0 min-w-0 items-start justify-between gap-2">
+    {!area&&<header className="flex shrink-0 min-w-0 items-start justify-between gap-2">
       <div className="min-w-0">
         <h1 className="truncate text-xl font-extrabold leading-tight tracking-tight text-[#111A43] sm:text-2xl">Academic Management</h1>
         <p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage programmes, subjects, classes, schedules and academic records</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button type="button" aria-label="Refresh academic records" title="Refresh academic records" onClick={refresh} className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] hover:bg-slate-50"><RefreshCw size={17}/></button>
-        <button type="button" onClick={()=>toast('Creating academic records requires the authenticated academic management API.')} className="inline-flex items-center gap-1 rounded-lg bg-[#C62839] px-3 py-2 text-xs font-bold text-white hover:bg-[#af2232]"><Plus size={16}/>Create</button>
+
       </div>
-    </header>
+    </header>}
     {!area ? <>
       <section className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Academic statistics">
         {[
@@ -60,16 +60,14 @@ export default function AdminAcademicPage(){
         </div>
       </section>
     </> : <>
-      <div className="flex shrink-0 items-center justify-between gap-2">
-        <button type="button" onClick={back} className="inline-flex items-center gap-1 text-xs font-semibold text-[#111A43] hover:text-[#C62839]"><ArrowLeft size={16}/>Academic workspace</button>
-        <span className="truncate text-xs font-bold text-[#111A43]">{area}</span>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
+      <div className="flex shrink-0 min-w-0 items-center justify-between gap-2"><button type="button" onClick={back} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#111A43] hover:text-[#C62839]"><ArrowLeft size={16}/>Back to Academic workspace</button><div className="flex min-w-0 items-center gap-2"><span className="truncate text-sm font-bold text-[#111A43]">{area}</span><button type="button" onClick={refresh} aria-label={`Refresh ${area}`} className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43]"><RefreshCw size={16}/></button>{area!=='Attendance'&&<button type="button" onClick={()=>toast(`Creating ${area.toLowerCase()} requires the authenticated academic management API.`)} className="inline-flex items-center gap-1 rounded-lg bg-[#C62839] px-3 py-2 text-xs font-bold text-white"><Plus size={15}/>Create</button>}</div></div>
+      {area!=='Attendance'&&area!=='Timetable'&&<div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
         <div className="relative min-w-[140px] flex-1"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${area.toLowerCase()}…`} aria-label={`Search ${area}`} className="w-full rounded-lg border border-slate-200 bg-[#F7F8FC] py-2 pl-9 pr-3 text-xs outline-none focus:border-[#111A43]"/></div>
         <button type="button" aria-expanded={showFilters} onClick={()=>setShowFilters(v=>!v)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#111A43]"><SlidersHorizontal size={15}/>Filters</button>
         {showFilters&&<select aria-label="Record status" value={status} onChange={e=>setStatus(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-2 text-xs"><option>All</option><option>Active</option><option>Inactive</option><option>Pending</option></select>}
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 gap-2">
+      </div>}
+      {area==='Attendance'?<section className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4"><h2 className="text-sm font-bold text-[#111A43]">Attendance analytics</h2><p className="mt-1 text-xs text-slate-500">Attendance trends and breakdowns will display when verified attendance records are available.</p><div className="mt-4 flex h-56 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center text-xs text-slate-500">No attendance data available for charting</div></section>:area==='Timetable'?<section className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4"><h2 className="text-sm font-bold text-[#111A43]">Academic timetable</h2><p className="mt-1 text-xs text-slate-500">Scheduled classes will appear in a weekly calendar when timetable records are connected.</p><div className="mt-4 grid grid-cols-5 gap-1 sm:gap-2">{['Monday','Tuesday','Wednesday','Thursday','Friday'].map(day=><div key={day} className="min-h-40 rounded-lg border border-slate-200 bg-slate-50 p-2"><h3 className="break-words text-[10px] font-semibold text-[#111A43] sm:text-xs">{day}</h3><p className="mt-3 text-[10px] text-slate-400">No sessions</p></div>)}</div></section>:<div className="flex min-h-0 min-w-0 flex-1 gap-2">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label={`${area} records`}>
           <div className="shrink-0 border-b border-slate-100 px-3 py-3"><h2 className="text-sm font-bold text-[#111A43]">{area} records</h2><p className="text-[11px] text-slate-500">Verified academic records only</p></div>
           <div className="min-h-0 flex-1 overflow-auto">
@@ -83,7 +81,7 @@ export default function AdminAcademicPage(){
           </footer>
         </section>
         {selected&&<aside className="fixed inset-0 z-50 overflow-y-auto bg-white p-4 shadow-xl sm:static sm:z-auto sm:w-[340px] sm:shrink-0 sm:rounded-2xl sm:border sm:border-slate-200" aria-label="Academic record details"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-[#111A43]">Record details</h3><button type="button" onClick={()=>setSelected(null)} aria-label="Close details" className="rounded-lg p-2 hover:bg-slate-100"><X size={18}/></button></div><p className="mt-4 break-words text-sm font-bold text-[#111A43]">{selected.title}</p>{Object.entries(selected.details).map(([key,value])=><div key={key} className="border-b border-slate-100 py-3"><p className="text-[11px] text-slate-500">{key}</p><p className="break-words text-xs font-medium text-[#111A43]">{value}</p></div>)}</aside>}
-      </div>
+      </div>}
     </>}
   </div>;
 }
