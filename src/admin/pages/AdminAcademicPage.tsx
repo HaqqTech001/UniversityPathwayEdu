@@ -566,8 +566,8 @@ export default function AdminAcademicPage() {
       </React.Fragment>:activeTab!=='Workspace'?<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
         <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
         <p className="mt-2 text-sm text-slate-600">The detailed records for this academic area are not connected to authenticated management endpoints yet.</p>
-        <p className="mt-2 text-xs text-amber-700">The Programmes overview contains design-preview data, not verified institutional records.</p>
-      </section>}
+        <p className="mt-2 text-xs text-amber-700">No unverified records are displayed in this workspace.</p>
+      </section>:null}
     </div>
   );
 }
