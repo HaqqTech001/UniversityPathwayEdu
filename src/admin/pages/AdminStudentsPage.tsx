@@ -51,10 +51,10 @@ interface Student {
 
 const notifyAdmin = (message:string,kind:'error'|'success'|'info'='info') => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind}}));
 
-const subTabs = ['All Students', 'Applications', 'Admitted Students', 'Document Verification', 'Suspended'] as const;
+const displayName = (item:Record<string,unknown>) => { const form=(item.form_data && typeof item.form_data==='object' ? item.form_data : {}) as Record<string,unknown>; const profile=(item.profile && typeof item.profile==='object'?item.profile:{}) as Record<string,unknown>; const first=String(item.first_name||form.firstName||form.first_name||profile.first_name||'').trim(); const last=String(item.last_name||form.lastName||form.last_name||profile.last_name||'').trim(); return String(item.student_name||item.applicant_name||item.full_name||form.fullName||form.full_name||profile.full_name||[first,last].filter(Boolean).join(' ')||'Name unavailable'); };
 
 export default function AdminStudentsPage() {
-  const [activeSubTab, setActiveSubTab] = useState('All Students');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [selectedYear, setSelectedYear] = useState('All Years');
@@ -70,13 +70,24 @@ export default function AdminStudentsPage() {
     setApiLoading(true);setApiError('');
     fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
-      .then(data=>{if(!controller.signal.aborted)setStudents((data.applications||[]).map((item:{id:string;reference_number:string;programme:string;academic_session:string;status:string;submitted_at:string},index:number)=>({
-        id:index+1,name:'Applicant',appId:item.reference_number||item.id,
-        programme:item.programme as Student['programme'],
-        status:item.status==='approved'?'Admitted':item.status==='action_required'?'Awaiting Docs':item.status==='rejected'?'Rejected':'Pending',
-        year:item.academic_session||'',phone:'',email:'',dob:'',gender:'',address:'',nationality:'',guardian:'',guardianPhone:'',class:'',mode:'',
-        admissionDate:item.submitted_at||'',studentId:item.id,expectedCompletion:'',avatar:''
-      })));})
+      .then(data=>{if(!controller.signal.aborted){
+        const records=Array.isArray(data.applications)?data.applications:Array.isArray(data.data?.applications)?data.data.applications:[];
+        setStudents(records.map((item:Record<string,unknown>,index:number)=>{
+          const form=(item.form_data&&typeof item.form_data==='object'?item.form_data:{}) as Record<string,unknown>;
+          const profile=(item.profile&&typeof item.profile==='object'?item.profile:{}) as Record<string,unknown>;
+          const rawStatus=String(item.status||'');
+          return {
+            id:index+1,name:displayName(item),appId:String(item.reference_number||item.application_id||item.id||''),
+            programme:String(item.programme||form.programme||'') as Student['programme'],
+            status:rawStatus==='approved'?'Admitted':rawStatus==='action_required'?'Awaiting Docs':rawStatus==='rejected'?'Rejected':rawStatus==='suspended'?'Suspended':'Pending',
+            year:String(item.academic_session||''),phone:String(item.phone||form.phone||profile.phone||''),
+            email:String(item.email||form.email||profile.email||''),dob:String(form.date_of_birth||''),gender:String(form.gender||''),
+            address:String(form.address||''),nationality:String(form.nationality||''),guardian:String(form.guardian_name||''),
+            guardianPhone:String(form.guardian_phone||''),class:'',mode:'',admissionDate:String(item.submitted_at||''),
+            studentId:String(item.id||''),expectedCompletion:'',avatar:String(item.avatar_url||profile.avatar_url||'')
+          };
+        }));
+      }})
       .catch(error=>{if(!controller.signal.aborted){const message=error instanceof Error?error.message:'Unable to load applications.';setApiError(message);notifyAdmin(message,'error');}})
       .finally(()=>{if(!controller.signal.aborted)setApiLoading(false);});
     return()=>controller.abort();
@@ -194,10 +205,6 @@ export default function AdminStudentsPage() {
   };
 
   const filteredStudents = students.filter((s) => {
-    if (activeSubTab === 'Applications' && s.status !== 'Pending') return false;
-    if (activeSubTab === 'Admitted Students' && s.status !== 'Admitted') return false;
-    if (activeSubTab === 'Document Verification' && s.status !== 'Awaiting Docs') return false;
-    if (activeSubTab === 'Suspended' && s.status !== 'Suspended') return false;
     if (selectedProgramme !== 'All Programmes' && s.programme !== selectedProgramme) return false;
     if (selectedStatus !== 'All Status' && s.status !== selectedStatus) return false;
     if (selectedYear !== 'All Years' && s.year !== selectedYear) return false;
@@ -215,7 +222,7 @@ export default function AdminStudentsPage() {
   const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleStudents = filteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize);
-  useEffect(() => setPage(1), [activeSubTab, selectedProgramme, selectedStatus, selectedYear, searchFilter, pageSize]);
+  useEffect(() => setPage(1), [selectedProgramme, selectedStatus, selectedYear, searchFilter, pageSize]);
 
   const exportApplications = () => {
     const rows = [['Application Reference','Programme','Academic Session','Application Status','Submitted At'],
@@ -277,31 +284,8 @@ export default function AdminStudentsPage() {
         ))}
       </div>
 
-      {/* Sub Tabs */}
-      <div className="border-b border-slate-200 bg-white px-2 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {subTabs.map((tab) => {
-            const isActive = activeSubTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveSubTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Search and Filters Bar */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-row items-center gap-2">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -313,12 +297,13 @@ export default function AdminStudentsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <div className="text-xs font-medium text-slate-600">
+        <button type="button" aria-label="Open student filters" onClick={()=>setFilterOpen(true)} className="md:hidden shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43]"><Filter size={18}/></button>
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
+          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
             <select
               value={selectedProgramme}
               onChange={(e) => setSelectedProgramme(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Programmes">Programme: All Programmes</option>
               <option value="IJMB">IJMB</option>
@@ -327,11 +312,11 @@ export default function AdminStudentsPage() {
             </select>
           </div>
 
-          <div className="text-xs font-medium text-slate-600">
+          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Status">Status: All Status</option>
               <option value="Admitted">Admitted</option>
@@ -341,11 +326,11 @@ export default function AdminStudentsPage() {
             </select>
           </div>
 
-          <div className="text-xs font-medium text-slate-600">
+          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Years">Year: All Years</option>
               <option value="2025">2025</option>
@@ -353,30 +338,64 @@ export default function AdminStudentsPage() {
             </select>
           </div>
 
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#111A43] text-white rounded-xl hover:bg-[#1a275e] transition-colors">
-            <Filter size={13} />
-            Filter
-          </button>
 
-          <button
-            onClick={() => {
-              setSelectedProgramme('All Programmes');
-              setSelectedStatus('All Status');
-              setSelectedYear('All Years');
-              setSearchFilter('');
-            }}
-            className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors"
-          >
-            Reset
-          </button>
+          <button type="button" onClick={()=>{setSelectedProgramme('All Programmes');setSelectedStatus('All Status');setSelectedYear('All Years');setSearchFilter('');}} className="rounded-lg border px-3 py-2 text-xs">Reset</button>
         </div>
       </div>
 
+      {filterOpen&&<div className="fixed inset-0 z-[80] md:hidden"><button type="button" aria-label="Close filters" onClick={()=>setFilterOpen(false)} className="absolute inset-0 w-full bg-slate-900/50"/><section role="dialog" aria-modal="true" aria-label="Filter students" className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white p-5 shadow-2xl"><div className="mb-4 flex items-center justify-between"><h2 className="font-bold text-[#111A43]">Filter students</h2><button type="button" onClick={()=>setFilterOpen(false)} aria-label="Close"><X size={20}/></button></div><div className="flex flex-col gap-3">          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
+            <select
+              value={selectedProgramme}
+              onChange={(e) => setSelectedProgramme(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+            >
+              <option value="All Programmes">Programme: All Programmes</option>
+              <option value="IJMB">IJMB</option>
+              <option value="JAMB">JAMB</option>
+              <option value="WAEC">WAEC</option>
+            </select>
+          </div>
+
+          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+            >
+              <option value="All Status">Status: All Status</option>
+              <option value="Admitted">Admitted</option>
+              <option value="Pending">Pending</option>
+              <option value="Awaiting Docs">Awaiting Docs</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
+
+          <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+            >
+              <option value="All Years">Year: All Years</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+
+</div><div className="mt-5 flex gap-2"><button type="button" onClick={()=>{setSelectedProgramme('All Programmes');setSelectedStatus('All Status');setSelectedYear('All Years');}} className="flex-1 rounded-xl border px-4 py-3 text-sm">Reset</button><button type="button" onClick={()=>setFilterOpen(false)} className="flex-1 rounded-xl bg-[#111A43] px-4 py-3 text-sm font-bold text-white">Show {filteredStudents.length} results</button></div></section></div>}
       {/* Main Two-Column Layout */}
       <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-12 lg:overflow-hidden">
         {/* Left Column: Student Directory Table */}
         <div className={`min-w-0 min-h-[360px] lg:min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
-          <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+          <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
+            {visibleStudents.map(student=><div key={student.studentId} onClick={()=>{setSelectedStudent(student);setDrawerOpen(true);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){setSelectedStudent(student);setDrawerOpen(true);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.studentId===student.studentId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
+              {student.avatar?<img src={student.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover"/>:<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#111A43]"><Users size={18}/></span>}
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#111A43]">{student.name}</p><button type="button" onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(student.appId).then(()=>notifyAdmin('Application ID copied','success')).catch(()=>notifyAdmin('Unable to copy ID','error'));}} className="mt-1 block max-w-full truncate text-left font-mono text-[11px] text-slate-500" title="Tap to copy application ID">{student.appId} · Copy</button></div>
+              <div className="shrink-0 text-right">{getStatusBadge(student.status)}<ChevronRight size={15} className="ml-auto mt-1 text-slate-400"/></div>
+            </div>)}
+            {!apiLoading&&visibleStudents.length===0&&<p className="p-6 text-center text-sm text-slate-500">No matching application records.</p>}
+          </div>
+          <div className="hidden min-h-0 flex-1 overflow-auto overscroll-contain md:block">
             <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
@@ -410,8 +429,8 @@ export default function AdminStudentsPage() {
                         setSelectedStudent(s);
                         setDrawerOpen(true);
                       }}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-rose-50/40' : 'hover:bg-slate-50'
+                      className={`cursor-pointer border-l-4 transition-colors ${
+                        isSelected ? 'border-[#C62839] bg-rose-50' : 'border-transparent hover:bg-slate-50'
                       }`}
                     >
                       <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -424,11 +443,7 @@ export default function AdminStudentsPage() {
                       </td>
                       <td className="py-3 px-2 text-center text-slate-400 font-medium">{(safePage - 1) * pageSize + index + 1}</td>
                       <td className="py-3 px-2 text-center">
-                        <img
-                          src={s.avatar}
-                          alt={s.name}
-                          className="w-8 h-8 rounded-full object-cover mx-auto ring-1 ring-slate-200"
-                        />
+                        {s.avatar?<img src={s.avatar} alt="" className="w-8 h-8 rounded-full object-cover mx-auto ring-1 ring-slate-200"/>:<span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-slate-100"><Users size={15}/></span>}
                       </td>
                       <td className="py-3 px-3 font-semibold text-[#111A43] whitespace-nowrap">{s.name}</td>
                       <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">{s.appId}</td>
