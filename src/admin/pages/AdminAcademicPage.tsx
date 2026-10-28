@@ -192,67 +192,67 @@ export default function AdminAcademicPage() {
       </div>
 
       {/* 6 KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+      <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-[#111A43] flex items-center justify-center text-white shrink-0">
             <GraduationCap size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">6</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Programmes</p>
             <p className="text-[10px] text-slate-400">Active Programmes</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-[#C62839] flex items-center justify-center text-white shrink-0">
             <BookOpen size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">48</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Subjects</p>
             <p className="text-[10px] text-slate-400">Across Programmes</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0">
             <Users size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">24</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Classes</p>
             <p className="text-[10px] text-slate-400">Active Classes</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0">
             <UserCheck size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">128</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Lecturers</p>
             <p className="text-[10px] text-slate-400">Active Lecturers</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0">
             <Calendar size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">86%</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Average Attendance</p>
             <p className="text-[10px] text-slate-400">This Session</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
             <FileText size={20} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xl font-black text-[#111A43] leading-none">312</p>
             <p className="text-xs font-bold text-slate-700 mt-1">Assignments</p>
             <p className="text-[10px] text-slate-400">Total Submissions</p>
