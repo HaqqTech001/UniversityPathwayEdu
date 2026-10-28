@@ -138,7 +138,7 @@ export default function AdminCbtPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">CBT &amp; Examinations</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage question bank, create examinations, schedule CBT, monitor candidates and view results.</p>
+          <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage question bank, create examinations, schedule CBT, monitor candidates and view results.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
