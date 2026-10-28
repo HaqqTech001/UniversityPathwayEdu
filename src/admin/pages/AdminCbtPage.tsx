@@ -156,6 +156,32 @@ export default function AdminCbtPage() {
         </div>
       </div>
 
+      {/* Subtabs Bar */}
+      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
+        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
+          {['Overview', 'Question Bank', 'Examinations', 'Candidates', 'Results & Analytics', 'CBT Settings'].map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-3.5 whitespace-nowrap transition-colors relative ${
+                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
+                }`}
+              >
+                {tab}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeTab === 'Overview' && (
+        <div className="space-y-4">
+          <p className="text-xs text-amber-700">Summary figures below are design previews, not live institutional records.</p>
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
@@ -225,28 +251,8 @@ export default function AdminCbtPage() {
         </div>
       </div>
 
-      {/* Subtabs Bar */}
-      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['Overview', 'Question Bank', 'Examinations', 'Candidates', 'Results & Analytics', 'CBT Settings'].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
         </div>
-      </div>
+      )}
 
       {activeTab==='Overview'?<>
       {/* Mid Section: Recent Examinations + Quick Actions & Question Bank */}
