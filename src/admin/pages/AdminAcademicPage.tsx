@@ -25,6 +25,7 @@ export default function AdminAcademicPage(){
   const [refreshCount,setRefreshCount]=useState(0);
   const [catalogue,setCatalogue]=useState<{programmes:any[];subjects:any[]}>({programmes:[],subjects:[]});
   const [loading,setLoading]=useState(true);
+  const [academicData,setAcademicData]=useState<Record<string,any[]>>({});
   const [error,setError]=useState('');
   const [editing,setEditing]=useState<AcademicRecord|null|undefined>(undefined);
   const [form,setForm]=useState({name:'',code:'',programmeId:'',active:true});
@@ -38,8 +39,9 @@ export default function AdminAcademicPage(){
     if(!response.ok)throw Error(data.error||'Academic request failed.');
     return data;
   };
-  useEffect(()=>{let active=true;setLoading(true);setError('');request('/catalogue').then(data=>{if(active)setCatalogue({programmes:data.programmes||[],subjects:data.subjects||[]});}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[refreshCount]);
-  const records:AcademicRecord[]=(area==='Programmes'?catalogue.programmes:area==='Subjects'?catalogue.subjects:[]).map(item=>({id:item.id,title:item.name,subtitle:item.code,status:item.active?'Active':'Inactive',details:{Code:item.code,Name:item.name,Status:item.active?'Active':'Inactive',...(item.programme_id?{'Programme ID':item.programme_id}:{})}}));
+  useEffect(()=>{let active=true;setLoading(true);setError('');Promise.all([request('/catalogue'),...['classes','timetable','attendance','assignments'].map(key=>request('/'+key).then(data=>({key,records:data.records||[]})))]).then(([data,...lists])=>{if(active){setCatalogue({programmes:data.programmes||[],subjects:data.subjects||[]});setAcademicData(Object.fromEntries(lists.map(item=>[item.key,item.records])));}}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[refreshCount]);
+  const resourceKey=area==='Classes & Streams'?'classes':area?.toLowerCase()||'';
+  const records:AcademicRecord[]=(area==='Programmes'?catalogue.programmes:area==='Subjects'?catalogue.subjects:academicData[resourceKey]||[]).map(item=>({id:item.id,title:item.name||item.title||item.attendance_date||item.starts_at||'Record',subtitle:item.code||item.stream||item.status||'',status:item.active===false?'Inactive':item.status||'Active',details:Object.fromEntries(Object.entries(item).filter(([key])=>key!=='id').map(([key,value])=>[key,String(value??'')]))}));
   const beginEdit=(item?:AcademicRecord)=>{setEditing(item||null);setForm({name:item?.title||'',code:item?.subtitle||'',programmeId:item?.details['Programme ID']||catalogue.programmes[0]?.id||'',active:item?.status!=='Inactive'});};
   const save=async()=>{if(area!=='Programmes'&&area!=='Subjects')return;if(area==='Subjects'&&!form.programmeId){toast('Create a programme before adding subjects.','error');return;}setSaving(true);try{const resource=area.toLowerCase(),body={name:form.name.trim(),code:form.code.trim().toUpperCase(),active:form.active,...(area==='Subjects'?{programmeId:form.programmeId}:{})};await request('/'+resource+(editing?.id?'/'+editing.id:''),{method:editing?.id?'PATCH':'POST',body:JSON.stringify(body)});toast('Academic record saved.','success');setEditing(undefined);setSelected(null);setRefreshCount(n=>n+1);}catch(e:any){toast(e.message,'error');}finally{setSaving(false);}};
   const remove=async(item:AcademicRecord)=>{if(area!=='Programmes'&&area!=='Subjects'||!window.confirm('Delete '+item.title+' permanently?'))return;setDeleting(true);try{await request('/'+area.toLowerCase()+'/'+item.id,{method:'DELETE'});toast('Academic record deleted.','success');setSelected(null);setRefreshCount(n=>n+1);}catch(e:any){toast(e.message,'error');}finally{setDeleting(false);}};
