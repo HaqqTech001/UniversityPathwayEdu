@@ -40,10 +40,10 @@ interface Transaction {
 }
 
 
-type FinanceTab = 'Transactions' | 'Fee Structure' | 'Invoices & Receipts' | 'Pending Payments' | 'Refunds' | 'Financial Reports';
-const financeTabs: FinanceTab[] = ['Transactions','Fee Structure','Invoices & Receipts','Pending Payments','Refunds','Financial Reports'];
+type FinanceTab = 'Overview' | 'Transactions' | 'Fee Structure' | 'Invoices & Receipts' | 'Pending Payments' | 'Refunds' | 'Financial Reports';
+const financeTabs: FinanceTab[] = ['Overview','Transactions','Fee Structure','Invoices & Receipts','Pending Payments','Refunds','Financial Reports'];
 export default function AdminFinancePage() {
-  const [activeTab,setActiveTab]=useState<FinanceTab>('Transactions');
+  const [activeTab,setActiveTab]=useState<FinanceTab>('Overview');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
   const [searchFilter, setSearchFilter] = useState('');
@@ -148,12 +148,13 @@ export default function AdminFinancePage() {
       {summaryError&&<p role="alert" className="text-sm text-rose-700">{summaryError}</p>}
       <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
       <nav aria-label="Finance sections" className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{financeTabs.map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} aria-current={activeTab===tab?'page':undefined} className={activeTab===tab?'rounded-lg bg-[#111A43] px-4 py-2 text-xs font-bold text-white':'rounded-lg border bg-white px-4 py-2 text-xs font-semibold text-slate-600'}>{tab}</button>)}</nav>
+      {activeTab==='Overview'&&<section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6"><h2 className="text-lg font-bold text-[#111A43]">Finance workspace</h2><p className="mt-1 text-sm text-slate-600">Choose a financial task below. Payment records and management tools stay in their dedicated sections.</p><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{financeTabs.filter(tab=>tab!=='Overview').map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">{tab} <span aria-hidden="true" className="float-right text-[#C62839]">→</span></button>)}</div></section>}
       {activeTab==='Fee Structure'&&<FeeRateManager />}
       {activeTab==='Invoices & Receipts'&&<><InvoiceManager /><RegistrationInvoiceManager /><ReceiptReviewPanel /></>}
       {activeTab==='Pending Payments'&&<><p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">Pending receipts are not confirmed payments. Review evidence below.</p><ReceiptReviewPanel /></>}
       {activeTab==='Refunds'&&<section className="rounded-xl border bg-white p-5"><h2 className="font-bold">Refunds</h2><p className="text-sm text-slate-600">Refund processing is not yet implemented. No refund actions are enabled.</p></section>}
       {activeTab==='Financial Reports'&&<p className="rounded-lg bg-slate-50 p-4 text-sm">Monthly invoice summaries are available below. Full institutional reporting is not yet implemented.</p>}
-      {(activeTab==='Transactions'||activeTab==='Financial Reports')&&<>
+      {(activeTab==='Overview'||activeTab==='Financial Reports')&&<>
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
