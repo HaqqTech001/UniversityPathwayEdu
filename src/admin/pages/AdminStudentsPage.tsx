@@ -257,7 +257,7 @@ export default function AdminStudentsPage() {
       {/* Header */}
       <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Student Management</h1>
+          <div className="flex items-center justify-between gap-2"><h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Student Management</h1><button type="button" aria-label="Refresh student records" title="Refresh student records" disabled={apiLoading} onClick={()=>setReload(n=>n+1)} className="shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] hover:bg-slate-50 disabled:opacity-50"><RotateCcw size={17} className={apiLoading?'animate-spin':''}/></button></div>
           <p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage students, admissions, applications and documents</p>
         </div>
         <div className="hidden items-center gap-2 sm:flex sm:flex-wrap">
@@ -299,7 +299,7 @@ export default function AdminStudentsPage() {
         </div>
 
         <button type="button" aria-label="Open student filters" onClick={()=>setFilterOpen(true)} className="md:hidden shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43]"><Filter size={18}/></button>
-        <button type="button" aria-label="Reload student records" title="Reload records" disabled={apiLoading} onClick={()=>setReload(n=>n+1)} className="shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43] hover:bg-slate-50 disabled:opacity-40"><RotateCcw size={17} className={apiLoading?'animate-spin':''}/></button>
+        
         <div className="hidden md:flex items-center gap-2 flex-wrap">
           <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
             <select
