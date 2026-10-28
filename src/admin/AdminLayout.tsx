@@ -147,18 +147,7 @@ export default function AdminLayout({
 
           {/* Right: Notifications, Mail & Administrator Profile */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {/* Notification Bell with Badge */}
-            <button
-              type="button"
-              onClick={() => onTabChange('notifications')}
-              className="relative hidden sm:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer"
-              title="Notifications"
-            >
-              <Bell size={19} />
-              <span className="hidden">
-                5
-              </span>
-            </button>
+            <button type="button" onClick={()=>onTabChange('notifications')} title="Notifications" aria-label="Open notifications" className="relative inline-flex shrink-0 rounded-xl bg-white/5 p-2 text-slate-200 transition-colors hover:bg-white/15"><Bell size={20}/></button>
 
             {/* Direct Messages Icon */}
             <button
