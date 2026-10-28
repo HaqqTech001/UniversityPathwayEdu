@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, FileText, ClipboardCheck, AlertCircle, GraduationCap, CreditCard, BookOpen, MessageSquare, Users, Bell } from 'lucide-react';
+import { ArrowUpRight, FileText, ClipboardCheck, AlertCircle, GraduationCap, CreditCard, BookOpen, MessageSquare, Users, Bell, ChevronLeft, ChevronRight, RefreshCw, Wallet, TrendingUp } from 'lucide-react';
 import { AdminTabId } from '../types';
 
 interface Metrics { total:number; submitted:number; under_review:number; action_required:number }
@@ -11,6 +11,12 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const [loading,setLoading]=useState(true);
   const [retry,setRetry]=useState(0);
   const [activeGraph,setActiveGraph]=useState(0);
+  const [sliderPaused,setSliderPaused]=useState(false);
+  useEffect(()=>{
+    if(sliderPaused)return;
+    const timer=window.setInterval(()=>setActiveGraph(index=>(index+1)%4),3500);
+    return()=>window.clearInterval(timer);
+  },[sliderPaused]);
   const [notifications,setNotifications]=useState<{id:string;title:string;body:string;created_at:string}[]>([]);
   const [notificationsReady,setNotificationsReady]=useState(false);
   useEffect(()=>{
@@ -56,9 +62,9 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   ];
   const maxCount=Math.max(1,...breakdown.map(item=>item.value));
   return <div className="flex min-h-0 flex-col gap-4 lg:h-full lg:overflow-auto">
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-      <div><h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1><p className="mt-0.5 text-sm text-slate-500">Institution operations and available live application metrics</p></div>
-      <button type="button" onClick={()=>setRetry(n=>n+1)} disabled={loading} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Refresh</button>
+    <header className="flex shrink-0 items-center justify-between gap-3">
+      <h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1>
+      <button type="button" onClick={()=>setRetry(n=>n+1)} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard" className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] disabled:opacity-50"><RefreshCw size={17} className={loading?"animate-spin":""}/></button>
     </header>
     <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
       {cards.map(({label,value,icon:Icon,tab})=><button type="button" key={label} onClick={()=>onNavigateTab(tab)} className="flex min-h-[68px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
@@ -71,33 +77,48 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
         {actions.map(({label,tab,icon:Icon})=><button key={label} type="button" onClick={()=>onNavigateTab(tab)} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-semibold text-[#111A43] hover:border-[#C62839]"><Icon size={17} className="shrink-0 text-[#C62839]"/><span className="min-w-0 flex-1">{label}</span><ArrowUpRight size={14} className="shrink-0 text-slate-400"/></button>)}
       </div>
     </section>
-    <section aria-label="Dashboard charts" className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-[#111A43]">Overview charts</h2>
-        <div className="flex items-center gap-1 sm:hidden">
-          <button type="button" aria-label="Previous chart" onClick={()=>setActiveGraph(0)} className={`rounded-lg px-3 py-1 text-xs ${activeGraph===0?'bg-[#111A43] text-white':'bg-white text-slate-600'}`}>1</button>
-          <button type="button" aria-label="Next chart" onClick={()=>setActiveGraph(1)} className={`rounded-lg px-3 py-1 text-xs ${activeGraph===1?'bg-[#111A43] text-white':'bg-white text-slate-600'}`}>2</button>
+    <section aria-label="Institution analytics charts" className="min-w-0">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-bold text-[#111A43]">Analytics overview</h2>
+        <div className="flex items-center gap-2">
+          <button type="button" aria-label="Previous chart" onClick={()=>setActiveGraph(n=>(n+3)%4)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronLeft size={18}/></button>
+          <button type="button" aria-label="Next chart" onClick={()=>setActiveGraph(n=>(n+1)%4)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronRight size={18}/></button>
         </div>
       </div>
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible" ref={element=>{if(element&&element.dataset.bound!=='true'){element.dataset.bound='true';}}}>
-        <div className={`min-w-0 w-full shrink-0 snap-center sm:w-auto ${activeGraph===0?'':'max-sm:hidden'}`}>
-      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Application overview</h2><span className="text-[11px] text-slate-400">Current records</span></div>
-        <div className="flex flex-col items-center justify-center gap-3 py-4 sm:flex-row">
-          <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style={{background:metrics&&metrics.total>0?`conic-gradient(#C62839 0% ${Math.min(100,(metrics.action_required/metrics.total)*100)}%, #111A43 ${Math.min(100,(metrics.action_required/metrics.total)*100)}% 100%)`:'#e2e8f0'}}><div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl font-extrabold text-[#111A43]">{loading||!metrics?'—':metrics.total}</strong><span className="text-[10px] text-slate-500">Applications</span></div></div>
-          <div className="text-xs text-slate-600"><p><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#C62839]"/>Action required: {metrics?.action_required??'—'}</p><p className="mt-2"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#111A43]"/>Other applications: {metrics?Math.max(0,metrics.total-metrics.action_required):'—'}</p></div>
-        </div>
-      </div>
-        </div>
-        <div className={`min-w-0 w-full shrink-0 snap-center sm:w-auto ${activeGraph===1?'':'max-sm:hidden'}`}>
-          <div className="h-full rounded-2xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-4 text-sm font-bold text-[#111A43]">Application review distribution</h3>
-            <div className="space-y-4">
-              {breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span className="text-slate-600">{item.label}</span><strong>{loading||!metrics?'—':item.value.toLocaleString('en-NG')}</strong></div><div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}
+      <div className="overflow-hidden rounded-2xl" onMouseEnter={()=>setSliderPaused(true)} onMouseLeave={()=>setSliderPaused(false)} onFocusCapture={()=>setSliderPaused(true)} onBlurCapture={()=>setSliderPaused(false)}>
+        <div className="flex transition-transform duration-700 ease-in-out" style={{transform:`translateX(-${activeGraph*100}%)`}}>
+          <div className="w-full shrink-0 px-0.5">
+            <div className="h-full min-h-[230px] rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="text-sm font-bold text-[#111A43]">Application overview</h3>
+              <div className="flex flex-wrap items-center justify-center gap-5 py-4">
+                <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-full" style={{background:metrics&&metrics.total>0?`conic-gradient(#C62839 0% ${Math.min(100,metrics.action_required/metrics.total*100)}%,#111A43 ${Math.min(100,metrics.action_required/metrics.total*100)}% 100%)`:'#e2e8f0'}}>
+                  <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl text-[#111A43]">{loading||!metrics?'—':metrics.total}</strong><span className="text-xs text-slate-500">Applications</span></div>
+                </div>
+                <div className="space-y-2 text-xs text-slate-600"><p>Action required: {metrics?.action_required??'—'}</p><p>Other applications: {metrics?Math.max(0,metrics.total-metrics.action_required):'—'}</p></div>
+              </div>
+            </div>
+          </div>
+          <div className="w-full shrink-0 px-0.5">
+            <div className="h-full min-h-[230px] rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="mb-5 text-sm font-bold text-[#111A43]">Application review distribution</h3>
+              <div className="space-y-4">{breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span>{item.label}</span><strong>{metrics?item.value:'—'}</strong></div><div className="h-3 rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}</div>
+            </div>
+          </div>
+          <div className="w-full shrink-0 px-0.5">
+            <div className="flex h-full min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><Wallet size={17}/>Payment records</h3>
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center"><p className="text-sm font-medium text-slate-500">Payment analytics are not yet connected.</p><button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-bold text-[#C62839]">Open finance records</button></div>
+            </div>
+          </div>
+          <div className="w-full shrink-0 px-0.5">
+            <div className="flex h-full min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><TrendingUp size={17}/>Revenue trend</h3>
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center"><p className="text-sm font-medium text-slate-500">Historical revenue data is not yet available.</p><button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-bold text-[#C62839]">View finance module</button></div>
             </div>
           </div>
         </div>
       </div>
+      <p className="mt-2 text-center text-[11px] text-slate-400">Chart {activeGraph+1} of 4 · Changes every 3.5 seconds</p>
     </section>
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
