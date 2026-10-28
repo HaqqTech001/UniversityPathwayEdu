@@ -117,7 +117,7 @@ const mockStaff: StaffMember[] = [
 ];
 
 export default function AdminStaffPage() {
-  const [activeTab, setActiveTab] = useState('All Staff');
+  const [activeTab, setActiveTab] = useState('Overview');
   const [selectedRole, setSelectedRole] = useState('All Roles');
   const [selectedDept, setSelectedDept] = useState('All Departments');
   const [selectedStatus, setSelectedStatus] = useState('All Statuses');
@@ -191,7 +191,9 @@ export default function AdminStaffPage() {
         </div>
       </div>
 
-      {/* 5 KPI Cards */}
+      {activeTab==='Overview'&&<section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6"><h2 className="text-lg font-bold text-[#111A43]">Staff management workspace</h2><p className="mt-1 text-sm text-slate-600">Select an area to manage staff records or review access. Permission-changing actions remain unavailable until supported by the backend.</p><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{['All Staff','Roles & Permissions','Pending Invites','Access Logs','Settings'].map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">{tab}<span aria-hidden="true" className="float-right text-[#C62839]">→</span></button>)}</div></section>}
+      {false&&<>
+      {/* Legacy preview KPIs are intentionally hidden until backed by verified staff data. */}
       <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
@@ -249,10 +251,11 @@ export default function AdminStaffPage() {
         </div>
       </div>
 
+      </>}
       {/* Subtabs Bar */}
       <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
         <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['All Staff', 'Roles & Permissions', 'Pending Invites', 'Access Logs', 'Settings'].map((tab) => {
+          {['Overview', 'All Staff', 'Roles & Permissions', 'Pending Invites', 'Access Logs', 'Settings'].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
@@ -272,7 +275,7 @@ export default function AdminStaffPage() {
         </div>
       </div>
 
-      {activeTab==='All Staff'?<LiveStaffDirectory />:<section className="rounded-2xl border bg-white p-5"><h2 className="font-bold text-[#111A43]">{activeTab}</h2><p className="mt-2 text-sm text-slate-600">This staff-management section is awaiting authorized backend actions. No account or permission changes are available here yet.</p></section>}
+      {activeTab==='Overview'?null:activeTab==='All Staff'?<LiveStaffDirectory />:<section className="rounded-2xl border bg-white p-5"><h2 className="font-bold text-[#111A43]">{activeTab}</h2><p className="mt-2 text-sm text-slate-600">This staff-management section is awaiting authorized backend actions. No account or permission changes are available here yet.</p></section>}
       {false&&<>
       {/* Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
