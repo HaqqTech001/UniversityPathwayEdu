@@ -64,6 +64,15 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
  }));
 }
 
+router.get('/attendance/students',grant('super_admin','admin','teacher'),wrap(async(req,res)=>{
+ const {data:applications,error}=await db.from('local_student_applications').select('account_id,programme,status').eq('status','approved').limit(500);
+ if(error)throw error;
+ const ids=[...new Set((applications||[]).map(a=>a.account_id).filter(uuid))];
+ if(!ids.length)return res.json({students:[]});
+ const {data:accounts,error:accountError}=await db.from('local_accounts').select('id,full_name').in('id',ids);
+ if(accountError)throw accountError;
+ res.json({students:(accounts||[]).map(a=>({id:a.id,name:a.full_name||'Student',programme:(applications||[]).find(p=>p.account_id===a.id)?.programme||''}))});
+}));
 const academicEntities={
  classes:{table:'upec_academic_classes',fields:['programme_id','name','description','stream','academic_session','active'],required:['programme_id','name','description','academic_session']},
  timetable:{table:'upec_academic_timetable',fields:['class_id','subject_id','weekday','starts_at','ends_at','room','learning_mode','period'],required:['class_id','subject_id','weekday','starts_at','ends_at']},
