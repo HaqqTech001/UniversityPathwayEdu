@@ -286,6 +286,7 @@ export default function AdminFinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {ledgerLoading&&Array.from({length:6},(_,i)=><tr key={`payment-skeleton-${i}`} aria-label="Loading payment"><td colSpan={8} className="px-3 py-4"><div className="flex animate-pulse items-center gap-4"><div className="h-3 w-6 rounded bg-slate-200"/><div className="h-3 w-1/4 rounded bg-slate-200"/><div className="h-3 w-1/3 rounded bg-slate-100"/><div className="h-3 flex-1 rounded bg-slate-100"/></div></td></tr>)}
                 {pageRows.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 text-center text-slate-400 font-medium">{(safePage-1)*pageSize+idx+1}</td>
