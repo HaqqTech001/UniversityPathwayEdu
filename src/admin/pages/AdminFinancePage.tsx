@@ -155,7 +155,7 @@ export default function AdminFinancePage() {
       {activeTab==='Financial Reports'&&<p className="rounded-lg bg-slate-50 p-4 text-sm">Monthly invoice summaries are available below. Full institutional reporting is not yet implemented.</p>}
       {(activeTab==='Transactions'||activeTab==='Financial Reports')&&<>
       {/* 6 KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center text-white shrink-0">
             <CreditCard size={20} />
