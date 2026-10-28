@@ -29,8 +29,14 @@ router.post('/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
 }));
 router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
  const {programmeId,code:subjectCode,name:subjectName,description,active=true}=req.body||{};
- if(!uuid(programmeId)||!code(subjectCode)||!name(subjectName)||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid subject details.'});
- const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:subjectCode,name:subjectName.trim(),description:description.trim(),active}).select('id,programme_id,code,name,active').single();
+ if(!uuid(programmeId)||!name(subjectName)||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid subject details.'});
+ const {data:programme,error:programmeError}=await db.from('upec_academic_programmes').select('name,code').eq('id',programmeId).maybeSingle();
+ if(programmeError)throw programmeError;
+ if(!programme)return res.status(404).json({error:'Programme not found.'});
+ const isIjmb=/IJMB/i.test(programme.name+' '+programme.code);
+ if(isIjmb&&!code(subjectCode))return res.status(400).json({error:'IJMB subjects require a valid course code.'});
+ const normalizedCode=isIjmb?subjectCode:null;
+ const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:normalizedCode,name:subjectName.trim(),description:description.trim(),active}).select('id,programme_id,code,name,active').single();
  if(error?.code==='23505')return res.status(409).json({error:'Subject code already exists for the programme.'});
  if(error?.code==='23503')return res.status(404).json({error:'Programme not found.'});
  if(error)throw error;
@@ -42,7 +48,7 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
   if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
   const input=req.body||{},changes={};
   if(Object.hasOwn(input,'name')){if(!name(input.name))return res.status(400).json({error:'Invalid name.'});changes.name=input.name.trim();}
-  if(Object.hasOwn(input,'code')){if(!code(input.code))return res.status(400).json({error:'Invalid code.'});changes.code=input.code;}
+  if(Object.hasOwn(input,'code')){if(input.code!==null&&!code(input.code))return res.status(400).json({error:'Invalid code.'});changes.code=input.code;}
   if(Object.hasOwn(input,'description')){if(!validDescription(input.description))return res.status(400).json({error:'Description must contain 5–2000 characters.'});changes.description=input.description.trim();}
   if(Object.hasOwn(input,'active')){if(typeof input.active!=='boolean')return res.status(400).json({error:'Invalid active status.'});changes.active=input.active;}
   if(resource==='subjects'&&Object.hasOwn(input,'programmeId')){if(!uuid(input.programmeId))return res.status(400).json({error:'Invalid programme.'});changes.programme_id=input.programmeId;}
