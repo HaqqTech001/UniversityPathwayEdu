@@ -82,6 +82,7 @@ export default function AdminStudentsPage() {
   const [detailLoading,setDetailLoading]=useState(false);
   const [detailError,setDetailError]=useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [detailReload,setDetailReload]=useState(0);
   useEffect(()=>{
     setApplicationDetail(null);setDetailError('');
     if(!selectedStudent)return;
@@ -100,7 +101,6 @@ export default function AdminStudentsPage() {
   const [reviewNote,setReviewNote]=useState('');
   const [reviewSaving,setReviewSaving]=useState(false);
   const [reviewFeedback,setReviewFeedback]=useState('');
-  const [detailReload,setDetailReload]=useState(0);
   const submitReview=async()=>{
     if(!selectedStudent||reviewSaving)return;
     const note=reviewNote.trim();
