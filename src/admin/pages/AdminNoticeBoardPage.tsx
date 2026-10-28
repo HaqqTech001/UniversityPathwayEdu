@@ -206,7 +206,7 @@ export default function AdminNoticeBoardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Notice Board &amp; Announcements</h1>
-          <p className="text-sm text-slate-500 mt-1">Create and manage announcements, notices, important updates and events for students, parents and staff.</p>
+          <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Create and manage announcements, notices, important updates and events for students, parents and staff.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
