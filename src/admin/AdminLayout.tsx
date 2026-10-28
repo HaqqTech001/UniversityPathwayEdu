@@ -51,7 +51,7 @@ export default function AdminLayout({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState('2025/2026');
   const [currentTime, setCurrentTime] = useState('10:24 AM');
-  const [currentDate, setCurrentDate] = useState('Monday, 14 July 2025');
+  const [currentDate, setCurrentDate] = useState(() => new Date().toLocaleDateString(undefined, {weekday:'long',day:'numeric',month:'long',year:'numeric'}));
 
   // Real-time clock update (with fallback to mock display date matching reference)
   useEffect(() => {
@@ -59,6 +59,7 @@ export default function AdminLayout({
       const now = new Date();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setCurrentTime(timeStr);
+      setCurrentDate(now.toLocaleDateString(undefined, {weekday:'long',day:'numeric',month:'long',year:'numeric'}));
     };
     updateTime();
     const interval = setInterval(updateTime, 60000);
@@ -98,9 +99,9 @@ export default function AdminLayout({
           TOP BAR
           ========================================================================= */}
       <header className="sticky top-0 z-40 bg-[#08163B] text-white border-b border-[#14234C] shadow-md">
-        <div className="flex h-16 items-center justify-between px-3 sm:px-5 lg:px-6">
+        <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-5 lg:px-6">
           {/* Left: Mobile hamburger & Institutional Identity */}
-          <div className="flex items-center gap-3 lg:gap-4">
+          <div className="flex min-w-0 items-center gap-2 lg:gap-4">
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
@@ -111,7 +112,7 @@ export default function AdminLayout({
             </button>
 
             {/* Logo in top header (visible on desktop or mobile) */}
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2">
               {/* Official Crest SVG */}
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#0F2358] to-[#163378] border border-white/20 flex items-center justify-center p-1 shadow-inner shrink-0">
                 <svg viewBox="0 0 100 100" className="w-8 h-8" fill="none">
@@ -134,9 +135,9 @@ export default function AdminLayout({
                 </svg>
               </div>
 
-              <div className="leading-tight">
+              <div className="min-w-0 leading-tight">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-sm sm:text-base tracking-tight text-white uppercase font-sans">
+                  <span className="block max-w-[155px] truncate font-extrabold text-xs sm:max-w-none sm:text-base tracking-tight text-white uppercase font-sans">
                     UNIVERSITY PATHWAY
                   </span>
                 </div>
@@ -151,7 +152,7 @@ export default function AdminLayout({
           </div>
 
           {/* Center Search Input */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
+          <div className="hidden xl:flex min-w-0 items-center flex-1 max-w-md mx-4">
             <div className="relative w-full">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -165,7 +166,7 @@ export default function AdminLayout({
           </div>
 
           {/* Right: Notifications, Mail & Administrator Profile */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {/* Notification Bell with Badge */}
             <button
               type="button"
