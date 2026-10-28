@@ -5,3 +5,16 @@
 
 :root { font-family: Inter, system-ui, sans-serif; color: #08163b; background: #f7f8fc; }
 body { margin: 0; }
+
+/* Shared admin design guardrails: constrain content without clipping tables. */
+#root { min-height: 100dvh; min-width: 0; }
+#root main { min-width: 0; }
+#root main :where(.grid, .flex) > :where(div, section, article) { min-width: 0; }
+#root main :where(h1,h2,h3,h4,p,span,strong) { overflow-wrap: break-word; }
+#root main :where(input,select,textarea) { max-width: 100%; }
+#root main table { min-width: 580px; }
+#root main :where(.overflow-x-auto) { max-width: 100%; overscroll-behavior-x: contain; }
+@media (max-width: 767px) {
+  #root main { padding: 1rem; }
+  #root main :where(.rounded-2xl) { border-radius: .875rem; }
+}
