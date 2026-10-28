@@ -79,14 +79,39 @@ router.get('/attendance/students',grant('super_admin','admin','teacher'),wrap(as
  if(accountError)throw accountError;
  res.json({students:(accounts||[]).map(a=>({id:a.id,name:a.full_name||'Student',programme:(applications||[]).find(p=>p.account_id===a.id)?.programme||''}))});
 }));
+
+router.get('/timetable-plans',grant('super_admin','admin','teacher'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('upec_academic_timetable_plans').select('*').order('created_at',{ascending:false}).limit(200);
+ if(error)throw error;res.json({plans:data||[]});
+}));
+router.post('/timetable-plans',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const {programme_id,learning_mode,title,description}=req.body||{};
+ if(!uuid(programme_id)||!['physical','online'].includes(learning_mode)||!name(title)||!validDescription(description))return res.status(400).json({error:'Programme, mode, title and description are required.'});
+ const {data,error}=await db.from('upec_academic_timetable_plans').insert({programme_id,learning_mode,title:title.trim(),description:description.trim()}).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'A timetable already exists for this programme and mode.'});
+ if(error)throw error;res.status(201).json({plan:data});
+}));
+router.patch('/timetable-plans/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid timetable ID.'});
+ const {title,description}=req.body||{};
+ if(!name(title)||!validDescription(description))return res.status(400).json({error:'Valid title and description required.'});
+ const {data,error}=await db.from('upec_academic_timetable_plans').update({title:title.trim(),description:description.trim()}).eq('id',req.params.id).select('*').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Timetable not found.'});res.json({plan:data});
+}));
+router.delete('/timetable-plans/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid timetable ID.'});
+ const {data,error}=await db.from('upec_academic_timetable_plans').delete().eq('id',req.params.id).select('id').maybeSingle();
+ if(error)throw error;if(!data)return res.status(404).json({error:'Timetable not found.'});res.json({deleted:true});
+}));
 const academicEntities={
  classes:{table:'upec_academic_classes',fields:['programme_id','name','description','stream','academic_session','active'],required:['programme_id','name','description','academic_session']},
- timetable:{table:'upec_academic_timetable',fields:['class_id','subject_id','weekday','starts_at','ends_at','room','learning_mode','period'],required:['class_id','subject_id','weekday','starts_at','ends_at']},
+ timetable:{table:'upec_academic_timetable',fields:['class_id','plan_id','subject_id','weekday','starts_at','ends_at','room','learning_mode','period'],required:['subject_id','weekday','starts_at','ends_at']},
  attendance:{table:'upec_academic_attendance',fields:['class_id','student_id','attendance_date','status','notes'],required:['class_id','student_id','attendance_date','status']},
  assignments:{table:'upec_academic_assignments',fields:['class_id','subject_id','title','instructions','due_at','status'],required:['class_id','subject_id','title','due_at']}
 };
 const academicFieldValid=(key,value)=>{
  if(['programme_id','class_id','subject_id','student_id'].includes(key))return uuid(value);
+ if(key==='plan_id')return uuid(value);
  if(key==='description')return validDescription(value);
  if(key==='learning_mode')return ['physical','online'].includes(value);
  if(key==='period')return Number.isInteger(value)&&value>=1&&value<=6;
@@ -107,6 +132,7 @@ for(const [resource,config] of Object.entries(academicEntities)){
   const input=req.body||{},row={};
   for(const field of config.required)if(!academicFieldValid(field,input[field]))return res.status(400).json({error:'Invalid '+field+'.'});
   for(const field of config.fields)if(Object.hasOwn(input,field)){if(!academicFieldValid(field,input[field]))return res.status(400).json({error:'Invalid '+field+'.'});row[field]=input[field];}
+  if(resource==='timetable'&&!row.plan_id&&!row.class_id)return res.status(400).json({error:'Select a timetable plan.'});
   if(resource==='timetable'&&row.starts_at>=row.ends_at)return res.status(400).json({error:'End time must be after start time.'});
   const {data,error}=await db.from(config.table).insert(row).select('*').single();
   if(error?.code==='23505')return res.status(409).json({error:'A matching record already exists.'});
