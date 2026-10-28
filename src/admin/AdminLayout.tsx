@@ -113,38 +113,18 @@ export default function AdminLayout({
 
             {/* Logo in top header (visible on desktop or mobile) */}
             <div className="flex min-w-0 items-center gap-2">
-              {/* Official Crest SVG */}
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#0F2358] to-[#163378] border border-white/20 flex items-center justify-center p-1 shadow-inner shrink-0">
-                <svg viewBox="0 0 100 100" className="w-8 h-8" fill="none">
-                  {/* Winged Emblem Silhouette */}
-                  <path
-                    d="M50 15 C65 15 72 25 72 45 C72 65 50 80 50 80 C50 80 28 65 28 45 C28 25 35 15 50 15 Z"
-                    fill="#111A43"
-                    stroke="#D5A75B"
-                    strokeWidth="3"
-                  />
-                  {/* Open Book */}
-                  <path
-                    d="M36 45 C42 42 48 44 50 47 C52 44 58 42 64 45 L64 62 C58 59 52 61 50 64 C48 61 42 59 36 62 Z"
-                    fill="#FFFFFF"
-                    stroke="#D5A75B"
-                    strokeWidth="2"
-                  />
-                  {/* Gold Star / Torch */}
-                  <circle cx="50" cy="30" r="4" fill="#D5A75B" />
-                </svg>
-              </div>
+              <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="h-10 sm:h-11 w-auto max-w-[125px] sm:max-w-[160px] object-contain shrink-0" />
 
               <div className="min-w-0 leading-tight">
                 <div className="flex items-center gap-2">
-                  <span className="block max-w-[155px] truncate font-extrabold text-xs sm:max-w-none sm:text-base tracking-tight text-white uppercase font-sans">
+                  <span className="hidden min-[540px]:block max-w-[155px] truncate font-extrabold text-xs xl:max-w-none xl:text-base tracking-tight text-white uppercase font-sans">
                     UNIVERSITY PATHWAY
                   </span>
                 </div>
-                <div className="text-[10px] tracking-widest text-[#D5A75B] font-bold uppercase">
+                <div className="hidden min-[540px]:block text-[10px] tracking-widest text-[#D5A75B] font-bold uppercase">
                   EDUCATIONAL CONSULT
                 </div>
-                <div className="text-[9px] text-slate-300 italic hidden sm:block">
+                <div className="text-[9px] text-slate-300 italic hidden xl:block">
                   Pathway to a Brighter Future
                 </div>
               </div>
@@ -171,11 +151,11 @@ export default function AdminLayout({
             <button
               type="button"
               onClick={() => onTabChange('notifications')}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer"
+              className="relative hidden sm:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer"
               title="Notifications"
             >
               <Bell size={19} />
-              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-[#C62839] px-1 text-[10px] font-black text-white ring-2 ring-[#08163B]">
+              <span className="hidden">
                 5
               </span>
             </button>
@@ -184,7 +164,7 @@ export default function AdminLayout({
             <button
               type="button"
               onClick={() => onTabChange('messages')}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer"
+              className="relative hidden md:inline-flex p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer"
               title="Messages"
             >
               <Mail size={19} />
@@ -292,7 +272,7 @@ export default function AdminLayout({
       {/* =========================================================================
           MAIN SHELL: SIDEBAR + CONTENT OUTLET
           ========================================================================= */}
-      <div className="flex-1 flex relative">
+      <div className="flex min-w-0 flex-1 relative">
         {/* DESKTOP SIDEBAR */}
         <aside className="hidden lg:flex flex-col bg-[#08163B] text-white w-64 xl:w-72 border-r border-[#14234C] shrink-0 sticky top-16 h-[calc(100vh-64px)] justify-between overflow-y-auto">
           {/* Navigation Items (Exactly 10 Primary Links) */}
@@ -431,7 +411,7 @@ export default function AdminLayout({
         )}
 
         {/* MAIN CONTENT OUTLET */}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-7 xl:p-8 space-y-6">
+        <main className="flex-1 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 2xl:p-8 space-y-6">
           {children}
         </main>
       </div>
