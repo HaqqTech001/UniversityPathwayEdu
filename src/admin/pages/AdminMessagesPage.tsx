@@ -272,6 +272,7 @@ export default function AdminMessagesPage() {
         </div>
       </div>
 
+      {activeTab==='Messages'?<>
       {/* 3-Column Messaging Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Col 1: Conversation List (3.5 cols) */}
@@ -624,6 +625,11 @@ export default function AdminMessagesPage() {
           </div>
         </div>
       </div>
+      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
+        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
+        <p className="mt-2 text-sm text-slate-600">This communication section is awaiting authenticated messaging and delivery APIs. Messages are not sent from this preview.</p>
+        <p className="mt-2 text-xs text-amber-700">The Messages workspace currently displays design-preview conversations, not actual student or staff communications.</p>
+      </section>}
     </div>
   );
 }
