@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { AdminTabId } from './types';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -41,6 +42,20 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState<{id:number;message:string;kind:'error'|'success'|'info'}|null>(null);
+  useEffect(()=>{
+    const onToast=(event:Event)=>{
+      const detail=(event as CustomEvent<{message:string;kind?:'error'|'success'|'info'}>).detail;
+      if(detail?.message)setToast({id:Date.now(),message:detail.message,kind:detail.kind||'info'});
+    };
+    window.addEventListener('upec-admin-toast',onToast);
+    return()=>window.removeEventListener('upec-admin-toast',onToast);
+  },[]);
+  useEffect(()=>{
+    if(!toast)return;
+    const timeout=window.setTimeout(()=>setToast(current=>current?.id===toast.id?null:current),5000);
+    return()=>window.clearTimeout(timeout);
+  },[toast]);
 
   // Handle hash changes
   useEffect(() => {
@@ -111,6 +126,10 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       onSearchChange={setSearchQuery}
     >
       <div key={activeTab} className="site-page-enter min-w-0 w-full">{renderActivePage()}</div>
+      {toast&&<div role={toast.kind==='error'?'alert':'status'} aria-live={toast.kind==='error'?'assertive':'polite'} className={`fixed right-3 top-3 z-[100] flex max-w-[min(420px,calc(100vw-24px))] items-start gap-3 rounded-xl border bg-white p-4 shadow-xl sm:right-6 sm:top-6 ${toast.kind==='error'?'border-rose-300 text-rose-800':toast.kind==='success'?'border-emerald-300 text-emerald-800':'border-slate-200 text-[#111A43]'}`}>
+        <span className="min-w-0 flex-1 text-sm font-medium">{toast.message}</span>
+        <button type="button" onClick={()=>setToast(null)} aria-label="Dismiss notification" className="shrink-0 rounded p-1 hover:bg-slate-100"><X size={16}/></button>
+      </div>}
     </AdminLayout>
   );
 }
