@@ -259,62 +259,62 @@ export default function AdminStudentsPage() {
       </div>
 
       {/* 5 KPI Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5">
         {/* Card 1 */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
             <Users size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none">1,248</p>
+            <p className="text-2xl font-black text-[#111A43] leading-none break-words">1,248</p>
             <p className="text-xs font-semibold text-slate-500 mt-1">Total Students</p>
             <p className="text-[11px] font-bold text-emerald-600 mt-0.5">↑ 12% <span className="font-normal text-slate-400">vs last session</span></p>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-[#C62839] flex items-center justify-center text-white shrink-0 shadow-sm">
             <FileText size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none">86</p>
+            <p className="text-2xl font-black text-[#111A43] leading-none break-words">86</p>
             <p className="text-xs font-semibold text-slate-500 mt-1">New Applications</p>
             <p className="text-[11px] font-bold text-emerald-600 mt-0.5">↑ 8% <span className="font-normal text-slate-400">Pending Review: 28</span></p>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-sm">
             <GraduationCap size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none">1,142</p>
+            <p className="text-2xl font-black text-[#111A43] leading-none break-words">1,142</p>
             <p className="text-xs font-semibold text-slate-500 mt-1">Admitted Students</p>
             <p className="text-[11px] font-bold text-emerald-600 mt-0.5">91.5% <span className="font-normal text-slate-400">Acceptance Rate</span></p>
           </div>
         </div>
 
         {/* Card 4 */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0 shadow-sm">
             <FolderCheck size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none">48</p>
+            <p className="text-2xl font-black text-[#111A43] leading-none break-words">48</p>
             <p className="text-xs font-semibold text-slate-500 mt-1">Pending Documents</p>
             <p className="text-[11px] font-bold text-amber-600 mt-0.5">Needs Review</p>
           </div>
         </div>
 
         {/* Card 5 */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div className="min-w-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm">
             <UserX size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-2xl font-black text-[#111A43] leading-none">12</p>
+            <p className="text-2xl font-black text-[#111A43] leading-none break-words">12</p>
             <p className="text-xs font-semibold text-slate-500 mt-1">Suspended Students</p>
             <p className="text-[11px] font-bold text-rose-600 mt-0.5">0.9% <span className="font-normal text-slate-400">of total</span></p>
           </div>
