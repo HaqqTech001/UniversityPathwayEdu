@@ -240,11 +240,11 @@ export default function AdminFinancePage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex min-w-0 items-center gap-2 flex-wrap">
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
+            className="min-w-0 flex-1 sm:flex-none px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
           >
             <option value="All Types">Payment Type: All Types</option>
             <option value="Registration Fee">Registration Fee</option>
@@ -268,11 +268,11 @@ export default function AdminFinancePage() {
 
       <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ledgerLoading?'Loading verified transactions…':ledgerError||'Showing recorded payments only; receipt review and invoicing are managed above.'}</p>
       {/* Mid Section: Transactions Table + Fee Structure Card */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 gap-4 items-start">
         {/* Left Column: Transactions Table */}
-        <div className="xl:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+        <div className="min-w-0 w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[780px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-3 w-8 text-center">#</th>
@@ -308,7 +308,7 @@ export default function AdminFinancePage() {
 
           <div className="p-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
             <span>Showing {filtered.length===0?0:(safePage-1)*pageSize+1}–{Math.min(safePage*pageSize,filtered.length)} of {filtered.length} recorded payments (latest 100 returned by API)</span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button type="button" disabled={safePage===1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="rounded-lg border px-2 py-1 disabled:opacity-40" aria-label="Previous page">Previous</button>
               <span>Page {safePage} of {pageCount}</span>
               <button type="button" disabled={safePage>=pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))} className="rounded-lg border px-2 py-1 disabled:opacity-40" aria-label="Next page">Next</button>
