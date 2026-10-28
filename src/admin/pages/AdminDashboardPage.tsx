@@ -126,7 +126,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
           </div>
         </div>
       </div>
-      <p className="mt-2 text-center text-[11px] text-slate-400">Chart {activeGraph+1} of 5 · Changes every 3.5 seconds</p>
+      
     </section>
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
