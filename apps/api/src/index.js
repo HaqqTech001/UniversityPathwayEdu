@@ -19,13 +19,16 @@ const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'32kb'}));
 // Keep local Vite development origins enabled even if WEB_ORIGINS defines production hosts.
-const localWebOrigins=['http://localhost:5173','http://localhost:5174','http://127.0.0.1:5173','http://127.0.0.1:5174','http://localhost:3000'];
+const localWebOrigins=['http://localhost:5173','http://localhost:5174','http://127.0.0.1:5173','http://127.0.0.1:5174','http://localhost:3000','http://localhost:3100','http://127.0.0.1:3000','http://127.0.0.1:3100'];
+// Allow development clients on the local LAN only in development, for tablet testing.
+const isDev=process.env.NODE_ENV!=='production';
+const isPrivateLanOrigin=(origin)=>{try{const u=new URL(origin);return u.protocol==='http:'&&['3000','3100','5173','5174'].includes(u.port)&&(/^(10|127)\./.test(u.hostname)||/^192\.168\./.test(u.hostname)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(u.hostname));}catch{return false;}};
 const allowedWebOrigins=new Set([...localWebOrigins,...(process.env.WEB_ORIGINS||'').split(',').map(origin=>origin.trim()).filter(Boolean)]);
 app.use((req,res,next)=>{
  const origin=req.headers.origin;
  if(!origin)return req.method==='OPTIONS'?res.sendStatus(204):next();
  res.vary('Origin');
- if(!allowedWebOrigins.has(origin))return req.method==='OPTIONS'?res.status(403).json({error:'Origin not allowed'}):next();
+ if(!allowedWebOrigins.has(origin)&&!(isDev&&isPrivateLanOrigin(origin)))return req.method==='OPTIONS'?res.status(403).json({error:'Origin not allowed'}):next();
  res.set('Access-Control-Allow-Origin',origin);
  res.set('Access-Control-Allow-Headers','Content-Type, Authorization');
  res.set('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');
