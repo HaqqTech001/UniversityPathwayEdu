@@ -1,31 +1,19 @@
 @import 'tailwindcss';
 
-/* Admin components live outside apps/admin. Tailwind v4 must scan them explicitly. */
+/* Scan shared admin components from the standalone Vite app. */
 @source '../../../src/admin';
 
 :root { font-family: Inter, system-ui, sans-serif; color: #08163b; background: #f7f8fc; }
-body { margin: 0; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-width: 0; min-height: 100%; }
+#root { min-height: 100dvh; }
 
-/* Shared admin design guardrails: constrain content without clipping tables. */
-#root { min-height: 100dvh; min-width: 0; }
-#root main { min-width: 0; }
-#root main :where(.grid, .flex) > :where(div, section, article) { min-width: 0; }
-#root main :where(h1,h2,h3,h4,p,span,strong) { overflow-wrap: break-word; }
-#root main :where(input,select,textarea) { max-width: 100%; }
-#root main table { min-width: 580px; }
-#root main :where(.overflow-x-auto) { max-width: 100%; overscroll-behavior-x: contain; }
-@media (max-width: 767px) {
-  #root main { padding: 1rem; }
-  #root main :where(.rounded-2xl) { border-radius: .875rem; }
-}
+/* Only constrain the page shell; avoid blanket overrides of component design. */
+#root main { min-width: 0; max-width: 100%; }
+#root main > * { min-width: 0; max-width: 100%; }
+#root main .overflow-x-auto { max-width: 100%; -webkit-overflow-scrolling: touch; }
+#root main input, #root main textarea, #root main select { max-width: 100%; }
 
-/* Horizontal data regions stay usable on phones and tablets. */
-@media (max-width: 1023px) {
-  #root main :where(table) { width: max-content; min-width: 100%; }
-  #root main :where(th, td) { white-space: nowrap; }
-  #root main :where(.overflow-x-auto) { -webkit-overflow-scrolling: touch; }
-}
 @media (max-width: 639px) {
-  #root main :where(button, input, select) { min-height: 36px; }
-  #root main :where(h1) { line-height: 1.2; }
+  #root main { padding: 12px; }
 }
