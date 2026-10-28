@@ -250,16 +250,14 @@ export default function AdminStudentsPage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-col gap-2 lg:h-full lg:overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden">
       {/* Header */}
-      {apiLoading&&<p role="status" className="text-xs text-slate-500">Loading student records…</p>}
-      {!apiLoading&&apiError&&<button type="button" onClick={()=>setReload(n=>n+1)} className="self-start text-xs font-semibold text-[#C62839] underline">Retry loading records</button>}
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Student Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage all students, admissions, applications, documents and guardians.</p>
+          <p className="hidden text-xs text-slate-500 sm:block">Manage all students, admissions, applications, documents and guardians.</p>
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="hidden items-center gap-2 sm:flex sm:flex-wrap">
           <button type="button" onClick={()=>notifyAdmin("Student import is not yet available.","info")} disabled={false} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
             <Upload size={14} className="text-slate-500" />
             Import Students
@@ -275,17 +273,17 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Loaded application summary">
+      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Loaded application summary">
         {[{label:'Applications',value:students.length},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length}].map(item=>(
-          <div key={item.label} className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2">
-            <p className="text-lg font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p>
-            <p className="mt-1 truncate text-[11px] font-medium text-slate-600" title={item.label}>{item.label}</p>
+          <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+            <p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p>
+            <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
           </div>
         ))}
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-row items-center gap-2">
+      <div className="shrink-0 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm flex flex-row items-center gap-1.5">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -293,11 +291,12 @@ export default function AdminStudentsPage() {
             placeholder="Search by name, application ID, phone, email..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#111A43]/20"
+            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#111A43]/20"
           />
         </div>
 
         <button type="button" aria-label="Open student filters" onClick={()=>setFilterOpen(true)} className="md:hidden shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43]"><Filter size={18}/></button>
+        <button type="button" aria-label="Reload student records" title="Reload records" disabled={apiLoading} onClick={()=>setReload(n=>n+1)} className="shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43] hover:bg-slate-50 disabled:opacity-40"><RotateCcw size={17} className={apiLoading?'animate-spin':''}/></button>
         <div className="hidden md:flex items-center gap-2 flex-wrap">
           <div className="text-xs font-medium text-slate-600 flex-1 min-w-[120px]">
             <select
@@ -384,9 +383,9 @@ export default function AdminStudentsPage() {
 
 </div><div className="mt-5 flex gap-2"><button type="button" onClick={()=>{setSelectedProgramme('All Programmes');setSelectedStatus('All Status');setSelectedYear('All Years');}} className="flex-1 rounded-xl border px-4 py-3 text-sm">Reset</button><button type="button" onClick={()=>setFilterOpen(false)} className="flex-1 rounded-xl bg-[#111A43] px-4 py-3 text-sm font-bold text-white">Show {filteredStudents.length} results</button></div></section></div>}
       {/* Main Two-Column Layout */}
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-12 lg:overflow-hidden">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-2 overflow-hidden xl:grid-cols-12">
         {/* Left Column: Student Directory Table */}
-        <div className={`min-w-0 min-h-[360px] lg:min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
+        <div className={`min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
           <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
             {visibleStudents.map(student=><div key={student.studentId} onClick={()=>{setSelectedStudent(student);setDrawerOpen(true);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){setSelectedStudent(student);setDrawerOpen(true);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.studentId===student.studentId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
               {student.avatar?<img src={student.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover"/>:<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#111A43]"><Users size={18}/></span>}
