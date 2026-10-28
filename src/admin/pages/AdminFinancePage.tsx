@@ -266,7 +266,7 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
-      <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ledgerLoading?'Loading verified transactions…':ledgerError||'Showing recorded payments only; receipt review and invoicing are managed above.'}</p>
+      {ledgerLoading?<div role="status" aria-label="Loading verified payment records" className="space-y-2 rounded-xl border border-slate-200 bg-white p-3"><div className="h-3 w-1/3 animate-pulse rounded bg-slate-200"/><div className="h-3 w-2/3 animate-pulse rounded bg-slate-100"/></div>:<p role={ledgerError?'alert':'status'} className={ledgerError?'rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800':'rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600'}>{ledgerError||'Showing recorded payments only; receipt review and invoicing are managed above.'}</p>}
       {/* Mid Section: Transactions Table + Fee Structure Card */}
       <div className="grid min-w-0 grid-cols-1 gap-4 items-start">
         {/* Left Column: Transactions Table */}
