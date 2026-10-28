@@ -18,3 +18,14 @@ body { margin: 0; }
   #root main { padding: 1rem; }
   #root main :where(.rounded-2xl) { border-radius: .875rem; }
 }
+
+/* Horizontal data regions stay usable on phones and tablets. */
+@media (max-width: 1023px) {
+  #root main :where(table) { width: max-content; min-width: 100%; }
+  #root main :where(th, td) { white-space: nowrap; }
+  #root main :where(.overflow-x-auto) { -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 639px) {
+  #root main :where(button, input, select) { min-height: 36px; }
+  #root main :where(h1) { line-height: 1.2; }
+}
