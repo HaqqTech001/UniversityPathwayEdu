@@ -14,7 +14,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const [sliderPaused,setSliderPaused]=useState(false);
   useEffect(()=>{
     if(sliderPaused)return;
-    const timer=window.setInterval(()=>setActiveGraph(index=>(index+1)%4),3500);
+    const timer=window.setInterval(()=>setActiveGraph(index=>(index+1)%5),3500);
     return()=>window.clearInterval(timer);
   },[sliderPaused]);
   const [notifications,setNotifications]=useState<{id:string;title:string;body:string;created_at:string}[]>([]);
@@ -63,12 +63,12 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const maxCount=Math.max(1,...breakdown.map(item=>item.value));
   return <div className="flex min-h-0 flex-col gap-4 lg:h-full lg:overflow-auto">
     <header className="flex shrink-0 items-center justify-between gap-3">
-      <h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1>
+      <div className="min-w-0"><h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1><p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Institution operations overview</p></div>
       <button type="button" onClick={()=>setRetry(n=>n+1)} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard" className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] disabled:opacity-50"><RefreshCw size={17} className={loading?"animate-spin":""}/></button>
     </header>
     <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
       {cards.map(({label,value,icon:Icon,tab})=><button type="button" key={label} onClick={()=>onNavigateTab(tab)} className="flex min-h-[68px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
-        <div className="min-w-0"><p className="text-lg font-extrabold leading-tight text-[#111A43]">{loading?'…':typeof value==='number'?value.toLocaleString('en-NG'):'—'}</p><p className="truncate text-[11px] font-medium text-slate-600" title={label}>{label}</p></div><Icon size={19} className="shrink-0 text-[#C62839]"/>
+        <div className="min-w-0"><p className="text-lg font-extrabold leading-tight text-[#111A43]">{loading?<span className="block h-5 w-14 animate-pulse rounded bg-slate-200" aria-label="Loading metric"/>:typeof value==='number'?value.toLocaleString('en-NG'):'—'}</p><p className="truncate text-[11px] font-medium text-slate-600" title={label}>{label}</p></div><Icon size={19} className="shrink-0 text-[#C62839]"/>
       </button>)}
     </section>
     <section aria-label="Quick actions" className="shrink-0">
@@ -81,8 +81,8 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-bold text-[#111A43]">Analytics overview</h2>
         <div className="flex items-center gap-2">
-          <button type="button" aria-label="Previous chart" onClick={()=>setActiveGraph(n=>(n+3)%4)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronLeft size={18}/></button>
-          <button type="button" aria-label="Next chart" onClick={()=>setActiveGraph(n=>(n+1)%4)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronRight size={18}/></button>
+          <button type="button" aria-label="Previous chart" onClick={()=>setActiveGraph(n=>(n+4)%5)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronLeft size={18}/></button>
+          <button type="button" aria-label="Next chart" onClick={()=>setActiveGraph(n=>(n+1)%5)} className="rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50"><ChevronRight size={18}/></button>
         </div>
       </div>
       <div className="overflow-hidden rounded-2xl" onMouseEnter={()=>setSliderPaused(true)} onMouseLeave={()=>setSliderPaused(false)} onFocusCapture={()=>setSliderPaused(true)} onBlurCapture={()=>setSliderPaused(false)}>
@@ -90,7 +90,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
           <div className="w-full shrink-0 px-0.5">
             <div className="h-full min-h-[230px] rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="text-sm font-bold text-[#111A43]">Application overview</h3>
-              <div className="flex flex-wrap items-center justify-center gap-5 py-4">
+              <div className={`flex flex-wrap items-center justify-center gap-5 py-4 ${loading?"animate-pulse":""}`}>
                 <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-full" style={{background:metrics&&metrics.total>0?`conic-gradient(#C62839 0% ${Math.min(100,metrics.action_required/metrics.total*100)}%,#111A43 ${Math.min(100,metrics.action_required/metrics.total*100)}% 100%)`:'#e2e8f0'}}>
                   <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl text-[#111A43]">{loading||!metrics?'—':metrics.total}</strong><span className="text-xs text-slate-500">Applications</span></div>
                 </div>
@@ -101,28 +101,36 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
           <div className="w-full shrink-0 px-0.5">
             <div className="h-full min-h-[230px] rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="mb-5 text-sm font-bold text-[#111A43]">Application review distribution</h3>
-              <div className="space-y-4">{breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span>{item.label}</span><strong>{metrics?item.value:'—'}</strong></div><div className="h-3 rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}</div>
+              <div className={`space-y-4 ${loading?"animate-pulse":""}`}>{breakdown.map(item=><div key={item.label}><div className="mb-1 flex justify-between text-xs"><span>{item.label}</span><strong>{metrics?item.value:'—'}</strong></div><div className="h-3 rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{width:metrics?`${Math.min(100,item.value/maxCount*100)}%`:'0%'}}/></div></div>)}</div>
             </div>
           </div>
           <div className="w-full shrink-0 px-0.5">
             <div className="flex h-full min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
-              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><Wallet size={17}/>Payment records</h3>
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center"><p className="text-sm font-medium text-slate-500">Payment analytics are not yet connected.</p><button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-bold text-[#C62839]">Open finance records</button></div>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><TrendingUp size={17}/>Student enrolment trend</h3>
+              <div className="flex flex-1 items-center justify-center text-center text-xs text-slate-500">Historical enrolment series is not yet available from the staff API.</div>
             </div>
           </div>
           <div className="w-full shrink-0 px-0.5">
             <div className="flex h-full min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
-              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><TrendingUp size={17}/>Revenue trend</h3>
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center"><p className="text-sm font-medium text-slate-500">Historical revenue data is not yet available.</p><button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-bold text-[#C62839]">View finance module</button></div>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><Wallet size={17}/>Revenue breakdown</h3>
+              <div className="flex flex-1 items-center justify-center text-center text-xs text-slate-500">Revenue breakdown requires verified finance totals.</div>
+              <button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-semibold text-[#C62839]">View finance</button>
+            </div>
+          </div>
+          <div className="w-full shrink-0 px-0.5">
+            <div className="flex h-full min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-[#111A43]"><CreditCard size={17}/>Fee payment status</h3>
+              <div className="flex flex-1 items-center justify-center text-center text-xs text-slate-500">Payment status proportions require verified payment records.</div>
+              <button type="button" onClick={()=>onNavigateTab('finance')} className="text-xs font-semibold text-[#C62839]">View payments</button>
             </div>
           </div>
         </div>
       </div>
-      <p className="mt-2 text-center text-[11px] text-slate-400">Chart {activeGraph+1} of 4 · Changes every 3.5 seconds</p>
+      <p className="mt-2 text-center text-[11px] text-slate-400">Chart {activeGraph+1} of 5 · Changes every 3.5 seconds</p>
     </section>
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
-      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent activity records are available from the staff API.':'Loading recent notifications…'}</p>}
+      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent activity records are available from the staff API.':<span className="block space-y-2" aria-label="Loading recent activities">{[0,1,2].map(i=><span key={i} className="block h-7 animate-pulse rounded bg-slate-200"/>)}</span>}</p>}
     </section>
     {!loading&&!metrics&&<p className="text-xs text-slate-500">Live application totals are unavailable until staff authentication and the metrics API are accessible. No estimated figures are displayed.</p>}
   </div>;
