@@ -125,7 +125,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
     >
-      <div key={activeTab} className={`site-page-enter min-w-0 w-full ${activeTab === "students" || activeTab === "academic" ? "h-full min-h-0" : ""}`}>{renderActivePage()}</div>
+      <div key={activeTab} className={`site-page-enter min-w-0 w-full ${activeTab === "students" || activeTab === "academic" || activeTab === "cbt" ? "h-full min-h-0" : ""}`}>{renderActivePage()}</div>
       {toast&&<div role={toast.kind==='error'?'alert':'status'} aria-live={toast.kind==='error'?'assertive':'polite'} className={`fixed right-3 top-3 z-[100] flex max-w-[min(420px,calc(100vw-24px))] items-start gap-3 rounded-xl border bg-white p-4 shadow-xl sm:right-6 sm:top-6 ${toast.kind==='error'?'border-rose-300 text-rose-800':toast.kind==='success'?'border-emerald-300 text-emerald-800':'border-slate-200 text-[#111A43]'}`}>
         <span className="min-w-0 flex-1 text-sm font-medium">{toast.message}</span>
         <button type="button" onClick={()=>setToast(null)} aria-label="Dismiss notification" className="shrink-0 rounded p-1 hover:bg-slate-100"><X size={16}/></button>
