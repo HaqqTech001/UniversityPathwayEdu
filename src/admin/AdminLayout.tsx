@@ -111,24 +111,8 @@ export default function AdminLayout({
               {mobileDrawerOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            {/* Logo in top header (visible on desktop or mobile) */}
-            <div className="flex min-w-0 items-center gap-2">
-              <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="h-10 sm:h-11 w-auto max-w-[125px] sm:max-w-[160px] object-contain shrink-0" />
-
-              <div className="min-w-0 leading-tight">
-                <div className="flex items-center gap-2">
-                  <span className="hidden min-[540px]:block max-w-[155px] truncate font-extrabold text-xs xl:max-w-none xl:text-base tracking-tight text-white uppercase font-sans">
-                    UNIVERSITY PATHWAY
-                  </span>
-                </div>
-                <div className="hidden min-[540px]:block text-[10px] tracking-widest text-[#D5A75B] font-bold uppercase">
-                  EDUCATIONAL CONSULT
-                </div>
-                <div className="text-[9px] text-slate-300 italic hidden xl:block">
-                  Pathway to a Brighter Future
-                </div>
-              </div>
-            </div>
+            {/* Official artwork already contains the institutional name. */}
+            <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="block h-9 sm:h-10 lg:h-11 w-auto max-w-[142px] sm:max-w-[190px] lg:max-w-[220px] object-contain shrink-0" />
           </div>
 
           {/* Center Search Input */}
