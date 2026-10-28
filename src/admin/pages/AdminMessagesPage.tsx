@@ -274,9 +274,9 @@ export default function AdminMessagesPage() {
 
       {activeTab==='Messages'?<>
       {/* 3-Column Messaging Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
         {/* Col 1: Conversation List (3.5 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[680px]">
+        <div className="min-w-0 lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[360px] h-[min(680px,calc(100dvh-220px))]">
           {/* Search & Filter */}
           <div className="p-3.5 border-b border-slate-100 space-y-3">
             <div className="relative">
@@ -353,7 +353,7 @@ export default function AdminMessagesPage() {
         </div>
 
         {/* Col 2: Active Chat Pane (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[680px]">
+        <div className="min-w-0 lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[360px] h-[min(680px,calc(100dvh-220px))]">
           {/* Chat Header */}
           <div className="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div className="flex items-center gap-3">
