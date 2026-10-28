@@ -294,30 +294,10 @@ export default function AdminLayout({
             })}
           </div>
 
-          {/* Bottom Sidebar Photo Card Banner (Matching Screenshot) */}
-          <div className="p-3 m-3 rounded-2xl relative overflow-hidden border border-white/10 shadow-lg text-white">
-            {/* Background Campus Atmosphere Image with Dark Overlay */}
-            <div className="absolute inset-0 z-0">
-              <img
-                src="/images/campus_atmosphere.jpg"
-                alt="University Pathway Campus"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#08163B] via-[#08163B]/85 to-transparent" />
-            </div>
-
-            <div className="relative z-10 p-2">
-              <h4 className="font-extrabold text-xs text-white leading-tight">
-                Your Pathway to Higher Opportunities
-              </h4>
-              <p className="text-[11px] text-slate-200 mt-1">
-                Quality Education • Guidance
-              </p>
-              <p className="text-[11px] text-slate-200">
-                Support • Results
-              </p>
-              <div className="h-0.5 w-10 bg-[#C62839] mt-2 rounded-full" />
-            </div>
+          <div className="m-3 rounded-2xl border border-white/10 bg-[#112552] p-4 text-white">
+            <h4 className="text-xs font-bold leading-snug">Your Pathway to Higher Opportunities</h4>
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-300">Quality Education · Guidance · Support · Results</p>
+            <div className="mt-3 h-0.5 w-10 rounded-full bg-[#C62839]" />
           </div>
         </aside>
 
