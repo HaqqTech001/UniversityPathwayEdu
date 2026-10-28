@@ -53,6 +53,20 @@ export default function AdminLayout({
   const [currentTime, setCurrentTime] = useState('10:24 AM');
   const [currentDate, setCurrentDate] = useState(() => new Date().toLocaleDateString(undefined, {weekday:'long',day:'numeric',month:'long',year:'numeric'}));
 
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+    setProfileDropdownOpen(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!mobileDrawerOpen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [mobileDrawerOpen]);
+
   // Real-time clock update (with fallback to mock display date matching reference)
   useEffect(() => {
     const updateTime = () => {
@@ -106,7 +120,9 @@ export default function AdminLayout({
               type="button"
               onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors lg:hidden cursor-pointer"
-              aria-label="Toggle Navigation Drawer"
+              aria-label={mobileDrawerOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileDrawerOpen}
+              aria-controls="admin-mobile-navigation"
             >
               {mobileDrawerOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -303,7 +319,7 @@ export default function AdminLayout({
 
         {/* MOBILE OVERLAY DRAWER */}
         {mobileDrawerOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div id="admin-mobile-navigation" className="fixed inset-0 z-50 lg:hidden flex" role="dialog" aria-modal="true" aria-label="Admin navigation">
             {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
@@ -311,26 +327,20 @@ export default function AdminLayout({
             />
 
             {/* Drawer */}
-            <div className="relative w-4/5 max-w-xs bg-[#08163B] text-white flex flex-col z-50 shadow-2xl h-full justify-between overflow-y-auto site-drawer-enter">
+            <div className="relative w-[min(85vw,320px)] min-w-0 bg-[#08163B] text-white flex flex-col z-50 shadow-2xl h-dvh min-h-0 overflow-hidden site-drawer-enter">
               <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-sm text-white uppercase block">
-                    University Pathway
-                  </span>
-                  <span className="text-[10px] text-[#D5A75B] font-bold uppercase tracking-wider">
-                    Admin Portal
-                  </span>
-                </div>
+                <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="h-10 w-auto max-w-[190px] object-contain" />
                 <button
                   type="button"
                   onClick={() => setMobileDrawerOpen(false)}
                   className="p-1.5 rounded-lg bg-white/10 text-white"
+                  aria-label="Close navigation menu"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-3 space-y-1 flex-1">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
                 {ADMIN_NAV_ITEMS.map((item) => {
                   const isActive = activeTab === item.id;
                   return (
@@ -357,7 +367,7 @@ export default function AdminLayout({
                 })}
               </div>
 
-              <div className="p-4 border-t border-white/10 space-y-2">
+              <div className="shrink-0 p-4 border-t border-white/10 space-y-2">
                 <button
                   type="button"
                   onClick={() => {
