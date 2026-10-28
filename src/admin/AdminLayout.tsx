@@ -113,7 +113,7 @@ export default function AdminLayout({
           TOP BAR
           ========================================================================= */}
       <header className="relative shrink-0 z-40 bg-[#08163B] text-white border-b border-[#14234C] shadow-md">
-        <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-5 lg:px-6">
+        <div className="flex h-[76px] min-w-0 items-center justify-between gap-2 px-3 sm:h-20 sm:px-5 lg:px-6">
           {/* Left: Mobile hamburger & Institutional Identity */}
           <div className="flex min-w-0 items-center gap-2 lg:gap-4">
             <button
@@ -128,7 +128,7 @@ export default function AdminLayout({
             </button>
 
             {/* Official artwork already contains the institutional name. */}
-            <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="block h-9 sm:h-10 lg:h-11 w-auto max-w-[142px] sm:max-w-[190px] lg:max-w-[220px] object-contain shrink-0" />
+            <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="block h-12 w-auto max-w-[175px] shrink-0 object-contain sm:h-14 sm:max-w-[240px] lg:h-16 lg:max-w-[290px]" />
           </div>
 
           {/* Center Search Input */}
@@ -329,7 +329,7 @@ export default function AdminLayout({
             {/* Drawer */}
             <div className="relative w-[min(85vw,320px)] min-w-0 bg-[#08163B] text-white flex flex-col z-50 shadow-2xl h-dvh min-h-0 overflow-hidden site-drawer-enter">
               <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="h-10 w-auto max-w-[190px] object-contain" />
+                <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="h-14 w-auto max-w-[240px] object-contain" />
                 <button
                   type="button"
                   onClick={() => setMobileDrawerOpen(false)}
