@@ -61,6 +61,55 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
   res.json({deleted:true});
  }));
 }
+
+const academicEntities={
+ classes:{table:'upec_academic_classes',fields:['programme_id','name','stream','academic_session','active'],required:['programme_id','name','academic_session']},
+ timetable:{table:'upec_academic_timetable',fields:['class_id','subject_id','weekday','starts_at','ends_at','room'],required:['class_id','subject_id','weekday','starts_at','ends_at']},
+ attendance:{table:'upec_academic_attendance',fields:['class_id','student_id','attendance_date','status','notes'],required:['class_id','student_id','attendance_date','status']},
+ assignments:{table:'upec_academic_assignments',fields:['class_id','subject_id','title','instructions','due_at','status'],required:['class_id','subject_id','title','due_at']}
+};
+const academicFieldValid=(key,value)=>{
+ if(['programme_id','class_id','subject_id','student_id'].includes(key))return uuid(value);
+ if(key==='weekday')return Number.isInteger(value)&&value>=1&&value<=7;
+ if(key==='active')return typeof value==='boolean';
+ if(key==='status')return typeof value==='string'&&['present','absent','late','excused','draft','published','closed'].includes(value);
+ if(['starts_at','ends_at'].includes(key))return typeof value==='string'&&/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(value);
+ if(key==='attendance_date')return typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value);
+ if(key==='due_at')return typeof value==='string'&&!Number.isNaN(Date.parse(value));
+ return typeof value==='string'&&value.trim().length>0&&value.length<= (key==='instructions'?5000:key==='notes'?500:160);
+};
+for(const [resource,config] of Object.entries(academicEntities)){
+ router.get('/'+resource,grant('super_admin','admin','teacher','cbt_manager'),wrap(async(req,res)=>{
+  const {data,error}=await db.from(config.table).select('*').order('created_at',{ascending:false}).limit(500);
+  if(error)throw error;res.json({records:data||[]});
+ }));
+ router.post('/'+resource,grant('super_admin','admin'),wrap(async(req,res)=>{
+  const input=req.body||{},row={};
+  for(const field of config.required)if(!academicFieldValid(field,input[field]))return res.status(400).json({error:'Invalid '+field+'.'});
+  for(const field of config.fields)if(Object.hasOwn(input,field)){if(!academicFieldValid(field,input[field]))return res.status(400).json({error:'Invalid '+field+'.'});row[field]=input[field];}
+  if(resource==='timetable'&&row.starts_at>=row.ends_at)return res.status(400).json({error:'End time must be after start time.'});
+  const {data,error}=await db.from(config.table).insert(row).select('*').single();
+  if(error?.code==='23505')return res.status(409).json({error:'A matching record already exists.'});
+  if(error?.code==='23503')return res.status(400).json({error:'Referenced academic record does not exist.'});
+  if(error)throw error;res.status(201).json({record:data});
+ }));
+ router.patch('/'+resource+'/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+  const input=req.body||{},row={};
+  for(const field of config.fields)if(Object.hasOwn(input,field)){if(!academicFieldValid(field,input[field]))return res.status(400).json({error:'Invalid '+field+'.'});row[field]=input[field];}
+  if(!Object.keys(row).length)return res.status(400).json({error:'No editable fields supplied.'});
+  const {data,error}=await db.from(config.table).update(row).eq('id',req.params.id).select('*').maybeSingle();
+  if(error?.code==='23505')return res.status(409).json({error:'A matching record already exists.'});
+  if(error?.code==='23503')return res.status(400).json({error:'Referenced academic record does not exist.'});
+  if(error)throw error;if(!data)return res.status(404).json({error:'Record not found.'});res.json({record:data});
+ }));
+ router.delete('/'+resource+'/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
+  const {data,error}=await db.from(config.table).delete().eq('id',req.params.id).select('id').maybeSingle();
+  if(error?.code==='23503')return res.status(409).json({error:'Record is referenced by other academic records.'});
+  if(error)throw error;if(!data)return res.status(404).json({error:'Record not found.'});res.json({deleted:true});
+ }));
+}
 const questionRoles=['super_admin','admin','teacher','cbt_manager'];
 router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const subjectId=req.query.subjectId;
