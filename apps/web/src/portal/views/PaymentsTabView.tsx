@@ -56,7 +56,7 @@ export default function PaymentsTabView({
     if(!token){setReceiptLoading(false);setReceiptError('Sign in to see your receipts.');return;}
     const controller=new AbortController();
     setReceiptLoading(true);
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/application-payment/receipts',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/application-payment/receipts',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Could not load receipts.');return data;})
       .then(data=>{setReceiptRecords(data.receipts||[]);setReceiptError('');})
       .catch(error=>{if(!controller.signal.aborted)setReceiptError(error instanceof Error?error.message:'Could not load receipts.');})

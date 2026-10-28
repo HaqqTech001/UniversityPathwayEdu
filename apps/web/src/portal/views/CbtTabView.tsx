@@ -52,7 +52,7 @@ export default function CbtTabView({
     const token=getStudentToken();
     if(!token){setHistoryError('Sign in to view assessment results.');return;}
     let active=true;setHistoryLoading(true);
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\\/$/,'')+'/api/student/assessment-results',{headers:{Authorization:'Bearer '+token}})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/assessment-results',{headers:{Authorization:'Bearer '+token}})
       .then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Could not load assessment results.');return data;})
       .then(data=>{if(active)setRecentHistory((data.results||[]).map((r:any)=>({id:r.id,date:new Date(r.submitted_at).toLocaleDateString('en-NG'),test:'Institutional Assessment',subject:'Assessment '+String(r.assessment_id).slice(0,8),score:String(r.score??0)+' / '+String(r.total_questions??0),pct:r.total_questions?Math.round(Number(r.score||0)/Number(r.total_questions)*100)+'%':'—',status:'Submitted'})));})
       .catch(e=>{if(active)setHistoryError(e instanceof Error?e.message:'Assessment history unavailable.');})
