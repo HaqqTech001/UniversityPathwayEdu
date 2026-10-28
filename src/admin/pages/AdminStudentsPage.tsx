@@ -49,6 +49,8 @@ interface Student {
   avatar: string;
 }
 
+const subTabs = ['All Students', 'Applications', 'Admitted Students', 'Document Verification', 'Suspended'] as const;
+
 export default function AdminStudentsPage() {
   const [activeSubTab, setActiveSubTab] = useState('All Students');
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
