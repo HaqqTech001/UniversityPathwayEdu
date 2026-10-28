@@ -27,7 +27,9 @@ interface AdminDashboardPageProps {
 }
 
 export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDashboardPageProps) {
-  const [session, setSession] = useState('2025/2026 Academic Session');
+  const [session, setSession] = useState('Academic session');
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{const id=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(id);},[]);
   const [trendRange, setTrendRange] = useState<'this' | 'last' | '2years'>('this');
   const [applicationMetrics, setApplicationMetrics] = useState<{total:number;submitted:number;under_review:number;action_required:number}|null>(null);
   const [metricsError, setMetricsError] = useState('');
@@ -80,9 +82,9 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
             <Calendar size={16} className="text-[#D5A75B]" />
             <div className="text-left leading-tight">
               <span className="text-xs font-bold text-[#111A43] block">
-                Monday, 14 July 2025
+                {now.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
               </span>
-              <span className="text-[10px] text-slate-400">10:24 AM</span>
+              <span className="text-[10px] text-slate-400">{now.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</span>
             </div>
             <Sun size={15} className="text-amber-500 ml-1" />
           </div>
@@ -94,22 +96,22 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
       {/* =========================================================================
           ROW 1: 6 TOP KPI CARDS
           ========================================================================= */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 site-kpi-grid">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4 site-kpi-grid">
         {/* Card 1: Total Students */}
         <div
           onClick={() => onNavigateTab('students')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#111A43] transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#111A43] transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-3 shadow-sm">
             <Users size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             {applicationMetrics ? applicationMetrics.total.toLocaleString("en-NG") : "—"}
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
             Total Applications
           </span>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
             <TrendingUp size={12} />
             <span>Live count</span>
             <span className="text-slate-400 font-normal">from applications API</span>
@@ -119,18 +121,18 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         {/* Card 2: New Applications */}
         <div
           onClick={() => onNavigateTab('students')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#C62839] transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#C62839] transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-[#C62839] text-white flex items-center justify-center mb-3 shadow-sm">
             <FileText size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             {applicationMetrics ? applicationMetrics.submitted.toLocaleString("en-NG") : "—"}
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
             Submitted Applications
           </span>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
             <TrendingUp size={12} />
             <span>Live count</span>
             <span className="text-slate-400 font-normal truncate">Pending Review: {applicationMetrics ? applicationMetrics.under_review : "—"}</span>
@@ -140,12 +142,12 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         {/* Card 3: Programmes */}
         <div
           onClick={() => onNavigateTab('academic')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#D5A75B] transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#D5A75B] transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center mb-3 shadow-sm">
             <GraduationCap size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             6
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
@@ -159,12 +161,12 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         {/* Card 4: Staff & Lecturers */}
         <div
           onClick={() => onNavigateTab('staff')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#111A43] transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-[#111A43] transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-[#08163B] text-white flex items-center justify-center mb-3 shadow-sm">
             <Briefcase size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             128
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
@@ -178,18 +180,18 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         {/* Card 5: Total Revenue */}
         <div
           onClick={() => onNavigateTab('finance')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-emerald-600 transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-emerald-600 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-sm">
             <Wallet size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             ₦24.8M
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
             Total Revenue
           </span>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
             <TrendingUp size={12} />
             <span>18%</span>
             <span className="text-slate-400 font-normal">This Session</span>
@@ -199,12 +201,12 @@ export default function AdminDashboardPage({ onNavigateTab = () => {} }: AdminDa
         {/* Card 6: Examinations */}
         <div
           onClick={() => onNavigateTab('cbt')}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-purple-600 transition-all cursor-pointer"
+          className="min-w-0 overflow-hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:border-purple-600 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center mb-3 shadow-sm">
             <Award size={20} />
           </div>
-          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block">
+          <strong className="text-xl sm:text-2xl font-black text-[#111A43] block break-words">
             12
           </strong>
           <span className="text-xs font-semibold text-slate-600 block mt-0.5">
