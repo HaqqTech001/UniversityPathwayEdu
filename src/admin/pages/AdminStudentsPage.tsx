@@ -24,6 +24,9 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  ClipboardCheck,
+  UserCheck,
+  FolderOpen,
 } from 'lucide-react';
 
 interface Student {
@@ -274,9 +277,9 @@ export default function AdminStudentsPage() {
       </div>
 
       <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Loaded application summary">
-        {[{label:'Applications',value:students.length},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length}].map(item=>(
+        {[{label:'Applications',value:students.length,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-            <p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p>
+            <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?'—':item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
           </div>
         ))}
