@@ -141,7 +141,7 @@ const mockNotices: Notice[] = [
 ];
 
 export default function AdminNoticeBoardPage() {
-  const [activeTab, setActiveTab] = useState('All Notices');
+  const [activeTab, setActiveTab] = useState('Overview');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedAudience, setSelectedAudience] = useState('All Audiences');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
@@ -223,7 +223,15 @@ export default function AdminNoticeBoardPage() {
         </div>
       </div>
 
-      {/* 5 KPI Cards */}
+      {activeTab==='Overview'&&<section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+        <h2 className="text-lg font-bold text-[#111A43]">Notice board workspace</h2>
+        <p className="mt-1 text-sm text-slate-600">Choose the announcement area you need. Publishing and delivery require authenticated backend integration.</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {['All Notices','Announcements','Events','Academic Updates','Payment Notices','General','Archived'].map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">{tab}<span aria-hidden="true" className="float-right text-[#C62839]">→</span></button>)}
+        </div>
+      </section>}
+      {false&&<>
+      {/* Hidden preview metrics are not production statistics. */}
       <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
@@ -281,10 +289,11 @@ export default function AdminNoticeBoardPage() {
         </div>
       </div>
 
+      </>}
       {/* Subtabs Bar */}
       <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
         <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['All Notices', 'Announcements', 'Events', 'Academic Updates', 'Payment Notices', 'General', 'Archived'].map((tab) => {
+          {['Overview', 'All Notices', 'Announcements', 'Events', 'Academic Updates', 'Payment Notices', 'General', 'Archived'].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
@@ -304,7 +313,7 @@ export default function AdminNoticeBoardPage() {
         </div>
       </div>
 
-      {activeTab==='All Notices'?<>
+      {activeTab==='Overview'?null:activeTab==='All Notices'?<>
       {/* Filter Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -372,11 +381,11 @@ export default function AdminNoticeBoardPage() {
       </div>
 
       {/* Mid Section: Notices Table + Create Announcement Form */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 gap-4 items-start">
         {/* Left Column: Notices Table */}
-        <div className="xl:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+        <div className="min-w-0 w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-3 w-7 text-center">#</th>
@@ -450,7 +459,7 @@ export default function AdminNoticeBoardPage() {
         </div>
 
         {/* Right Column: Create Announcement Form */}
-        <div className="xl:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="min-w-0 w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Megaphone size={16} className="text-[#C62839]" />
             <h3 className="text-sm font-bold text-[#111A43]">Create Announcement</h3>
