@@ -49,6 +49,8 @@ interface Student {
   avatar: string;
 }
 
+const notifyAdmin = (message:string,kind:'error'|'success'|'info'='info') => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind}}));
+
 const subTabs = ['All Students', 'Applications', 'Admitted Students', 'Document Verification', 'Suspended'] as const;
 
 export default function AdminStudentsPage() {
@@ -64,7 +66,7 @@ export default function AdminStudentsPage() {
   useEffect(()=>{
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
-    if(!token){setApiError('Staff sign-in required.');setApiLoading(false);return;}
+    if(!token){setApiError('Please sign in to load application records.');setApiLoading(false);notifyAdmin('Please sign in to access student records.','error');return;}
     setApiLoading(true);setApiError('');
     fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
@@ -75,7 +77,7 @@ export default function AdminStudentsPage() {
         year:item.academic_session||'',phone:'',email:'',dob:'',gender:'',address:'',nationality:'',guardian:'',guardianPhone:'',class:'',mode:'',
         admissionDate:item.submitted_at||'',studentId:item.id,expectedCompletion:'',avatar:''
       })));})
-      .catch(error=>{if(!controller.signal.aborted)setApiError(error instanceof Error?error.message:'Unable to load applications.');})
+      .catch(error=>{if(!controller.signal.aborted){const message=error instanceof Error?error.message:'Unable to load applications.';setApiError(message);notifyAdmin(message,'error');}})
       .finally(()=>{if(!controller.signal.aborted)setApiLoading(false);});
     return()=>controller.abort();
   },[reload]);
@@ -241,24 +243,25 @@ export default function AdminStudentsPage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-col gap-3 lg:h-full lg:overflow-hidden">
-      <div role="status" className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">{apiLoading?"Loading live applications…":apiError||`${students.length} application records loaded. Only the records list is connected; other figures and actions are design placeholders.`}<button type="button" disabled={apiLoading} onClick={()=>setReload(value=>value+1)} className="ml-3 rounded-lg border px-3 py-1 disabled:opacity-50">Refresh</button></div>
+    <div className="flex min-h-0 flex-col gap-2 lg:h-full lg:overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {apiLoading&&<p role="status" className="text-xs text-slate-500">Loading student records…</p>}
+      {!apiLoading&&apiError&&<button type="button" onClick={()=>setReload(n=>n+1)} className="self-start text-xs font-semibold text-[#C62839] underline">Retry loading records</button>}
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111A43] tracking-tight">Student Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage all students, admissions, applications, documents and guardians.</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Student Management</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage all students, admissions, applications, documents and guardians.</p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button type="button" onClick={exportApplications} disabled={apiLoading || Boolean(apiError) || filteredStudents.length===0} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
+          <button type="button" onClick={()=>notifyAdmin("Student import is not yet available.","info")} disabled={false} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
             <Upload size={14} className="text-slate-500" />
             Import Students
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all">
+          <button type="button" onClick={exportApplications} disabled={apiLoading||Boolean(apiError)||filteredStudents.length===0} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 shadow-sm transition-all disabled:opacity-40">
             <Download size={14} className="text-slate-500" />
             Export
           </button>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#C62839] hover:bg-[#b02232] text-white rounded-xl shadow-md transition-all">
+          <button type="button" onClick={()=>notifyAdmin("Student creation requires the staff API workflow.","info")} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#C62839] hover:bg-[#b02232] text-white rounded-xl shadow-md transition-all">
             <Plus size={15} />
             Add Student
           </button>
