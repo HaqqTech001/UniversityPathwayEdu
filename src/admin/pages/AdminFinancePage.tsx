@@ -322,9 +322,9 @@ export default function AdminFinancePage() {
       </>}
       {(activeTab==='Transactions'||activeTab==='Financial Reports')&&<>
       {/* Bottom Row: Revenue Trend + Payment Status + Recent Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-7 gap-4 items-start">
         {/* Payment Status */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="min-w-0 lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#111A43]">Payment Status</h3>
             <select className="text-xs bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">
@@ -342,7 +342,7 @@ export default function AdminFinancePage() {
         </div>
 
         {/* Recent Activities */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
+        <div className="min-w-0 lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#111A43]">Recent Activities</h3>
             <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All</button>
