@@ -77,7 +77,23 @@ router.get('/attendance/students',grant('super_admin','admin','teacher'),wrap(as
  if(!ids.length)return res.json({students:[]});
  const {data:accounts,error:accountError}=await db.from('local_accounts').select('id,full_name').in('id',ids);
  if(accountError)throw accountError;
- res.json({students:(accounts||[]).map(a=>({id:a.id,name:a.full_name||'Student',programme:(applications||[]).find(p=>p.account_id===a.id)?.programme||''}))});
+ const {data:photos,error:photoError}=await db.from('upec_student_photos')
+  .select('student_account_id,storage_path').in('student_account_id',ids);
+ if(photoError)throw photoError;
+ const photoMap=new Map((photos||[]).map(photo=>[photo.student_account_id,photo.storage_path]));
+ const students=await Promise.all((accounts||[]).map(async account=>{
+  const storagePath=photoMap.get(account.id);
+  const signed=storagePath
+   ?await db.storage.from('upec-student-photos').createSignedUrl(storagePath,600)
+   :null;
+  return {
+   id:account.id,
+   name:account.full_name||'Student',
+   programme:(applications||[]).find(a=>a.account_id===account.id)?.programme||'',
+   photoUrl:signed&&!signed.error?signed.data.signedUrl:null
+  };
+ }));
+ res.json({students});
 }));
 
 router.get('/timetable-plans',grant('super_admin','admin','teacher'),wrap(async(req,res)=>{
