@@ -252,6 +252,25 @@ router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res
  if(error)throw error;
  res.json({title:exam.title,results:data||[]});
 }));
+router.get('/assessments/:id/attempts',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {data:exam,error:e}=await db.from('upec_assessments').select('id,title,duration_minutes,status').eq('id',req.params.id).maybeSingle();
+ if(e)throw e;
+ if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ const {data:attempts,error}=await db.from('upec_assessment_attempts').select('id,student_account_id,started_at,expires_at,submitted_at,score,total_questions').eq('assessment_id',exam.id).order('started_at',{ascending:false}).limit(200);
+ if(error)throw error;
+ const studentIds=[...new Set((attempts||[]).map(a=>a.student_account_id))];
+ let studentsMap={};
+ if(studentIds.length>0){
+  const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  (accounts||[]).forEach(acc=>{studentsMap[acc.id]=acc.full_name;});
+ }
+ const formatted=(attempts||[]).map(a=>({
+  ...a,
+  student_name:studentsMap[a.student_account_id]||'Student '+a.student_account_id.slice(0,8)
+ }));
+ res.json({assessment:exam,attempts:formatted});
+}));
 // Limited, verified student directory for assessment assignment; no email or phone exposed.
 router.get('/students/search',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  const q=String(req.query.q||'').trim();
