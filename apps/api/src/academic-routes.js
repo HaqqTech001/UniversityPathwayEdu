@@ -266,24 +266,35 @@ router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res
  if(req.staff.role==='teacher'&&exam.created_by!==req.actor.sub)return res.status(403).json({error:'Results are restricted to the assessment author.'});
  const {data,error}=await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',exam.id).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(200);
  if(error)throw error;
- res.json({title:exam.title,results:data||[]});
+ const studentIds=[...new Set((data||[]).map(r=>r.student_account_id))];
+ let studentsMap={};
+ if(studentIds.length>0){
+  const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  (accounts||[]).forEach(acc=>{if(acc.full_name)studentsMap[acc.id]=acc.full_name;});
+ }
+ const formatted=(data||[]).map(r=>({
+  ...r,
+  student_name:studentsMap[r.student_account_id]||null
+ }));
+ res.json({title:exam.title,results:formatted});
 }));
 router.get('/assessments/:id/attempts',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
- const {data:exam,error:e}=await db.from('upec_assessments').select('id,title,duration_minutes,status').eq('id',req.params.id).maybeSingle();
+ const {data:exam,error:e}=await db.from('upec_assessments').select('id,title,duration_minutes,status,created_by').eq('id',req.params.id).maybeSingle();
  if(e)throw e;
  if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ if(req.staff.role==='teacher'&&exam.created_by!==req.actor.sub)return res.status(403).json({error:'Monitoring is restricted to the assessment author.'});
  const {data:attempts,error}=await db.from('upec_assessment_attempts').select('id,student_account_id,started_at,expires_at,submitted_at,score,total_questions').eq('assessment_id',exam.id).order('started_at',{ascending:false}).limit(200);
  if(error)throw error;
  const studentIds=[...new Set((attempts||[]).map(a=>a.student_account_id))];
  let studentsMap={};
  if(studentIds.length>0){
   const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
-  (accounts||[]).forEach(acc=>{studentsMap[acc.id]=acc.full_name;});
+  (accounts||[]).forEach(acc=>{if(acc.full_name)studentsMap[acc.id]=acc.full_name;});
  }
  const formatted=(attempts||[]).map(a=>({
   ...a,
-  student_name:studentsMap[a.student_account_id]||'Student '+a.student_account_id.slice(0,8)
+  student_name:studentsMap[a.student_account_id]||null
  }));
  res.json({assessment:exam,attempts:formatted});
 }));

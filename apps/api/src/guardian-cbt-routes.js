@@ -4,7 +4,7 @@ import {queueEmail} from './notification-worker.js';
 const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 router.post('/:id/notify-guardians',wrap(async(req,res)=>{
- if(!req.staff?.permissions?.includes('cbt.manage'))return res.status(403).json({error:'CBT management permission required.'});
+ if(!req.staff?.permissions?.includes('cbt.manage') && req.staff?.role !== 'super_admin' && req.staff?.role !== 'admin')return res.status(403).json({error:'CBT management permission required.'});
  const mode=req.body?.mode;
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['schedule','attendance','performance'].includes(mode))return res.status(400).json({error:'Invalid examination or notification type.'});
  const exam=await db.from('upec_assessments').select('id,title,opens_at,status').eq('id',req.params.id).maybeSingle();
@@ -13,16 +13,19 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
  const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(500);
  if(eligibility.error)throw eligibility.error;
- const ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
- if(!ids.length)return res.json({queued:0,skipped:0});
+ let ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
+ const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',req.params.id).order('started_at',{ascending:false}).limit(1000):{data:[],error:null};
+ if(attempts.error)throw attempts.error;
+ if(!ids.length && mode!=='schedule'){
+  ids=[...new Set((attempts.data||[]).map(row=>row.student_account_id))];
+ }
+ if(!ids.length)return res.json({queued:0,skipped:0,studentsNotified:0});
  if(ids.length===500)return res.status(409).json({error:'Recipient list may be incomplete. Refine the examination audience before sending.'});
  const guardians=await db.from('upec_guardian_contacts').select('student_account_id,guardian_name,email').in('student_account_id',ids).not('verified_at','is',null);
  if(guardians.error)throw guardians.error;
  const students=await db.from('local_accounts').select('id,full_name').in('id',ids);
  if(students.error)throw students.error;
  const names=new Map((students.data||[]).map(row=>[row.id,row.full_name]));
- const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',req.params.id).order('started_at',{ascending:false}).limit(1000):{data:[],error:null};
- if(attempts.error)throw attempts.error;
  const scores=new Map();
  for(const attempt of attempts.data||[])if(!scores.has(attempt.student_account_id))scores.set(attempt.student_account_id,attempt);
  let queued=0,skipped=0,studentsNotified=0;

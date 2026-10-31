@@ -2,24 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Award,
-  BarChart3,
   BookOpen,
-  Calendar,
-  Check,
   CheckCircle2,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
-  Download,
-  Eye,
   FileQuestion,
-  Filter,
-  HelpCircle,
+  Lock,
   Plus,
   Radio,
   RefreshCw,
+  RotateCcw,
   Search,
   Send,
   Settings,
@@ -28,7 +22,14 @@ import {
   X
 } from 'lucide-react';
 
-type SectionTab = 'Overview' | 'Question Bank' | 'Examinations' | 'Candidates' | 'Results & Analytics' | 'CBT Settings' | 'Live Monitoring Desk';
+type SectionTab =
+  | 'Overview'
+  | 'Question Bank'
+  | 'Examinations'
+  | 'Candidates'
+  | 'Results & Analytics'
+  | 'CBT Settings'
+  | 'Live Monitoring Desk';
 
 type Exam = {
   id: string;
@@ -64,7 +65,7 @@ type Subject = {
 type Attempt = {
   id: string;
   student_account_id: string;
-  student_name?: string;
+  student_name?: string | null;
   started_at: string;
   expires_at: string;
   submitted_at: string | null;
@@ -72,9 +73,24 @@ type Attempt = {
   total_questions: number | null;
 };
 
+type ResultRecord = {
+  student_account_id: string;
+  student_name?: string | null;
+  score: number | null;
+  total_questions: number | null;
+  submitted_at: string | null;
+};
+
 type CandidateStudent = {
   id: string;
   full_name: string;
+};
+
+type SectionState<T> = {
+  data: T;
+  loading: boolean;
+  error: string | null;
+  statusCode?: number | null;
 };
 
 const notify = (message: string, kind: 'success' | 'error' | 'info' = 'info') =>
@@ -82,9 +98,18 @@ const notify = (message: string, kind: 'success' | 'error' | 'info' = 'info') =>
 
 const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiError';
+  }
+}
+
 async function api(path: string, init: RequestInit = {}) {
   const token = sessionStorage.getItem('upec_staff_token');
-  if (!token) throw Error('Staff authentication token required. Please sign in to the staff portal.');
+  if (!token) throw new ApiError('Staff authentication token required. Please sign in to the staff portal.', 401);
   const response = await fetch(base + path, {
     ...init,
     headers: {
@@ -93,30 +118,40 @@ async function api(path: string, init: RequestInit = {}) {
     }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw Error(data.error || 'Server request failed');
+  if (!response.ok) {
+    throw new ApiError(data.error || `Server request failed with status ${response.status}`, response.status);
+  }
   return data;
 }
 
+const SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
+
 export default function AdminCbtPage() {
   const [activeSection, setActiveSection] = useState<SectionTab>('Overview');
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Filters & Search
+  // Granular Section-Level Data & Error States (preserving successful sections when others fail)
+  const [examsState, setExamsState] = useState<SectionState<Exam[]>>({ data: [], loading: true, error: null });
+  const [questionsState, setQuestionsState] = useState<SectionState<Question[]>>({ data: [], loading: true, error: null });
+  const [subjectsState, setSubjectsState] = useState<SectionState<Subject[]>>({ data: [], loading: true, error: null });
+  const [resultsState, setResultsState] = useState<SectionState<{ title: string; results: ResultRecord[] } | null>>({
+    data: null,
+    loading: false,
+    error: null
+  });
+  const [attemptsState, setAttemptsState] = useState<SectionState<Attempt[]>>({ data: [], loading: false, error: null });
+
+  // Filtering & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Selected Exam for Modals / Actions
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  // Selected Exam Targets
+  const [selectedExamForResults, setSelectedExamForResults] = useState<string>('');
+  const [monitoringExamId, setMonitoringExamId] = useState<string>('');
 
-  // Question Creation State
+  // Modals & Action Forms
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
@@ -129,7 +164,6 @@ export default function AdminCbtPage() {
     explanation: ''
   });
 
-  // Assessment Creation State
   const [isCreatingExam, setIsCreatingExam] = useState(false);
   const [examForm, setExamForm] = useState({
     title: '',
@@ -138,11 +172,9 @@ export default function AdminCbtPage() {
     questionIds: [] as string[]
   });
 
-  // Schedule Modal State
   const [isSchedulingExam, setIsSchedulingExam] = useState<Exam | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ opensAt: '', closesAt: '' });
 
-  // Eligibility Modal State
   const [isEligibilityModal, setIsEligibilityModal] = useState<Exam | null>(null);
   const [restrictedMode, setRestrictedMode] = useState(false);
   const [eligibleStudents, setEligibleStudents] = useState<string[]>([]);
@@ -150,139 +182,143 @@ export default function AdminCbtPage() {
   const [searchedStudents, setSearchedStudents] = useState<CandidateStudent[]>([]);
   const [searchingStudents, setSearchingStudents] = useState(false);
 
-  // Results & Analytics State
-  const [selectedExamForResults, setSelectedExamForResults] = useState<string>('');
-  const [resultsData, setResultsData] = useState<{ title: string; results: any[] } | null>(null);
-  const [loadingResults, setLoadingResults] = useState(false);
-
-  // Live Monitoring Desk State
-  const [monitoringExamId, setMonitoringExamId] = useState<string>('');
-  const [activeAttempts, setActiveAttempts] = useState<Attempt[]>([]);
-  const [loadingAttempts, setLoadingAttempts] = useState(false);
-
-  // Guardian Notification State
   const [isNotifyingGuardians, setIsNotifyingGuardians] = useState<Exam | null>(null);
   const [notificationMode, setNotificationMode] = useState<'schedule' | 'attendance' | 'performance'>('schedule');
   const [sendingNotification, setSendingNotification] = useState(false);
 
-  // CBT Settings State (Stored in local state with honest persistence notice)
-  const [cbtSettings, setCbtSettings] = useState({
-    defaultPassMark: 50,
-    maxAttemptLimit: 1,
-    defaultDurationMinutes: 60,
-    shuffleQuestions: true,
-    shuffleOptions: true,
-    showScoreImmediately: true,
-    preventTabSwitch: true
+  // CBT Station Settings (stored durably in localStorage, clearly mapped to engine boundaries)
+  type StationSettings = {
+    defaultPassMark: number;
+    defaultDurationMinutes: number;
+    enforceFocusNotice: boolean;
+  };
+
+  const [stationSettings, setStationSettings] = useState<StationSettings>(() => {
+    try {
+      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as StationSettings;
+    } catch {
+      // fallback
+    }
+    return {
+      defaultPassMark: 50,
+      defaultDurationMinutes: 60,
+      enforceFocusNotice: true
+    };
   });
   const [settingsNotice, setSettingsNotice] = useState('');
-
   const [savingAction, setSavingAction] = useState(false);
 
-  // Load Primary CBT Data
+  // Independent Data Fetchers
+  const fetchAssessments = async () => {
+    setExamsState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await api('/api/staff/academic/assessments');
+      setExamsState({ data: res.assessments || [], loading: false, error: null, statusCode: 200 });
+      if (res.assessments?.length) {
+        setSelectedExamForResults(prev => prev || res.assessments[0].id);
+        setMonitoringExamId(prev => prev || res.assessments[0].id);
+      }
+    } catch (err: any) {
+      setExamsState(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Failed to fetch assessments.',
+        statusCode: err.status || 500
+      }));
+    }
+  };
+
+  const fetchQuestions = async () => {
+    setQuestionsState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await api('/api/staff/academic/questions');
+      setQuestionsState({ data: res.questions || [], loading: false, error: null, statusCode: 200 });
+    } catch (err: any) {
+      setQuestionsState(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Failed to fetch questions.',
+        statusCode: err.status || 500
+      }));
+    }
+  };
+
+  const fetchCatalogue = async () => {
+    setSubjectsState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await api('/api/staff/academic/catalogue');
+      setSubjectsState({ data: res.subjects || [], loading: false, error: null, statusCode: 200 });
+    } catch (err: any) {
+      setSubjectsState(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Failed to fetch subject catalogue.',
+        statusCode: err.status || 500
+      }));
+    }
+  };
+
+  // Initial Data Load
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError('');
+    void fetchAssessments();
+    void fetchQuestions();
+    void fetchCatalogue();
+  }, []);
 
-    Promise.all([
-      api('/api/staff/academic/assessments').catch(err => {
-        console.warn('Assessments fetch issue:', err);
-        return { assessments: [] };
-      }),
-      api('/api/staff/academic/questions').catch(err => {
-        console.warn('Questions fetch issue:', err);
-        return { questions: [] };
-      }),
-      api('/api/staff/academic/catalogue').catch(err => {
-        console.warn('Catalogue fetch issue:', err);
-        return { subjects: [] };
-      })
-    ])
-      .then(([a, q, c]) => {
-        if (!active) return;
-        setExams(a.assessments || []);
-        setQuestions(q.questions || []);
-        setSubjects(c.subjects || []);
-        if (a.assessments?.length && !selectedExamForResults) {
-          setSelectedExamForResults(a.assessments[0].id);
-        }
-        if (a.assessments?.length && !monitoringExamId) {
-          setMonitoringExamId(a.assessments[0].id);
-        }
-      })
-      .catch(e => {
-        if (active) setError(e.message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+  // Fetch Results for Selected Examination
+  const fetchResults = async (examId: string) => {
+    if (!examId) return;
+    setResultsState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await api(`/api/staff/academic/assessments/${examId}/results`);
+      setResultsState({ data: res, loading: false, error: null, statusCode: 200 });
+    } catch (err: any) {
+      setResultsState({
+        data: null,
+        loading: false,
+        error:
+          err.status === 403
+            ? 'Access Denied: As an academic teacher, you may only view examination results for assessments you authored.'
+            : err.message || 'Failed to fetch examination results.',
+        statusCode: err.status || 500
       });
-
-    return () => {
-      active = false;
-    };
-  }, [refreshKey]);
-
-  // Load Results when an exam is selected in Results tab
-  useEffect(() => {
-    if (!selectedExamForResults) return;
-    let active = true;
-    setLoadingResults(true);
-    api(`/api/staff/academic/assessments/${selectedExamForResults}/results`)
-      .then(data => {
-        if (active) setResultsData(data);
-      })
-      .catch(err => {
-        if (active) {
-          setResultsData({ title: 'Assessment', results: [] });
-          console.warn('Results error:', err.message);
-        }
-      })
-      .finally(() => {
-        if (active) setLoadingResults(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [selectedExamForResults]);
-
-  // Load Active Session Attempts for Live Monitoring Desk
-  const fetchLiveAttempts = () => {
-    if (!monitoringExamId) return;
-    setLoadingAttempts(true);
-    api(`/api/staff/academic/assessments/${monitoringExamId}/attempts`)
-      .then(data => {
-        setActiveAttempts(data.attempts || []);
-      })
-      .catch(() => {
-        // Fallback to results if attempts endpoint is empty
-        api(`/api/staff/academic/assessments/${monitoringExamId}/results`)
-          .then(data => {
-            const mapped = (data.results || []).map((r: any) => ({
-              id: r.student_account_id,
-              student_account_id: r.student_account_id,
-              student_name: 'Candidate ' + r.student_account_id.slice(0, 8),
-              started_at: r.submitted_at || new Date().toISOString(),
-              expires_at: r.submitted_at || new Date().toISOString(),
-              submitted_at: r.submitted_at,
-              score: r.score,
-              total_questions: r.total_questions
-            }));
-            setActiveAttempts(mapped);
-          })
-          .catch(() => setActiveAttempts([]));
-      })
-      .finally(() => setLoadingAttempts(false));
+    }
   };
 
   useEffect(() => {
-    if (activeSection === 'Live Monitoring Desk' && monitoringExamId) {
-      fetchLiveAttempts();
+    if (selectedExamForResults && activeSection === 'Results & Analytics') {
+      void fetchResults(selectedExamForResults);
+    }
+  }, [selectedExamForResults, activeSection]);
+
+  // Fetch Attempts for Live Monitoring Desk (Strictly using /assessments/:id/attempts)
+  const fetchLiveAttempts = async (examId: string) => {
+    if (!examId) return;
+    setAttemptsState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await api(`/api/staff/academic/assessments/${examId}/attempts`);
+      setAttemptsState({ data: res.attempts || [], loading: false, error: null, statusCode: 200 });
+    } catch (err: any) {
+      setAttemptsState({
+        data: [],
+        loading: false,
+        error:
+          err.status === 403
+            ? 'Access Denied: As an academic teacher, you may only monitor assessments you authored.'
+            : err.message || 'Failed to query active candidate sessions from server.',
+        statusCode: err.status || 500
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (monitoringExamId && activeSection === 'Live Monitoring Desk') {
+      void fetchLiveAttempts(monitoringExamId);
     }
   }, [monitoringExamId, activeSection]);
 
-  // Handle Candidate Search for Eligibility
+  // Student Search for Eligibility
   useEffect(() => {
     if (!studentSearchInput.trim() || studentSearchInput.trim().length < 2) {
       setSearchedStudents([]);
@@ -298,7 +334,7 @@ export default function AdminCbtPage() {
     return () => clearTimeout(timer);
   }, [studentSearchInput]);
 
-  // Create Question Submission
+  // Create Question
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!questionForm.subjectId || !questionForm.prompt.trim()) {
@@ -334,7 +370,7 @@ export default function AdminCbtPage() {
         correctOption: 'A',
         explanation: ''
       });
-      setRefreshKey(v => v + 1);
+      void fetchQuestions();
     } catch (err: any) {
       notify(err.message || 'Failed to create question.', 'error');
     } finally {
@@ -342,7 +378,7 @@ export default function AdminCbtPage() {
     }
   };
 
-  // Toggle Question Publication Status
+  // Toggle Question Status
   const handleToggleQuestionStatus = async (q: Question) => {
     const nextStatus = q.status === 'published' ? 'draft' : 'published';
     setSavingAction(true);
@@ -352,7 +388,7 @@ export default function AdminCbtPage() {
         body: JSON.stringify({ status: nextStatus })
       });
       notify(`Question status updated to ${nextStatus}.`, 'success');
-      setRefreshKey(v => v + 1);
+      void fetchQuestions();
     } catch (err: any) {
       notify(err.message || 'Failed to update question status.', 'error');
     } finally {
@@ -360,7 +396,7 @@ export default function AdminCbtPage() {
     }
   };
 
-  // Create Assessment Submission
+  // Create Assessment
   const handleCreateExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!examForm.subjectId || !examForm.title.trim() || !examForm.questionIds.length) {
@@ -380,8 +416,13 @@ export default function AdminCbtPage() {
       });
       notify('Assessment successfully created as draft.', 'success');
       setIsCreatingExam(false);
-      setExamForm({ title: '', subjectId: '', durationMinutes: 60, questionIds: [] });
-      setRefreshKey(v => v + 1);
+      setExamForm({
+        title: '',
+        subjectId: '',
+        durationMinutes: stationSettings.defaultDurationMinutes || 60,
+        questionIds: []
+      });
+      void fetchAssessments();
     } catch (err: any) {
       notify(err.message || 'Failed to create assessment.', 'error');
     } finally {
@@ -389,7 +430,7 @@ export default function AdminCbtPage() {
     }
   };
 
-  // Update Assessment Status (draft -> published -> closed)
+  // Update Assessment Status
   const handleChangeExamStatus = async (exam: Exam, newStatus: 'draft' | 'published' | 'closed') => {
     setSavingAction(true);
     try {
@@ -398,8 +439,7 @@ export default function AdminCbtPage() {
         body: JSON.stringify({ status: newStatus })
       });
       notify(`Assessment status updated to ${newStatus}.`, 'success');
-      setSelectedExam(null);
-      setRefreshKey(v => v + 1);
+      void fetchAssessments();
     } catch (err: any) {
       notify(err.message || 'Failed to update assessment status.', 'error');
     } finally {
@@ -407,7 +447,7 @@ export default function AdminCbtPage() {
     }
   };
 
-  // Save Schedule (opens_at, closes_at)
+  // Save Schedule
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSchedulingExam) return;
@@ -423,7 +463,7 @@ export default function AdminCbtPage() {
       notify('Assessment schedule successfully updated.', 'success');
       setIsSchedulingExam(null);
       setScheduleForm({ opensAt: '', closesAt: '' });
-      setRefreshKey(v => v + 1);
+      void fetchAssessments();
     } catch (err: any) {
       notify(err.message || 'Failed to schedule assessment.', 'error');
     } finally {
@@ -441,7 +481,6 @@ export default function AdminCbtPage() {
       setRestrictedMode(Boolean(data.restricted));
       setEligibleStudents(data.studentIds || []);
     } catch {
-      // Default to empty array
       setEligibleStudents([]);
     }
   };
@@ -460,7 +499,7 @@ export default function AdminCbtPage() {
       });
       notify('Candidate eligibility rules saved.', 'success');
       setIsEligibilityModal(null);
-      setRefreshKey(v => v + 1);
+      void fetchAssessments();
     } catch (err: any) {
       notify(err.message || 'Failed to update candidate eligibility.', 'error');
     } finally {
@@ -468,7 +507,7 @@ export default function AdminCbtPage() {
     }
   };
 
-  // Send Guardian Notification
+  // Send Guardian Notification (Authentic handling, no fabricated delivery counts)
   const handleSendGuardianNotification = async () => {
     if (!isNotifyingGuardians) return;
     setSendingNotification(true);
@@ -477,55 +516,70 @@ export default function AdminCbtPage() {
         method: 'POST',
         body: JSON.stringify({ mode: notificationMode })
       });
-      notify(
-        `Notifications queued: ${res.queued} email(s), ${res.studentsNotified} in-app notification(s).`,
-        'success'
-      );
+      if (res.queued === 0 && res.studentsNotified === 0) {
+        notify('No eligible candidates with verified guardian contacts found for this examination.', 'info');
+      } else {
+        const skippedText = res.skipped ? ` (${res.skipped} skipped without verified guardian email)` : '';
+        notify(
+          `Notification queued: ${res.queued} email(s) queued in outbox, ${res.studentsNotified} in-app alert(s) posted${skippedText}. Background notification worker will process delivery.`,
+          'success'
+        );
+      }
       setIsNotifyingGuardians(null);
     } catch (err: any) {
-      notify(err.message || 'Notification transmission failed.', 'error');
+      notify(
+        err.status === 403
+          ? 'Permission Denied: CBT management permission required to send candidate and guardian notifications.'
+          : err.message || 'Notification transmission failed.',
+        'error'
+      );
     } finally {
       setSendingNotification(false);
     }
   };
 
-  // Save CBT Settings
-  const handleSaveSettings = (e: React.FormEvent) => {
+  // Save Station Settings to localStorage
+  const handleSaveStationSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    setSettingsNotice('CBT assessment policies updated for this administrative workstation session.');
-    notify('CBT operational settings recorded.', 'success');
-    setTimeout(() => setSettingsNotice(''), 4000);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(stationSettings));
+      setSettingsNotice('Station preferences durably saved to this browser session.');
+      notify('Station preferences saved.', 'success');
+      setTimeout(() => setSettingsNotice(''), 4000);
+    } catch {
+      notify('Unable to save station preferences to local storage.', 'error');
+    }
   };
 
-  // Filtered Questions for Assessment Creation (must be published and match selected subject)
-  const availablePublishedQuestions = useMemo(() => {
-    if (!examForm.subjectId) return [];
-    return questions.filter(q => q.subject_id === examForm.subjectId && q.status === 'published');
-  }, [questions, examForm.subjectId]);
-
-  // Filtered Question Bank
+  // Filtered Questions
   const filteredQuestions = useMemo(() => {
     const term = searchQuery.toLowerCase().trim();
-    return questions.filter(q => {
+    return questionsState.data.filter(q => {
       const matchesSearch = q.prompt.toLowerCase().includes(term);
       const matchesSubject = selectedSubjectFilter === 'all' || q.subject_id === selectedSubjectFilter;
       const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
       return matchesSearch && matchesSubject && matchesStatus;
     });
-  }, [questions, searchQuery, selectedSubjectFilter, statusFilter]);
+  }, [questionsState.data, searchQuery, selectedSubjectFilter, statusFilter]);
 
-  // Filtered Examinations
+  // Filtered Exams
   const filteredExams = useMemo(() => {
     const term = searchQuery.toLowerCase().trim();
-    return exams.filter(e => {
+    return examsState.data.filter(e => {
       const matchesSearch = e.title.toLowerCase().includes(term);
       const matchesSubject = selectedSubjectFilter === 'all' || e.subject_id === selectedSubjectFilter;
       const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
       return matchesSearch && matchesSubject && matchesStatus;
     });
-  }, [exams, searchQuery, selectedSubjectFilter, statusFilter]);
+  }, [examsState.data, searchQuery, selectedSubjectFilter, statusFilter]);
 
-  // Pagination Helper
+  // Available Published Questions for Modal
+  const availablePublishedQuestions = useMemo(() => {
+    if (!examForm.subjectId) return [];
+    return questionsState.data.filter(q => q.subject_id === examForm.subjectId && q.status === 'published');
+  }, [questionsState.data, examForm.subjectId]);
+
+  // Pagination
   const paginatedQuestions = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredQuestions.slice(start, start + pageSize);
@@ -541,32 +595,79 @@ export default function AdminCbtPage() {
     Math.ceil((activeSection === 'Question Bank' ? filteredQuestions.length : filteredExams.length) / pageSize)
   );
 
+  // Results Analytics Calculation (Honest, verified denominators)
+  const resultsAnalytics = useMemo(() => {
+    if (!resultsState.data?.results) return null;
+    const all = resultsState.data.results;
+    const validScored = all.filter(r => r.score !== null && r.total_questions !== null && r.total_questions > 0);
+    const totalSubmitted = all.length;
+
+    if (!validScored.length) {
+      return {
+        totalSubmitted,
+        validScoredCount: 0,
+        averageScore: null,
+        highestScore: null,
+        lowestScore: null,
+        passCount: 0,
+        passRate: null
+      };
+    }
+
+    const scores = validScored.map(r => r.score as number);
+    const sumScore = scores.reduce((acc, v) => acc + v, 0);
+    const avgScore = (sumScore / validScored.length).toFixed(1);
+    const high = Math.max(...scores);
+    const low = Math.min(...scores);
+    const passCount = validScored.filter(
+      r => ((r.score as number) / (r.total_questions as number)) * 100 >= stationSettings.defaultPassMark
+    ).length;
+    const passRate = Math.round((passCount / validScored.length) * 100);
+
+    return {
+      totalSubmitted,
+      validScoredCount: validScored.length,
+      averageScore: avgScore,
+      highestScore: high,
+      lowestScore: low,
+      passCount,
+      passRate
+    };
+  }, [resultsState.data, stationSettings.defaultPassMark]);
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden bg-[#F7F8FC] p-2 text-slate-800">
       {/* Top Bar Header */}
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-extrabold text-[#111A43] sm:text-2xl">
-              CBT &amp; Examinations
-            </h1>
+            <h1 className="truncate text-xl font-extrabold text-[#111A43] sm:text-2xl">CBT &amp; Examinations</h1>
             <span className="hidden rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 sm:inline-flex">
               2025/2026 Academic Session
             </span>
           </div>
           <p className="text-[11px] text-slate-500">
-            Assessment engine, question repository, candidate sessions &amp; academic analytics
+            Assessment engine, verified question repository, candidate sessions &amp; academic analytics
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <button
-            title="Refresh CBT records"
-            aria-label="Refresh CBT records"
-            onClick={() => setRefreshKey(v => v + 1)}
+            title="Refresh all datasets"
+            aria-label="Refresh all datasets"
+            onClick={() => {
+              void fetchAssessments();
+              void fetchQuestions();
+              void fetchCatalogue();
+              if (selectedExamForResults) void fetchResults(selectedExamForResults);
+              if (monitoringExamId) void fetchLiveAttempts(monitoringExamId);
+            }}
             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin text-[#111A43]' : ''} />
+            <RefreshCw
+              size={15}
+              className={examsState.loading || questionsState.loading || subjectsState.loading ? 'animate-spin text-[#111A43]' : ''}
+            />
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
@@ -579,7 +680,15 @@ export default function AdminCbtPage() {
           </button>
 
           <button
-            onClick={() => setIsCreatingExam(true)}
+            onClick={() => {
+              setExamForm({
+                title: '',
+                subjectId: subjectsState.data[0]?.id || '',
+                durationMinutes: stationSettings.defaultDurationMinutes || 60,
+                questionIds: []
+              });
+              setIsCreatingExam(true);
+            }}
             className="flex items-center gap-1 rounded-lg bg-[#C62839] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#a82230] transition"
           >
             <Plus size={14} />
@@ -588,7 +697,7 @@ export default function AdminCbtPage() {
         </div>
       </header>
 
-      {/* Real Database KPI Metrics Bar */}
+      {/* Database KPI Metrics Bar */}
       <section className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#111A43]">
@@ -596,7 +705,9 @@ export default function AdminCbtPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-medium text-slate-500">Total Assessments</p>
-            <p className="text-lg font-extrabold text-[#111A43]">{loading ? '—' : exams.length}</p>
+            <p className="text-lg font-extrabold text-[#111A43]">
+              {examsState.loading ? '—' : examsState.error ? 'Error' : examsState.data.length}
+            </p>
           </div>
         </div>
 
@@ -607,7 +718,11 @@ export default function AdminCbtPage() {
           <div className="min-w-0">
             <p className="text-[10px] font-medium text-slate-500">Active / Published</p>
             <p className="text-lg font-extrabold text-emerald-700">
-              {loading ? '—' : exams.filter(e => e.status === 'published').length}
+              {examsState.loading
+                ? '—'
+                : examsState.error
+                ? 'Error'
+                : examsState.data.filter(e => e.status === 'published').length}
             </p>
           </div>
         </div>
@@ -618,7 +733,9 @@ export default function AdminCbtPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-medium text-slate-500">Total Questions</p>
-            <p className="text-lg font-extrabold text-[#111A43]">{loading ? '—' : questions.length}</p>
+            <p className="text-lg font-extrabold text-[#111A43]">
+              {questionsState.loading ? '—' : questionsState.error ? 'Error' : questionsState.data.length}
+            </p>
           </div>
         </div>
 
@@ -628,7 +745,9 @@ export default function AdminCbtPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-medium text-slate-500">Subject Coverage</p>
-            <p className="text-lg font-extrabold text-[#111A43]">{loading ? '—' : subjects.length}</p>
+            <p className="text-lg font-extrabold text-[#111A43]">
+              {subjectsState.loading ? '—' : subjectsState.error ? 'Error' : subjectsState.data.length}
+            </p>
           </div>
         </div>
 
@@ -637,15 +756,17 @@ export default function AdminCbtPage() {
             <Radio size={20} />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-slate-500">Live Desk Status</p>
+            <p className="text-[10px] font-medium text-slate-500">Live Desk</p>
             <p className="text-xs font-bold text-slate-700">
-              {loading ? '—' : `${exams.filter(e => e.status === 'published').length} Active Venue(s)`}
+              {examsState.loading
+                ? '—'
+                : `${examsState.data.filter(e => e.status === 'published').length} Active Exam(s)`}
             </p>
           </div>
         </div>
       </section>
 
-      {/* 6 Sections Tab Navigation */}
+      {/* 6 Sections + Desk Tab Navigation */}
       <nav className="flex shrink-0 items-center gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs">
         {(
           [
@@ -675,21 +796,8 @@ export default function AdminCbtPage() {
         ))}
       </nav>
 
-      {/* Section View Container */}
+      {/* Main Content Area */}
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        {/* Error Banner */}
-        {error && (
-          <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-            <button onClick={() => setError('')} className="text-rose-600 hover:text-rose-900">
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
         {/* SECTION 1: OVERVIEW */}
         {activeSection === 'Overview' && (
           <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
@@ -706,57 +814,77 @@ export default function AdminCbtPage() {
                   </button>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
-                      <tr>
-                        <th className="py-2.5 px-3">Title</th>
-                        <th className="py-2.5 px-3">Subject</th>
-                        <th className="py-2.5 px-3">Duration</th>
-                        <th className="py-2.5 px-3">Schedule</th>
-                        <th className="py-2.5 px-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {exams.slice(0, 5).map(exam => {
-                        const sub = subjects.find(s => s.id === exam.subject_id);
-                        return (
-                          <tr key={exam.id} className="hover:bg-slate-50">
-                            <td className="py-2.5 px-3 font-semibold text-[#111A43]">{exam.title}</td>
-                            <td className="py-2.5 px-3 text-slate-600">{sub?.name || 'General'}</td>
-                            <td className="py-2.5 px-3 text-slate-600">{exam.duration_minutes} mins</td>
-                            <td className="py-2.5 px-3 text-[11px] text-slate-500">
-                              {exam.opens_at ? new Date(exam.opens_at).toLocaleDateString() : 'Unscheduled'}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span
-                                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                  exam.status === 'published'
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : exam.status === 'draft'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'bg-slate-100 text-slate-600'
-                                }`}
-                              >
-                                {exam.status}
-                              </span>
+                {examsState.error ? (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={16} />
+                      <span>{examsState.error}</span>
+                    </div>
+                    <button
+                      onClick={fetchAssessments}
+                      className="flex items-center gap-1 rounded bg-rose-100 px-2 py-1 font-bold text-rose-800 hover:bg-rose-200"
+                    >
+                      <RotateCcw size={12} /> Retry
+                    </button>
+                  </div>
+                ) : examsState.loading ? (
+                  <div className="space-y-2 p-4">
+                    <div className="h-8 animate-pulse rounded bg-slate-100" />
+                    <div className="h-8 animate-pulse rounded bg-slate-100" />
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
+                        <tr>
+                          <th className="py-2.5 px-3">Title</th>
+                          <th className="py-2.5 px-3">Subject</th>
+                          <th className="py-2.5 px-3">Duration</th>
+                          <th className="py-2.5 px-3">Schedule</th>
+                          <th className="py-2.5 px-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {examsState.data.slice(0, 5).map(exam => {
+                          const sub = subjectsState.data.find(s => s.id === exam.subject_id);
+                          return (
+                            <tr key={exam.id} className="hover:bg-slate-50">
+                              <td className="py-2.5 px-3 font-semibold text-[#111A43]">{exam.title}</td>
+                              <td className="py-2.5 px-3 text-slate-600">{sub?.name || 'General'}</td>
+                              <td className="py-2.5 px-3 text-slate-600">{exam.duration_minutes} mins</td>
+                              <td className="py-2.5 px-3 text-[11px] text-slate-500">
+                                {exam.opens_at ? new Date(exam.opens_at).toLocaleDateString() : 'Unscheduled'}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                    exam.status === 'published'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : exam.status === 'draft'
+                                      ? 'bg-amber-50 text-amber-700'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {exam.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {!examsState.data.length && (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-slate-400">
+                              No examinations created yet. Click "Create Examination" to schedule your first assessment.
                             </td>
                           </tr>
-                        );
-                      })}
-                      {!exams.length && (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center text-slate-400">
-                            No examinations created yet. Click "Create Examination" to schedule your first assessment.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
-              {/* Right Column: Quick Status & Info */}
+              {/* Right Column: Integrity Architecture */}
               <div className="space-y-3">
                 <h2 className="text-sm font-bold text-[#111A43]">CBT Operational Integrity</h2>
                 <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
@@ -765,7 +893,7 @@ export default function AdminCbtPage() {
                     <div>
                       <p className="font-semibold text-slate-800">Strict Single-Attempt Isolation</p>
                       <p className="text-[11px] text-slate-500">
-                        PostgreSQL unique constraints enforce one attempt per student account with server-authoritative timer.
+                        PostgreSQL unique constraint on <code>(assessment_id, student_account_id)</code> prevents duplicate starts.
                       </p>
                     </div>
                   </div>
@@ -773,9 +901,9 @@ export default function AdminCbtPage() {
                   <div className="flex items-start gap-2.5 text-xs text-slate-600">
                     <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-slate-800">Approved Question Approval Chain</p>
+                      <p className="font-semibold text-slate-800">Server-Authoritative Clock</p>
                       <p className="text-[11px] text-slate-500">
-                        Only teacher questions reviewed and marked "published" can be compiled into live student assessments.
+                        Timers expire on the server based on <code>expires_at</code>. Submissions after deadline plus grace period are rejected.
                       </p>
                     </div>
                   </div>
@@ -783,9 +911,9 @@ export default function AdminCbtPage() {
                   <div className="flex items-start gap-2.5 text-xs text-slate-600">
                     <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-slate-800">Live Heartbeat Telemetry Status</p>
+                      <p className="font-semibold text-slate-800">Telemetry Boundary</p>
                       <p className="text-[11px] text-slate-500">
-                        Session start/submit timestamps are fully persisted. Per-second client websocket telemetry is pending schema migration.
+                        Per-second heartbeats and tab focus interception require the proposed telemetry table extension.
                       </p>
                     </div>
                   </div>
@@ -834,7 +962,7 @@ export default function AdminCbtPage() {
                   className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
                 >
                   <option value="all">All Subjects</option>
-                  {subjects.map(s => (
+                  {subjectsState.data.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -855,14 +983,39 @@ export default function AdminCbtPage() {
                 </select>
               </div>
 
-              <button
-                onClick={() => setIsCreatingQuestion(true)}
-                className="flex items-center gap-1 rounded-lg bg-[#111A43] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1b2760] transition"
-              >
-                <Plus size={14} />
-                <span>New Question</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchQuestions}
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
+                  title="Retry / Refresh Questions"
+                >
+                  <RefreshCw size={13} className={questionsState.loading ? 'animate-spin' : ''} />
+                </button>
+                <button
+                  onClick={() => setIsCreatingQuestion(true)}
+                  className="flex items-center gap-1 rounded-lg bg-[#111A43] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1b2760] transition"
+                >
+                  <Plus size={14} />
+                  <span>New Question</span>
+                </button>
+              </div>
             </div>
+
+            {/* Error Banner */}
+            {questionsState.error && (
+              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{questionsState.error}</span>
+                </div>
+                <button
+                  onClick={fetchQuestions}
+                  className="flex items-center gap-1 rounded bg-rose-100 px-2 py-1 font-bold text-rose-800 hover:bg-rose-200"
+                >
+                  <RotateCcw size={12} /> Retry
+                </button>
+              </div>
+            )}
 
             {/* Questions Table */}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -877,53 +1030,58 @@ export default function AdminCbtPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedQuestions.map(q => {
-                    const sub = subjects.find(s => s.id === q.subject_id);
-                    return (
-                      <tr key={q.id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-2.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
-                          {sub?.name || 'General'}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-800">
-                          <p className="line-clamp-2 max-w-xl font-medium">{q.prompt}</p>
-                          {q.explanation && (
-                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
-                              Explanation: {q.explanation}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-[#111A43]">
-                          {q.correct_option || '—'}
-                        </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              q.status === 'published'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {q.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <button
-                            disabled={savingAction}
-                            onClick={() => handleToggleQuestionStatus(q)}
-                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
-                          >
-                            {q.status === 'published' ? 'Move to Draft' : 'Approve & Publish'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!paginatedQuestions.length && (
+                  {questionsState.loading ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-slate-400">
-                        {loading ? 'Loading question bank...' : 'No questions match the selected criteria.'}
+                        Loading questions from question repository...
                       </td>
                     </tr>
+                  ) : !paginatedQuestions.length ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                        {questionsState.error ? 'Unable to load question bank.' : 'No questions match the selected criteria.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedQuestions.map(q => {
+                      const sub = subjectsState.data.find(s => s.id === q.subject_id);
+                      return (
+                        <tr key={q.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                            {sub?.name || 'General'}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-800">
+                            <p className="line-clamp-2 max-w-xl font-medium">{q.prompt}</p>
+                            {q.explanation && (
+                              <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
+                                Explanation: {q.explanation}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#111A43]">{q.correct_option || '—'}</td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                q.status === 'published'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {q.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <button
+                              disabled={savingAction}
+                              onClick={() => handleToggleQuestionStatus(q)}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+                            >
+                              {q.status === 'published' ? 'Move to Draft' : 'Approve & Publish'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -983,7 +1141,7 @@ export default function AdminCbtPage() {
                   className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
                 >
                   <option value="all">All Subjects</option>
-                  {subjects.map(s => (
+                  {subjectsState.data.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -1005,14 +1163,39 @@ export default function AdminCbtPage() {
                 </select>
               </div>
 
-              <button
-                onClick={() => setIsCreatingExam(true)}
-                className="flex items-center gap-1 rounded-lg bg-[#C62839] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#a82230] transition"
-              >
-                <Plus size={14} />
-                <span>New Examination</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchAssessments}
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
+                  title="Retry / Refresh Examinations"
+                >
+                  <RefreshCw size={13} className={examsState.loading ? 'animate-spin' : ''} />
+                </button>
+                <button
+                  onClick={() => setIsCreatingExam(true)}
+                  className="flex items-center gap-1 rounded-lg bg-[#C62839] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#a82230] transition"
+                >
+                  <Plus size={14} />
+                  <span>New Examination</span>
+                </button>
+              </div>
             </div>
+
+            {/* Error Banner */}
+            {examsState.error && (
+              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{examsState.error}</span>
+                </div>
+                <button
+                  onClick={fetchAssessments}
+                  className="flex items-center gap-1 rounded bg-rose-100 px-2 py-1 font-bold text-rose-800 hover:bg-rose-200"
+                >
+                  <RotateCcw size={12} /> Retry
+                </button>
+              </div>
+            )}
 
             {/* Exams Table */}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1028,108 +1211,113 @@ export default function AdminCbtPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedExams.map(exam => {
-                    const sub = subjects.find(s => s.id === exam.subject_id);
-                    return (
-                      <tr key={exam.id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-2.5 px-3 font-semibold text-[#111A43]">{exam.title}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{sub?.name || 'General'}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{exam.duration_minutes} mins</td>
-                        <td className="py-2.5 px-3 text-slate-500">
-                          {exam.restricted ? (
-                            <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                              <Users size={12} /> Restricted Roster
-                            </span>
-                          ) : (
-                            <span className="text-slate-500">Open to enrolled students</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              exam.status === 'published'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : exam.status === 'draft'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {exam.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {exam.status === 'draft' && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setIsSchedulingExam(exam);
-                                    setScheduleForm({
-                                      opensAt: exam.opens_at ? exam.opens_at.slice(0, 16) : '',
-                                      closesAt: exam.closes_at ? exam.closes_at.slice(0, 16) : ''
-                                    });
-                                  }}
-                                  className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                  Schedule
-                                </button>
-                                <button
-                                  onClick={() => handleOpenEligibility(exam)}
-                                  className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                  Eligibility
-                                </button>
-                                <button
-                                  disabled={savingAction}
-                                  onClick={() => handleChangeExamStatus(exam, 'published')}
-                                  className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700"
-                                >
-                                  Publish
-                                </button>
-                              </>
-                            )}
-
-                            {exam.status === 'published' && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setIsNotifyingGuardians(exam);
-                                  }}
-                                  className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 flex items-center gap-1"
-                                >
-                                  <Send size={11} />
-                                  <span>Notify</span>
-                                </button>
-                                <button
-                                  disabled={savingAction}
-                                  onClick={() => handleChangeExamStatus(exam, 'closed')}
-                                  className="rounded bg-slate-700 px-2 py-1 text-[11px] font-bold text-white hover:bg-slate-800"
-                                >
-                                  Close
-                                </button>
-                              </>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                setSelectedExamForResults(exam.id);
-                                setActiveSection('Results & Analytics');
-                              }}
-                              className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                            >
-                              Results
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!paginatedExams.length && (
+                  {examsState.loading ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-slate-400">
-                        {loading ? 'Loading examinations...' : 'No examinations found.'}
+                        Loading assessments...
                       </td>
                     </tr>
+                  ) : !paginatedExams.length ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                        {examsState.error ? 'Unable to load examinations.' : 'No examinations found.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedExams.map(exam => {
+                      const sub = subjectsState.data.find(s => s.id === exam.subject_id);
+                      return (
+                        <tr key={exam.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-3 font-semibold text-[#111A43]">{exam.title}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{sub?.name || 'General'}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{exam.duration_minutes} mins</td>
+                          <td className="py-2.5 px-3 text-slate-500">
+                            {exam.restricted ? (
+                              <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                                <Users size={12} /> Restricted Roster
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">Open to enrolled students</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                exam.status === 'published'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : exam.status === 'draft'
+                                  ? 'bg-amber-50 text-amber-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {exam.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {exam.status === 'draft' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setIsSchedulingExam(exam);
+                                      setScheduleForm({
+                                        opensAt: exam.opens_at ? exam.opens_at.slice(0, 16) : '',
+                                        closesAt: exam.closes_at ? exam.closes_at.slice(0, 16) : ''
+                                      });
+                                    }}
+                                    className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                                  >
+                                    Schedule
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenEligibility(exam)}
+                                    className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                                  >
+                                    Eligibility
+                                  </button>
+                                  <button
+                                    disabled={savingAction}
+                                    onClick={() => handleChangeExamStatus(exam, 'published')}
+                                    className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700"
+                                  >
+                                    Publish
+                                  </button>
+                                </>
+                              )}
+
+                              {exam.status === 'published' && (
+                                <>
+                                  <button
+                                    onClick={() => setIsNotifyingGuardians(exam)}
+                                    className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 flex items-center gap-1"
+                                  >
+                                    <Send size={11} />
+                                    <span>Notify</span>
+                                  </button>
+                                  <button
+                                    disabled={savingAction}
+                                    onClick={() => handleChangeExamStatus(exam, 'closed')}
+                                    className="rounded bg-slate-700 px-2 py-1 text-[11px] font-bold text-white hover:bg-slate-800"
+                                  >
+                                    Close
+                                  </button>
+                                </>
+                              )}
+
+                              <button
+                                onClick={() => {
+                                  setSelectedExamForResults(exam.id);
+                                  setActiveSection('Results & Analytics');
+                                }}
+                                className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                Results
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1166,7 +1354,7 @@ export default function AdminCbtPage() {
             <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
               <h2 className="text-sm font-bold text-[#111A43]">Verified Candidate Search &amp; Eligibility</h2>
               <p className="text-xs text-slate-500">
-                Search enrolled student accounts from the verified registry to view examination eligibility and attempt history.
+                Search enrolled student accounts from the verified registry to verify student credentials and examine eligibility.
               </p>
 
               <div className="relative max-w-md">
@@ -1228,41 +1416,94 @@ export default function AdminCbtPage() {
                   onChange={e => setSelectedExamForResults(e.target.value)}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#111A43]"
                 >
-                  {exams.map(e => (
+                  {examsState.data.map(e => (
                     <option key={e.id} value={e.id}>
                       {e.title} ({e.status})
                     </option>
                   ))}
-                  {!exams.length && <option value="">No examinations available</option>}
+                  {!examsState.data.length && <option value="">No examinations available</option>}
                 </select>
               </div>
 
-              {resultsData?.results && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 font-medium">
-                    {resultsData.results.length} Attempt(s) Recorded
-                  </span>
-                </div>
-              )}
+              <button
+                onClick={() => fetchResults(selectedExamForResults)}
+                disabled={resultsState.loading}
+                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                <RefreshCw size={13} className={resultsState.loading ? 'animate-spin' : ''} />
+                <span>Refresh Results</span>
+              </button>
             </div>
+
+            {/* Error Banner */}
+            {resultsState.error && (
+              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{resultsState.error}</span>
+                </div>
+                <button
+                  onClick={() => fetchResults(selectedExamForResults)}
+                  className="flex items-center gap-1 rounded bg-rose-100 px-2 py-1 font-bold text-rose-800 hover:bg-rose-200"
+                >
+                  <RotateCcw size={12} /> Retry
+                </button>
+              </div>
+            )}
+
+            {/* Analytics KPI Ribbon (Derived purely from authentic database records) */}
+            {resultsAnalytics && (
+              <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-slate-200 bg-slate-50/40 p-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[10px] text-slate-500">Submitted Attempts</p>
+                  <p className="text-base font-extrabold text-[#111A43]">{resultsAnalytics.totalSubmitted}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[10px] text-slate-500">Average Score</p>
+                  <p className="text-base font-extrabold text-[#111A43]">
+                    {resultsAnalytics.averageScore !== null ? resultsAnalytics.averageScore : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[10px] text-slate-500">Score Range (Min - Max)</p>
+                  <p className="text-base font-extrabold text-[#111A43]">
+                    {resultsAnalytics.lowestScore !== null && resultsAnalytics.highestScore !== null
+                      ? `${resultsAnalytics.lowestScore} – ${resultsAnalytics.highestScore}`
+                      : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[10px] text-slate-500">
+                    Pass Rate (≥ {stationSettings.defaultPassMark}%)
+                  </p>
+                  <p className="text-base font-extrabold text-emerald-700">
+                    {resultsAnalytics.passRate !== null ? `${resultsAnalytics.passRate}%` : '—'}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Results Table */}
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {loadingResults ? (
+              {resultsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading assessment results...</div>
-              ) : !resultsData?.results?.length ? (
+              ) : !resultsState.data?.results?.length ? (
                 <div className="p-12 text-center text-slate-400">
                   <Award size={32} className="mx-auto mb-2 text-slate-300" />
-                  <p className="text-xs font-semibold text-slate-600">No submitted attempts recorded yet.</p>
+                  <p className="text-xs font-semibold text-slate-600">
+                    {resultsState.error ? 'Results unavailable.' : 'No submitted attempts recorded yet.'}
+                  </p>
                   <p className="text-[11px] text-slate-400">
-                    Results appear here once enrolled candidates begin and submit their CBT examination sessions.
+                    {resultsState.error
+                      ? 'Check your staff permissions or retry loading the assessment results.'
+                      : 'Results appear here once enrolled candidates begin and submit their CBT examination sessions.'}
                   </p>
                 </div>
               ) : (
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                     <tr>
-                      <th className="py-2.5 px-3">Candidate ID</th>
+                      <th className="py-2.5 px-3">Candidate</th>
                       <th className="py-2.5 px-3">Score</th>
                       <th className="py-2.5 px-3">Total Questions</th>
                       <th className="py-2.5 px-3">Percentage</th>
@@ -1270,23 +1511,31 @@ export default function AdminCbtPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {resultsData.results.map((r, i) => {
-                      const pct = r.total_questions > 0 ? Math.round((r.score / r.total_questions) * 100) : 0;
+                    {resultsState.data.results.map((r, i) => {
+                      const hasQuestions = r.total_questions !== null && r.total_questions > 0;
+                      const pct = hasQuestions && r.score !== null ? Math.round((r.score / (r.total_questions as number)) * 100) : null;
                       return (
                         <tr key={i} className="hover:bg-slate-50">
-                          <td className="py-2.5 px-3 font-mono font-medium text-slate-700">
-                            {r.student_account_id}
+                          <td className="py-2.5 px-3">
+                            <p className="font-semibold text-[#111A43]">{r.student_name || 'Enrolled Candidate'}</p>
+                            <p className="font-mono text-[10px] text-slate-400">{r.student_account_id}</p>
                           </td>
                           <td className="py-2.5 px-3 font-bold text-[#111A43]">{r.score ?? '—'}</td>
                           <td className="py-2.5 px-3 text-slate-600">{r.total_questions ?? '—'}</td>
                           <td className="py-2.5 px-3">
-                            <span
-                              className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                                pct >= 50 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                              }`}
-                            >
-                              {pct}%
-                            </span>
+                            {pct !== null ? (
+                              <span
+                                className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                  pct >= stationSettings.defaultPassMark
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-rose-50 text-rose-700'
+                                }`}
+                              >
+                                {pct}%
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
                           <td className="py-2.5 px-3 text-slate-500">
                             {r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}
@@ -1303,12 +1552,12 @@ export default function AdminCbtPage() {
 
         {/* SECTION 6: CBT SETTINGS */}
         {activeSection === 'CBT Settings' && (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="max-w-2xl rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="max-w-3xl space-y-4">
               <div>
-                <h2 className="text-sm font-bold text-[#111A43]">CBT Administration Policies</h2>
+                <h2 className="text-base font-bold text-[#111A43]">CBT Administration Policies &amp; Settings</h2>
                 <p className="text-xs text-slate-500">
-                  Configure default examination rules, passing benchmarks, and security enforcement policies.
+                  Delineation between database-enforced examination rules, locally stored station preferences, and capabilities awaiting schema extension.
                 </p>
               </div>
 
@@ -1319,83 +1568,144 @@ export default function AdminCbtPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block space-y-1 font-semibold text-slate-700">
-                    <span>Default Pass Mark (%)</span>
-                    <input
-                      type="number"
-                      min={10}
-                      max={100}
-                      value={cbtSettings.defaultPassMark}
-                      onChange={e =>
-                        setCbtSettings(v => ({ ...v, defaultPassMark: Number(e.target.value) }))
-                      }
-                      className="w-full rounded-lg border border-slate-200 p-2 focus:border-[#111A43] focus:outline-hidden"
-                    />
-                  </label>
-
-                  <label className="block space-y-1 font-semibold text-slate-700">
-                    <span>Default Duration (Minutes)</span>
-                    <input
-                      type="number"
-                      min={10}
-                      max={240}
-                      value={cbtSettings.defaultDurationMinutes}
-                      onChange={e =>
-                        setCbtSettings(v => ({ ...v, defaultDurationMinutes: Number(e.target.value) }))
-                      }
-                      className="w-full rounded-lg border border-slate-200 p-2 focus:border-[#111A43] focus:outline-hidden"
-                    />
-                  </label>
+              {/* Category A: Database-Enforced Policies (Per Examination) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lock size={16} className="text-[#111A43]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#111A43]">
+                    1. Database-Enforced Examination Policies
+                  </h3>
                 </div>
+                <p className="text-[11px] text-slate-500">
+                  These policies are structurally enforced at the database level by PostgreSQL constraints and server functions:
+                </p>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-xs">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                    <p className="font-semibold text-slate-800">Single Attempt per Candidate</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Enforced by <code>UNIQUE (assessment_id, student_account_id)</code> in <code>upec_assessment_attempts</code>.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                    <p className="font-semibold text-slate-800">Server-Authoritative Duration</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Enforced by <code>upec_begin_assessment</code>. Attempt expires at <code>now() + duration_minutes</code>.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                    <p className="font-semibold text-slate-800">Opening &amp; Closing Windows</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Enforced by <code>opens_at</code> and <code>closes_at</code> database checks. Starts outside the window fail.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                    <p className="font-semibold text-slate-800">Candidate Eligibility Control</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Enforced by <code>upec_assessment_eligibility</code> table when restricted mode is activated.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                <div className="space-y-2 pt-2">
-                  <label className="flex items-center gap-2">
+              {/* Category B: Station Preferences (Persisted in localStorage) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Settings size={16} className="text-[#C62839]" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#C62839]">
+                    2. Administrative Station Preferences
+                  </h3>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Settings persisted in browser storage (<code>localStorage</code>) across sessions for this administrative terminal:
+                </p>
+
+                <form onSubmit={handleSaveStationSettings} className="space-y-3 text-xs">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <label className="block space-y-1 font-semibold text-slate-700">
+                      <span>Default Pass Mark (%) for Analytics</span>
+                      <input
+                        type="number"
+                        min={10}
+                        max={100}
+                        value={stationSettings.defaultPassMark}
+                        onChange={e =>
+                          setStationSettings(v => ({ ...v, defaultPassMark: Number(e.target.value) }))
+                        }
+                        className="w-full rounded-lg border border-slate-200 p-2 focus:border-[#111A43] focus:outline-hidden"
+                      />
+                      <span className="text-[10px] font-normal text-slate-400">
+                        Used to calculate pass rate percentages in the Results &amp; Analytics tab.
+                      </span>
+                    </label>
+
+                    <label className="block space-y-1 font-semibold text-slate-700">
+                      <span>Default Duration (Minutes) Prefill</span>
+                      <input
+                        type="number"
+                        min={10}
+                        max={240}
+                        value={stationSettings.defaultDurationMinutes}
+                        onChange={e =>
+                          setStationSettings(v => ({ ...v, defaultDurationMinutes: Number(e.target.value) }))
+                        }
+                        className="w-full rounded-lg border border-slate-200 p-2 focus:border-[#111A43] focus:outline-hidden"
+                      />
+                      <span className="text-[10px] font-normal text-slate-400">
+                        Automatically populates the duration field when drafting new assessments.
+                      </span>
+                    </label>
+                  </div>
+
+                  <label className="flex items-center gap-2 pt-1">
                     <input
                       type="checkbox"
-                      checked={cbtSettings.shuffleQuestions}
-                      onChange={e => setCbtSettings(v => ({ ...v, shuffleQuestions: e.target.checked }))}
+                      checked={stationSettings.enforceFocusNotice}
+                      onChange={e => setStationSettings(v => ({ ...v, enforceFocusNotice: e.target.checked }))}
                       className="rounded border-slate-300 text-[#111A43]"
                     />
-                    <span className="font-medium text-slate-700">Shuffle question order per candidate</span>
+                    <span className="font-medium text-slate-700">
+                      Display browser focus loss guidance banner on student assessment screen
+                    </span>
                   </label>
 
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={cbtSettings.shuffleOptions}
-                      onChange={e => setCbtSettings(v => ({ ...v, shuffleOptions: e.target.checked }))}
-                      className="rounded border-slate-300 text-[#111A43]"
-                    />
-                    <span className="font-medium text-slate-700">Shuffle multiple choice options (A, B, C, D)</span>
-                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white hover:bg-[#1c2965] transition"
+                  >
+                    Save Station Preferences
+                  </button>
+                </form>
+              </div>
 
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={cbtSettings.preventTabSwitch}
-                      onChange={e => setCbtSettings(v => ({ ...v, preventTabSwitch: e.target.checked }))}
-                      className="rounded border-slate-300 text-[#111A43]"
-                    />
-                    <span className="font-medium text-slate-700">Enforce browser focus loss advisory in student portal</span>
-                  </label>
+              {/* Category C: Features Requiring Database Extension */}
+              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert size={16} className="text-amber-700" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                    3. Features Requiring Database Schema Extensions (Not Enforced)
+                  </h3>
                 </div>
-
-                <div className="rounded-lg bg-slate-50 p-3 text-[11px] text-slate-500 border border-slate-200">
-                  <p className="font-semibold text-slate-700 mb-0.5">Persistence Status Note:</p>
-                  <p>
-                    Assessment specific configurations (duration, question set, student eligibility) persist directly to Supabase tables. Operational station defaults apply across active testing sessions.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white hover:bg-[#1c2965] transition"
-                >
-                  Save Station Policies
-                </button>
-              </form>
+                <p className="text-[11px] text-amber-800">
+                  The following capabilities require database migration approval before they can be enforced by the examination engine:
+                </p>
+                <ul className="list-disc pl-5 text-xs text-amber-900 space-y-1">
+                  <li>
+                    <strong>Randomized Question Permutation:</strong> Requires <code>shuffle_questions boolean</code> in{' '}
+                    <code>upec_assessments</code> and student assessment API query randomization.
+                  </li>
+                  <li>
+                    <strong>Randomized Multiple Choice Options:</strong> Requires server-side permutation of options A–D in the student retrieval endpoint.
+                  </li>
+                  <li>
+                    <strong>Withhold Score Disclosure:</strong> Requires <code>hide_results_until_closed boolean</code> in{' '}
+                    <code>upec_assessments</code> and updating <code>upec_submit_assessment</code>.
+                  </li>
+                  <li>
+                    <strong>Candidate Live Heartbeat &amp; Tab-Switch Interception:</strong> Requires the proposed{' '}
+                    <code>upec_assessment_telemetry</code> table and heartbeat logging route.
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         )}
@@ -1412,20 +1722,20 @@ export default function AdminCbtPage() {
                   onChange={e => setMonitoringExamId(e.target.value)}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#111A43]"
                 >
-                  {exams.map(e => (
+                  {examsState.data.map(e => (
                     <option key={e.id} value={e.id}>
                       {e.title} ({e.status})
                     </option>
                   ))}
-                  {!exams.length && <option value="">No examinations created</option>}
+                  {!examsState.data.length && <option value="">No examinations created</option>}
                 </select>
 
                 <button
-                  onClick={fetchLiveAttempts}
-                  disabled={loadingAttempts}
+                  onClick={() => fetchLiveAttempts(monitoringExamId)}
+                  disabled={attemptsState.loading}
                   className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
                 >
-                  <RefreshCw size={13} className={loadingAttempts ? 'animate-spin' : ''} />
+                  <RefreshCw size={13} className={attemptsState.loading ? 'animate-spin' : ''} />
                   <span>Refresh Sessions</span>
                 </button>
               </div>
@@ -1433,30 +1743,52 @@ export default function AdminCbtPage() {
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-medium text-slate-600">
-                  {activeAttempts.length} Session(s) Recorded
+                  {attemptsState.data.length} Session(s) Recorded
                 </span>
               </div>
             </div>
+
+            {/* Error Banner */}
+            {attemptsState.error && (
+              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{attemptsState.error}</span>
+                </div>
+                <button
+                  onClick={() => fetchLiveAttempts(monitoringExamId)}
+                  className="flex items-center gap-1 rounded bg-rose-100 px-2 py-1 font-bold text-rose-800 hover:bg-rose-200"
+                >
+                  <RotateCcw size={12} /> Retry
+                </button>
+              </div>
+            )}
 
             {/* Honest Telemetry Notice Banner */}
             <div className="shrink-0 border-b border-amber-200 bg-amber-50/70 px-4 py-2 text-[11px] text-amber-900 flex items-start gap-2">
               <ShieldAlert size={15} className="text-amber-700 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">Honest Telemetry Notice: </span>
-                Real-time per-second heartbeat, webcam proctoring, and client tab-switch detection require the proposed Supabase telemetry extension (<code className="font-mono font-semibold">upec_assessment_telemetry</code> table). The monitor below displays authentic server-recorded session lifecycle timestamps (<code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>) from the database.
+                Real-time per-second heartbeat and client tab-switch detection require the proposed Supabase telemetry extension (
+                <code className="font-mono font-semibold">upec_assessment_telemetry</code> table). The monitor below displays authentic server-recorded session lifecycle timestamps (
+                <code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>) from the database. Examination results are never used as a substitute for active sessions.
               </div>
             </div>
 
             {/* Attempts Live Table */}
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {loadingAttempts ? (
+              {attemptsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading session attempts...</div>
-              ) : !activeAttempts.length ? (
+              ) : !attemptsState.data.length ? (
                 <div className="p-12 text-center text-slate-400">
                   <Radio size={32} className="mx-auto mb-2 text-slate-300" />
-                  <p className="text-xs font-semibold text-slate-600">No active attempts for this examination.</p>
+                  <p className="text-xs font-semibold text-slate-600">
+                    {attemptsState.error ? 'Session data unavailable.' : 'No active or recorded attempts found for this examination.'}
+                  </p>
                   <p className="text-[11px] text-slate-400">
-                    When candidates click "Start Assessment" in their portal, their live sessions appear here.
+                    {attemptsState.error
+                      ? 'Please check your staff permissions or retry loading candidate sessions.'
+                      : 'When enrolled candidates click "Start Assessment" in their portal, their attempts will appear here.'}
                   </p>
                 </div>
               ) : (
@@ -1471,30 +1803,40 @@ export default function AdminCbtPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {activeAttempts.map(attempt => {
+                    {attemptsState.data.map(attempt => {
                       const isSubmitted = Boolean(attempt.submitted_at);
+                      const isOverdueFinalized =
+                        isSubmitted &&
+                        attempt.submitted_at === attempt.expires_at &&
+                        attempt.score === 0;
                       const isExpired = !isSubmitted && new Date(attempt.expires_at).getTime() < Date.now();
 
                       return (
                         <tr key={attempt.id} className="hover:bg-slate-50">
                           <td className="py-2.5 px-3">
-                            <p className="font-semibold text-[#111A43]">{attempt.student_name || 'Candidate'}</p>
+                            <p className="font-semibold text-[#111A43]">
+                              {attempt.student_name || 'Enrolled Candidate'}
+                            </p>
                             <p className="font-mono text-[10px] text-slate-400">{attempt.student_account_id}</p>
                           </td>
                           <td className="py-2.5 px-3 text-slate-600">
-                            {new Date(attempt.started_at).toLocaleTimeString()}
+                            {attempt.started_at ? new Date(attempt.started_at).toLocaleTimeString() : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-slate-600">
-                            {new Date(attempt.expires_at).toLocaleTimeString()}
+                            {attempt.expires_at ? new Date(attempt.expires_at).toLocaleTimeString() : '—'}
                           </td>
                           <td className="py-2.5 px-3">
-                            {isSubmitted ? (
+                            {isOverdueFinalized ? (
+                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                Expired (Auto-Finalized)
+                              </span>
+                            ) : isSubmitted ? (
                               <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                                 Submitted
                               </span>
                             ) : isExpired ? (
                               <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                                Time Expired
+                                Time Expired (Unsubmitted)
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
@@ -1504,7 +1846,9 @@ export default function AdminCbtPage() {
                             )}
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-[#111A43]">
-                            {isSubmitted ? `${attempt.score} / ${attempt.total_questions}` : '—'}
+                            {isSubmitted && attempt.score !== null && attempt.total_questions !== null
+                              ? `${attempt.score} / ${attempt.total_questions}`
+                              : '—'}
                           </td>
                         </tr>
                       );
@@ -1544,7 +1888,7 @@ export default function AdminCbtPage() {
                 className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"
               >
                 <option value="">Select subject</option>
-                {subjects.map(s => (
+                {subjectsState.data.map(s => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -1662,7 +2006,7 @@ export default function AdminCbtPage() {
                   className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"
                 >
                   <option value="">Select subject</option>
-                  {subjects.map(s => (
+                  {subjectsState.data.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -1732,10 +2076,7 @@ export default function AdminCbtPage() {
       {/* MODAL 3: SCHEDULE EXAMINATION */}
       {isSchedulingExam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <form
-            onSubmit={handleSaveSchedule}
-            className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 shadow-xl"
-          >
+          <form onSubmit={handleSaveSchedule} className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Schedule Examination</h2>
               <button
@@ -1844,9 +2185,7 @@ export default function AdminCbtPage() {
                               }
                             }}
                             className={`rounded px-2 py-1 text-[11px] font-bold ${
-                              isAdded
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : 'bg-[#111A43] text-white'
+                              isAdded ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-[#111A43] text-white'
                             }`}
                           >
                             {isAdded ? 'Remove' : 'Add'}
@@ -1902,7 +2241,7 @@ export default function AdminCbtPage() {
             </div>
 
             <p className="text-[11px] text-slate-400">
-              Verified email templates and in-app alerts will be transmitted to enrolled students and registered guardians using verified institutional sender parameters.
+              Emails will be queued to the institutional outbox (<code>upec_email_outbox</code>) and in-app alerts posted to candidate portals. Background worker delivers queued outbox emails.
             </p>
 
             <button
