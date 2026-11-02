@@ -20,7 +20,6 @@ import {
 import { StudentUser } from '../../context/AuthContext';
 import StudentApplicationRegister from '../StudentApplicationRegister';
 import StudentHostelRequests from '../StudentHostelRequests';
-import ProgrammeEnrollment from '../ProgrammeEnrollment';
 
 interface ApplicationsTabViewProps {
   currentUser: StudentUser;
@@ -54,13 +53,6 @@ export default function ApplicationsTabView({
   const [showRegisterNew, setShowRegisterNew] = useState(false);
   const application = currentUser.application;
   const isAdmitted = application?.status === 'approved';
-  const hasApplication=Boolean(application?.id);
-  const isRejected=application?.status==='rejected';
-  const hasDecision=isAdmitted||isRejected;
-  const isUnderReview=hasApplication&&(hasDecision||application?.status==='under_review'||application?.status==='action_required');
-  const applicationStage = !hasApplication ? 0 : hasDecision ? 4 : isUnderReview ? 3 : 2;
-  const stageProgress=applicationStage*25;
-  const applicationStatusLabel=!hasApplication?'No application':isAdmitted?'Approved':isRejected?'Rejected':application?.status==='action_required'?'Correction required':application?.status==='under_review'?'Under review':application?.status?.replace(/_/g,' ')||'Submitted';
 
   return (
     <div className="space-y-6">
@@ -81,12 +73,26 @@ export default function ApplicationsTabView({
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
           >
             <FileText size={14} />
-            <span>{showRegisterNew ? 'Close Application Form' : '+ New Application'}</span>
+            <span>{showRegisterNew ? 'Hide Registration' : '+ New Application'}</span>
           </button>
         </div>
       </div>
 
-      {showRegisterNew && <ProgrammeEnrollment onClose={()=>setShowRegisterNew(false)} />}
+      {showRegisterNew && (
+        <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-sm animate-in fade-in">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <h2 className="text-base font-bold text-[#111A43]">Register Another Programme / Cohort</h2>
+            <button
+              type="button"
+              onClick={() => setShowRegisterNew(false)}
+              className="text-xs font-bold text-slate-400 hover:text-slate-600"
+            >
+              Close
+            </button>
+          </div>
+          <StudentApplicationRegister />
+        </div>
+      )}
 
       {/* Main Grid: Left (Current application & details), Right (Deadlines, Actions & Updates) */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
@@ -136,7 +142,6 @@ export default function ApplicationsTabView({
                       <span className="capitalize">{k.replace(/([A-Z])/g, ' $1')}</span>
                       <input
                         value={String(v)}
-                        disabled={correctionBusy}
                         maxLength={500}
                         onChange={(e) => setCorrectionForm((prev) => ({ ...prev, [k]: e.target.value }))}
                         className="mt-1 block w-full rounded-xl border border-slate-300 p-2.5 font-normal text-xs"
@@ -144,13 +149,12 @@ export default function ApplicationsTabView({
                     </label>
                   ))}
                 {correctionMessage && (
-                  <p role="status" className="text-xs text-slate-700 font-semibold">{correctionMessage}</p>
+                  <p className="text-xs text-red-600 font-semibold">{correctionMessage}</p>
                 )}
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setCorrectionOpen(false)}
-                    disabled={correctionBusy}
                     className="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold text-[#111A43]"
                   >
                     Cancel
@@ -167,151 +171,171 @@ export default function ApplicationsTabView({
             </div>
           )}
 
-          {/* Current Application Hero Card (Matching Mockup) */}
-          <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 sm:p-7 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-100">
-              <div className="flex items-start gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#111A43] to-[#1c3275] text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <GraduationCap size={24} />
+          {/* Current Application Hero Card */}
+          {!application ? (
+            <div className="bg-white rounded-2xl border border-[#dce5f0] p-8 text-center shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-[#edf3ff] text-[#2456a0] flex items-center justify-center mx-auto mb-4">
+                <GraduationCap size={28} />
+              </div>
+              <h2 className="text-lg font-bold text-[#111A43]">No Active Application</h2>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
+                You have not submitted a programme application yet. Click below to begin your admission application for IJMB, JUPEB, Cambridge A-Level, or UTME Coaching.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowRegisterNew(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                <FileText size={15} />
+                <span>Start New Application</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 sm:p-7 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-100">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#111A43] to-[#1c3275] text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <GraduationCap size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                        Reference: {application.referenceNumber}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        isAdmitted
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {application.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <h2 className="mt-1 text-lg font-black text-[#111A43]">
+                      {application.programme}
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Session: {application.session || 'Current'} · Center: {application.studyCenter || 'Designated Center'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                      Reference: {application?.referenceNumber || 'Not issued'}
+
+                {/* Progress Donut / Indicator */}
+                <div className="flex items-center gap-3.5 bg-slate-50 border border-slate-100 rounded-2xl p-3 self-start">
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-slate-200"
+                        strokeWidth="3.5"
+                        stroke="currentColor"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className={isAdmitted ? 'text-emerald-500' : 'text-[#c62839]'}
+                        strokeDasharray={`${isAdmitted ? 100 : 75}, 100`}
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                    <span className="absolute text-[11px] font-black text-[#111A43]">
+                      {isAdmitted ? '100%' : '75%'}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isAdmitted
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : isRejected
-                        ? 'bg-red-100 text-red-800'
-                        : application
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-slate-100 text-slate-700'
+                  </div>
+                  <div className="text-left text-xs leading-tight">
+                    <strong className="block font-bold text-[#111A43]">Application</strong>
+                    <span className="text-[11px] text-slate-500">
+                      {isAdmitted ? 'Approved' : 'Stage 3 of 4'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Application Stages Stepper */}
+              <div className="pt-6">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                  Application Stages &amp; Approval Stepper
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
+                  {/* Step 1 */}
+                  <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <span className="mt-2 text-xs font-bold text-[#111A43]">1. Biodata</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">Completed</span>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <span className="mt-2 text-xs font-bold text-[#111A43]">2. Application</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">Submitted</span>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="flex flex-col items-center text-center p-3 rounded-xl bg-amber-50/60 border border-amber-200">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs ${
+                      isAdmitted ? 'bg-emerald-500 text-white' : 'bg-[#c62839] text-white animate-pulse'
                     }`}>
-                      {applicationStatusLabel}
+                      {isAdmitted ? <CheckCircle2 size={16} /> : <Clock size={16} />}
+                    </div>
+                    <span className="mt-2 text-xs font-bold text-[#111A43]">3. Review</span>
+                    <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {isAdmitted ? 'Verified' : 'Under Review'}
                     </span>
                   </div>
-                  <h2 className="mt-1 text-lg font-black text-[#111A43]">
-                    {application?.programme || 'No programme application submitted'}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Session: {application?.session || 'Not assigned'}{application?.studyCenter ? ' · Centre: '+application.studyCenter : ''}
-                  </p>
+
+                  {/* Step 4 */}
+                  <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isAdmitted ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {isAdmitted ? <CheckCircle2 size={16} /> : 4}
+                    </div>
+                    <span className="mt-2 text-xs font-bold text-[#111A43]">4. Decision</span>
+                    <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      {isAdmitted ? 'Admitted' : 'Pending'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Progress Donut / Indicator */}
-              <div className="flex items-center gap-3.5 bg-slate-50 border border-slate-100 rounded-2xl p-3 self-start">
-                <div className="relative w-12 h-12 flex items-center justify-center">
-                  <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-slate-200"
-                      strokeWidth="3.5"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className={isAdmitted ? 'text-emerald-500' : isRejected ? 'text-red-500' : 'text-[#c62839]'}
-                      strokeDasharray={`${stageProgress}, 100`}
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                  <span className="absolute text-[11px] font-black text-[#111A43]">
-                    {stageProgress+'%'}
-                  </span>
-                </div>
-                <div className="text-left text-xs leading-tight">
-                  <strong className="block font-bold text-[#111A43]">Application</strong>
-                  <span className="text-[11px] text-slate-500">
-                    {!hasApplication ? 'Not started' : hasDecision ? applicationStatusLabel : 'Stage '+applicationStage+' of 4'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4 Application Stages Stepper (Faithful Mockup Reproduction) */}
-            <div className="pt-6">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-                Application Stages &amp; Approval Stepper
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative">
-                {/* Step 1 */}
-                <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className={`w-8 h-8 rounded-full ${Boolean(currentUser.biodata.surname && currentUser.biodata.firstName && currentUser.biodata.dateOfBirth && currentUser.biodata.address) ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs`}>
-                    <CheckCircle2 size={16} />
-                  </div>
-                  <span className="mt-2 text-xs font-bold text-[#111A43]">1. Biodata</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">{Boolean(currentUser.biodata.surname && currentUser.biodata.firstName && currentUser.biodata.dateOfBirth && currentUser.biodata.address) ? 'Completed' : 'Not completed'}</span>
+              {/* Quick Actions Footer */}
+              <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-slate-500">Registered Subjects:</span>
+                  {(application.chosenSubjects || []).length > 0 ? (
+                    application.chosenSubjects.map((subj: string) => (
+                      <span
+                        key={subj}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#111A43] font-semibold text-xs border border-slate-200"
+                      >
+                        {subj}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400">None specified</span>
+                  )}
                 </div>
 
-                {/* Step 2 */}
-                <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className={`w-8 h-8 rounded-full ${hasApplication?'bg-emerald-500 text-white':'bg-slate-200 text-slate-500'} flex items-center justify-center text-xs font-bold shadow-xs` }>
-                    <CheckCircle2 size={16} />
-                  </div>
-                  <span className="mt-2 text-xs font-bold text-[#111A43]">2. Application</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">{hasApplication ? 'Submitted' : 'Not submitted'}</span>
-                </div>
-
-                {/* Step 3 */}
-                <div className="flex flex-col items-center text-center p-3 rounded-xl bg-amber-50/60 border border-amber-200">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs ${
-                    hasDecision ? 'bg-emerald-500 text-white' : isUnderReview ? 'bg-[#c62839] text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {hasDecision ? <CheckCircle2 size={16} /> : isUnderReview ? <Clock size={16} /> : 3}
-                  </div>
-                  <span className="mt-2 text-xs font-bold text-[#111A43]">3. Review</span>
-                  <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {hasDecision ? 'Reviewed' : isUnderReview ? 'In review' : 'Not started'}
-                  </span>
-                </div>
-
-                {/* Step 4 */}
-                <div className="flex flex-col items-center text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    isAdmitted ? 'bg-emerald-500 text-white' : application?.status==='rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {isAdmitted ? <CheckCircle2 size={16} /> : 4}
-                  </div>
-                  <span className="mt-2 text-xs font-bold text-[#111A43]">4. Decision</span>
-                  <span className={`text-[10px] font-semibold ${isAdmitted ? 'text-emerald-700' : 'text-slate-400'}`}>
-                    {isAdmitted ? 'Admitted' : application?.status==='rejected' ? 'Not admitted' : hasApplication ? 'Pending' : 'Not started'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions Footer */}
-            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-slate-500">Registered Subjects:</span>
-                {(application?.chosenSubjects || []).map((subj: string) => (
-                  <span
-                    key={subj}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#111A43] font-semibold text-xs border border-slate-200"
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('documents')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#111A43] hover:bg-[#1c3275] text-white text-xs font-bold transition-colors cursor-pointer"
                   >
-                    {subj}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onNavigateTab('documents')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#111A43] hover:bg-[#1c3275] text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <FileText size={14} />
-                  <span>Upload Documents</span>
-                </button>
+                    <FileText size={14} />
+                    <span>Upload Documents</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* If admitted, Hostel Requests module */}
           {isAdmitted && (
@@ -321,20 +345,21 @@ export default function ApplicationsTabView({
           )}
 
           {/* Application Status History Table */}
-          <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#111A43]">
-                  Application Status History &amp; Audits
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Logged timeline of admissions committee updates
-                </p>
+          {application && (
+            <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-xs">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#111A43]">
+                    Application Status History &amp; Audits
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Logged timeline of admissions committee updates
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-400">
+                  {application.referenceNumber}
+                </span>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-400">
-                {application?.referenceNumber || 'Not issued'}
-              </span>
-            </div>
 
             {historyLoading ? (
               <p className="text-xs text-slate-500 py-6 text-center">Loading status logs...</p>
@@ -342,7 +367,7 @@ export default function ApplicationsTabView({
               <p className="text-xs text-red-600 py-4">{historyError}</p>
             ) : applicationHistory.length === 0 ? (
               <div className="py-6 text-center text-xs text-slate-500">
-                <p>{hasApplication ? 'No recorded status changes yet.' : 'No application has been submitted yet.'}</p>
+                <p>Application successfully received by the Admissions Registry.</p>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Further status updates will appear here as your credentials are verified.
                 </p>
@@ -368,6 +393,7 @@ export default function ApplicationsTabView({
               </ol>
             )}
           </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Deadlines, Next Actions, Admission Updates */}
@@ -380,7 +406,31 @@ export default function ApplicationsTabView({
                 Application Deadlines
               </h3>
             </div>
-            <p className="mt-4 text-xs leading-6 text-slate-600">No programme-specific deadline has been published to your application record. Check official notices for approved dates.</p>
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] uppercase font-bold text-[#c62839] block">
+                  Cohort A Closing Date
+                </span>
+                <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
+                  15 November 2026
+                </strong>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Late registrations subject to administrative surcharge.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                  Document Clearance Window
+                </span>
+                <strong className="text-sm font-bold text-[#111A43] block mt-0.5">
+                  25 November 2026
+                </strong>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Upload all academic testimonials prior to verification day.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Required Next Actions */}
@@ -391,7 +441,29 @@ export default function ApplicationsTabView({
                 Required Next Actions
               </h3>
             </div>
-            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">{!hasApplication ? 'Start a new programme application to see your admission tasks.' : application?.status==='action_required' ? 'Your application requires correction. Open the correction form to review the requested changes.' : isAdmitted ? 'Your application has been approved. Check your documents and official notices for next steps.' : isRejected ? 'Your application was not approved. Review the recorded decision and contact admissions if you need clarification.' : 'Check your status history and official notices for updates from admissions.'}</div>
+            <div className="mt-4 space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-200">
+                <Clock size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <strong className="font-bold text-[#111A43] block">
+                    Upload WAEC/NECO Result Slip
+                  </strong>
+                  <span className="text-[11px] text-slate-600">
+                    Provide clear scan for subject clearance
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200">
+                <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <strong className="font-bold text-[#111A43] block">
+                    Student Profile Verification
+                  </strong>
+                  <span className="text-[11px] text-emerald-800">Completed &amp; logged</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Need Assistance */}

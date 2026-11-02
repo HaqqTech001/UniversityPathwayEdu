@@ -2,8 +2,9 @@ import {supabaseAdmin as db} from './db.js';
 import {sendEmail} from './mail.js';
 export async function queueEmail({key,to,subject,text}){
  if(!key||!to||!subject||!text)throw Error('Missing notification fields');
- const {error}=await db.from('upec_email_outbox').upsert({dedupe_key:key,recipient:to,subject,body:text},{onConflict:'dedupe_key',ignoreDuplicates:true});
+ const {data,error}=await db.from('upec_email_outbox').upsert({dedupe_key:key,recipient:to,subject,body:text},{onConflict:'dedupe_key',ignoreDuplicates:true}).select('id');
  if(error)throw error;
+ return (data||[]).length>0;
 }
 export async function processEmailOutbox(){
  const {data,error}=await db.rpc('upec_claim_notification_emails',{p_limit:10});
@@ -60,8 +61,8 @@ export async function queueExamReminders(){
   if(accounts.error)throw accounts.error;
   for(const account of accounts.data||[]){
    if(!account.email)continue;
-   await queueEmail({key:'exam:'+exam.id+':'+exam.opens_at+':'+account.id,to:account.email,subject:'Examination reminder — '+exam.title+' | University Pathway Educational Consult',text:'Your assigned assessment '+exam.title+' opens on '+new Date(exam.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Sign in to the student portal for details.'});
-   queued++;
+   const queuedSuccessfully=await queueEmail({key:'exam:'+exam.id+':'+exam.opens_at+':'+account.id,to:account.email,subject:'Examination reminder — '+exam.title+' | University Pathway Educational Consult',text:'Your assigned assessment '+exam.title+' opens on '+new Date(exam.opens_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})+'. Sign in to the student portal for details.'});
+   if(queuedSuccessfully)queued++;
   }
  }
  return {queued};

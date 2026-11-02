@@ -133,7 +133,7 @@ export default function SettingsTabView({
                   <div>
                     <span className="text-slate-400 font-medium block">Student ID / Reference</span>
                     <strong className="text-[#111A43] font-mono block mt-0.5">
-                      {currentUser.regNumber || currentUser.application?.referenceNumber || 'UPEC/2026/0148'}
+                      {currentUser.studentId || currentUser.regNumber || currentUser.application?.referenceNumber || 'Pending'}
                     </strong>
                   </div>
                   <div>
@@ -142,7 +142,7 @@ export default function SettingsTabView({
                   </div>
                   <div>
                     <span className="text-slate-400 font-medium block">Mobile Phone</span>
-                    <strong className="text-[#111A43] block mt-0.5">{currentUser.phone || '+234 812 345 6789'}</strong>
+                    <strong className="text-[#111A43] block mt-0.5">{currentUser.phone || '—'}</strong>
                   </div>
                 </div>
               </div>

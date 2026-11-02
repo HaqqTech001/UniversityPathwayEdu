@@ -1,7 +1,7 @@
 // Backend-managed authentication and student portal API client.
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 
-type AuthUser = { id: string; email: string; fullName: string; phone: string; isEmailVerified: boolean };
+type AuthUser = { id: string; studentId?: string | null; email: string; fullName: string; phone: string; isEmailVerified: boolean };
 type LoginResult = { token: string; user: AuthUser };
 
 export class UpecApiError extends Error {constructor(message:string,public status:number){super(message);this.name='UpecApiError';}}
@@ -44,15 +44,17 @@ export const upecAuthApi = {
   saveBiodata: (token: string, details: Record<string,unknown>) => authorized<{biodata:any}>('/api/student/biodata',token,'PUT',{details}),
   submitApplication: (token: string, formData: Record<string,unknown>) => authorized<{application:{reference_number:string}}>('/api/student/applications',token,'POST',{formData}),
   register: (fullName: string, email: string, phone: string, password: string) =>
-    post<{message:string}>('/register', { fullName, email, phone, password }),
+    post<{message:string; studentId?: string; emailPending?: boolean}>('/register', { fullName, email, phone, password }),
   verify: (email: string, code: string) =>
-    post<{message:string}>('/verify', { email, code, purpose: 'signup' }),
+    post<{message:string; studentId?: string}>('/verify', { email, code, purpose: 'signup' }),
   resend: (email: string, purpose: 'signup' | 'recovery') =>
-    post<{message:string}>('/resend', { email, purpose }),
-  login: (email: string, password: string) =>
-    post<LoginResult>('/login', { email, password }),
+    post<{message:string}>('/resend', { email, identifier: email, purpose }),
+  login: (identifier: string, password: string) =>
+    post<LoginResult>('/login', { identifier, email: identifier, password }),
+  resolveIdentifier: (identifier: string, password?: string) =>
+    post<{resolved?: boolean; email?: string; validFormat?: boolean; type?: string}>('/resolve-identifier', { identifier, password }),
   recover: (email: string) =>
-    post<{message:string}>('/recover', { email }),
+    post<{message:string}>('/recover', { email, identifier: email }),
   reset: (email: string, code: string, password: string) =>
     post<{message:string}>('/reset', { email, code, password }),
 };

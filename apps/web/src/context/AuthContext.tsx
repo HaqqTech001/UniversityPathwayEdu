@@ -41,6 +41,7 @@ export interface ApplicationRecord {
 
 export interface StudentUser {
   id: string;
+  studentId?: string; // Generated immediately upon registration in UP/YYYY/SERIAL format
   regNumber: string; // Issued only upon approved admission; never generated from account ID
   fullName: string;
   email: string;
@@ -58,7 +59,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (identifier: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   loginAsDemoStudent: () => void;
-  registerAccount: (fullName: string, email: string, phone: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  registerAccount: (fullName: string, email: string, phone: string, pass: string) => Promise<{ success: boolean; studentId?: string; error?: string }>;
   verifyEmail: (code: string, email?: string) => Promise<boolean>;
   logout: () => void;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -92,16 +93,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [ready, setReady] = useState(false);
   const fromDashboard=(result:any):StudentUser=>{
     const a=result.user,b=result.biodata,app=result.application;
-    return {id:a.id,regNumber:app?.status==='approved' ? (app?.student_registration_number || '') : '',fullName:a.full_name,email:a.email,phone:a.phone,isEmailVerified:!!a.verified_at,profileCompleted:!!b?.completed_at,biodataEditAllowed:!!result.editPermissions?.biodata,programmeChangeAllowed:!!result.editPermissions?.programme,biodata:{...emptyBiodata(a.email,a.full_name,a.phone),...(b?.details||{})},application:mapApplication(app)};
+    return {
+      id:a.id,
+      studentId:a.student_id || a.studentId || '',
+      regNumber:app?.status==='approved' ? (app?.student_registration_number || '') : '',
+      fullName:a.full_name,
+      email:a.email,
+      phone:a.phone,
+      isEmailVerified:!!a.verified_at,
+      profileCompleted:!!b?.completed_at,
+      biodataEditAllowed:!!result.editPermissions?.biodata,
+      programmeChangeAllowed:!!result.editPermissions?.programme,
+      biodata:{...emptyBiodata(a.email,a.full_name,a.phone),...(b?.details||{})},
+      application:mapApplication(app)
+    };
   };
-  const refresh=async()=>{const token=getStudentToken();if(!token){setCurrentUser(null);return;}try{setCurrentUser(fromDashboard(await upecAuthApi.dashboard(token)));}catch{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);}};
+  const refresh=async()=>{const token=getStudentToken();if(!token){setCurrentUser(null);return;}try{setCurrentUser(fromDashboard(await upecAuthApi.dashboard(token)));}catch{sessionStorage.removeItem(TOKEN_KEY);localStorage.removeItem(TOKEN_KEY);setCurrentUser(null);}};
   useEffect(()=>{void refresh().finally(()=>setReady(true));},[]);
   const login=async(identifier:string,pass:string)=>{
-    try{const result=await upecAuthApi.login(identifier.trim(),pass);sessionStorage.setItem(TOKEN_KEY,result.token);await refresh();if(!getStudentToken())return {success:false,error:'Unable to verify your session. Please try again.'};return {success:true};}
+    try{
+      // Purge prior user session and storage to prevent any cross-account data lingering
+      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem('upec_selected_programme');
+      setCurrentUser(null);
+      const result=await upecAuthApi.login(identifier.trim(),pass);
+      sessionStorage.setItem(TOKEN_KEY,result.token);
+      await refresh();
+      if(!getStudentToken())return {success:false,error:'Unable to verify your session. Please try again.'};
+      return {success:true};
+    }
     catch(error){return {success:false,error:error instanceof Error?error.message:'Sign in failed'};}
   };
   const registerAccount=async(fullName:string,email:string,phone:string,pass:string)=>{
-    try{await upecAuthApi.register(fullName,email,phone,pass);return {success:true};}
+    try{
+      const res = await upecAuthApi.register(fullName,email,phone,pass);
+      return {success:true, studentId: res.studentId};
+    }
     catch(error){return {success:false,error:error instanceof Error?error.message:'Registration failed'};}
   };
   const verifyEmail=async(code:string,email?:string)=>{
@@ -117,7 +145,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try{await upecAuthApi.reset(email,code,password);return {success:true};}
     catch(error){return {success:false,error:error instanceof Error?error.message:'Password reset failed'};}
   };
-  const logout=()=>{sessionStorage.removeItem(TOKEN_KEY);setCurrentUser(null);};
+  const logout=()=>{
+    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem('upec_selected_programme');
+    setCurrentUser(null);
+  };
   const updateBiodata=async(data:Partial<Biodata>):Promise<void>=>{
     if(!currentUser)throw new Error('Sign in to update your profile.');
     const biodata={...currentUser.biodata,...data};

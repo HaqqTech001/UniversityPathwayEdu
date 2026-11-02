@@ -14,7 +14,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(500);
  if(eligibility.error)throw eligibility.error;
  let ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
- const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at').eq('assessment_id',req.params.id).order('started_at',{ascending:false}).limit(1000):{data:[],error:null};
+ const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at,started_at').eq('assessment_id',req.params.id).order('submitted_at',{ascending:false,nullsFirst:false}).order('started_at',{ascending:false}).limit(1000):{data:[],error:null};
  if(attempts.error)throw attempts.error;
  if(!ids.length && mode!=='schedule'){
   ids=[...new Set((attempts.data||[]).map(row=>row.student_account_id))];
@@ -27,7 +27,16 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(students.error)throw students.error;
  const names=new Map((students.data||[]).map(row=>[row.id,row.full_name]));
  const scores=new Map();
- for(const attempt of attempts.data||[])if(!scores.has(attempt.student_account_id))scores.set(attempt.student_account_id,attempt);
+ for(const attempt of attempts.data||[]){
+  if(!scores.has(attempt.student_account_id)){
+   scores.set(attempt.student_account_id,attempt);
+  }else{
+   const existing=scores.get(attempt.student_account_id);
+   if(!existing.submitted_at && attempt.submitted_at){
+    scores.set(attempt.student_account_id,attempt);
+   }
+  }
+ }
  let queued=0,skipped=0,studentsNotified=0;
  for(const studentId of ids){
   const attempt=scores.get(studentId);
@@ -35,17 +44,17 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
   if(mode==='performance'&&(!attempt||attempt.score==null||!Number.isFinite(Number(attempt.score))||!Number.isFinite(Number(attempt.total_questions))||Number(attempt.total_questions)<=0))continue;
   const title=mode==='performance'?'Your CBT assessment result is available':mode==='attendance'?'Your CBT attendance update':'CBT assessment schedule update';
   const body=mode==='performance'?'Your recorded score for '+exam.data.title+' is '+attempt.score+' out of '+attempt.total_questions+'.':mode==='attendance'?'Your participation in '+exam.data.title+' has been recorded as '+(attempt.submitted_at?'submitted':'started')+'.':'Your assessment '+exam.data.title+' is scheduled to open '+exam.data.opens_at+'.';
-  const saved=await db.from('upec_cbt_student_notifications').upsert({student_account_id:studentId,assessment_id:exam.data.id,notification_key:'cbt:'+exam.data.id+':'+mode+':'+(attempt?.submitted_at||attempt?.started_at||'schedule'),title,body},{onConflict:'student_account_id,notification_key',ignoreDuplicates:true});
+  const saved=await db.from('upec_cbt_student_notifications').upsert({student_account_id:studentId,assessment_id:exam.data.id,notification_key:'cbt:'+exam.data.id+':'+mode+':'+(attempt?.submitted_at||attempt?.started_at||'schedule'),title,body},{onConflict:'student_account_id,notification_key',ignoreDuplicates:true}).select('student_account_id');
   if(saved.error)throw saved.error;
-  studentsNotified++;
+  if((saved.data||[]).length>0) studentsNotified++;
  }
  for(const guardian of guardians.data||[]){
   const result=scores.get(guardian.student_account_id);
   if(!guardian.email||(mode==='attendance'&&!result)||(mode==='performance'&&(!result||result.score==null||!Number.isFinite(Number(result.score))||!Number.isFinite(Number(result.total_questions))||Number(result.total_questions)<=0))){skipped++;continue;}
   const name=names.get(guardian.student_account_id)||'your ward';
   const detail=mode==='performance'?'Recorded score: '+result.score+' out of '+result.total_questions+'.':mode==='attendance'?'Participation recorded: '+(result.submitted_at?'assessment submitted':'assessment started')+'.':'Scheduled opening: '+exam.data.opens_at+'.';
-  await queueEmail({key:'guardian-cbt:'+req.params.id+':'+mode+':'+guardian.student_account_id+':'+(result?.submitted_at||result?.started_at||'schedule'),to:guardian.email,subject:'Your Ward’s '+(mode==='performance'?'Assessment Performance':mode==='attendance'?'Examination Participation':'Examination Schedule')+' — University Pathway Educational Consult',text:'Dear '+(guardian.guardian_name||'Parent/Guardian')+',\n\nWe are writing regarding '+name+' and '+exam.data.title+'.\n'+detail+'\n\nFor enquiries, contact our academic office.\n\nUniversity Pathway Educational Consult'});
-  queued++;
+  const queuedSuccessfully=await queueEmail({key:'guardian-cbt:'+req.params.id+':'+mode+':'+guardian.student_account_id+':'+(result?.submitted_at||result?.started_at||'schedule'),to:guardian.email,subject:'Your Ward’s '+(mode==='performance'?'Assessment Performance':mode==='attendance'?'Examination Participation':'Examination Schedule')+' — University Pathway Educational Consult',text:'Dear '+(guardian.guardian_name||'Parent/Guardian')+',\n\nWe are writing regarding '+name+' and '+exam.data.title+'.\n'+detail+'\n\nFor enquiries, contact our academic office.\n\nUniversity Pathway Educational Consult'});
+  if(queuedSuccessfully) queued++;
  }
  res.json({queued,skipped,studentsNotified});
 }));

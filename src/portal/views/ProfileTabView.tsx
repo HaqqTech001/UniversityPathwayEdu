@@ -99,11 +99,11 @@ export default function ProfileTabView({
             <h2 className="mt-4 text-lg font-black text-[#111A43] truncate">
               {currentUser.fullName}
             </h2>
-            <p className="text-xs font-mono font-bold text-slate-500 mt-0.5">
-              ID: {currentUser.regNumber || currentUser.application?.referenceNumber || 'UPEC/2026/0148'}
+            <p className="text-xs font-mono font-bold text-[#111A43] mt-0.5">
+              Student ID: <span className="text-[#c62839] font-black">{currentUser.studentId || currentUser.regNumber || 'Pending'}</span>
             </p>
             <span className="inline-block mt-2 px-3 py-1 rounded-full bg-[#eef3ff] text-[#2456a0] text-xs font-bold">
-              {currentUser.biodata.targetExam || currentUser.application?.programme || 'IJMB Programme'}
+              {currentUser.application?.programme || currentUser.biodata.targetExam || 'Programme Not Selected'}
             </span>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-3">
@@ -132,49 +132,49 @@ export default function ProfileTabView({
             <div className="mt-4 space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Check size={12} strokeWidth={3} />
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center ${currentUser.isEmailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {currentUser.isEmailVerified ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
                   </span>
                   <span className="text-xs font-semibold text-slate-700">Email Address</span>
                 </div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  {currentUser.isEmailVerified ? 'Verified' : 'Verified'}
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.isEmailVerified ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
+                  {currentUser.isEmailVerified ? 'Verified' : 'Pending'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Check size={12} strokeWidth={3} />
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center ${currentUser.phone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {currentUser.phone ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
                   </span>
                   <span className="text-xs font-semibold text-slate-700">Phone Contact</span>
                 </div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  Verified
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.phone ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
+                  {currentUser.phone ? 'Provided' : 'Pending'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center ${currentUser.application ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {currentUser.application ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center ${currentUser.application?.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : currentUser.application ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {currentUser.application?.status === 'approved' ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
                   </span>
                   <span className="text-xs font-semibold text-slate-700">Identity Documents</span>
                 </div>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.application ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
-                  {currentUser.application ? 'Verified' : 'Under Review'}
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.application?.status === 'approved' ? 'text-emerald-700 bg-emerald-50' : currentUser.application ? 'text-blue-700 bg-blue-50' : 'text-slate-500 bg-slate-100'}`}>
+                  {currentUser.application?.status === 'approved' ? 'Verified' : currentUser.application ? 'Under Review' : 'Not Submitted'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Check size={12} strokeWidth={3} />
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center ${currentUser.profileCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {currentUser.profileCompleted ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
                   </span>
                   <span className="text-xs font-semibold text-slate-700">Student Biodata</span>
                 </div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                  Completed
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${currentUser.profileCompleted ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
+                  {currentUser.profileCompleted ? 'Completed' : 'Incomplete'}
                 </span>
               </div>
             </div>
@@ -214,13 +214,13 @@ export default function ProfileTabView({
               <div>
                 <span className="text-slate-400 font-medium block">Date of Birth</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.dateOfBirth || '14 May 2006'}
+                  {currentUser.biodata.dateOfBirth || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Gender</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.gender || 'Female'}
+                  {currentUser.biodata.gender || '—'}
                 </strong>
               </div>
               <div>
@@ -232,19 +232,19 @@ export default function ProfileTabView({
               <div>
                 <span className="text-slate-400 font-medium block">State of Origin</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.stateOfOrigin || 'Lagos State'}
+                  {currentUser.biodata.stateOfOrigin || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Local Government Area</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.lga || 'Ikeja'}
+                  {currentUser.biodata.lga || '—'}
                 </strong>
               </div>
               <div className="sm:col-span-2 lg:col-span-3">
                 <span className="text-slate-400 font-medium block">Residential Address</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.address || '14 Adewale Street, off Allen Avenue, Ikeja, Lagos'}
+                  {currentUser.biodata.address || '—'}
                 </strong>
               </div>
             </div>
@@ -281,19 +281,19 @@ export default function ProfileTabView({
               <div>
                 <span className="text-slate-400 font-medium block">Mobile Phone Number</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.phone || '+234 812 345 6789'}
+                  {currentUser.phone || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">WhatsApp Contact</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.phone || '+234 812 345 6789'}
+                  {currentUser.phone || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Emergency Contact Phone</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.guardianPhone || '+234 803 987 6543'}
+                  {currentUser.biodata.guardianPhone || '—'}
                 </strong>
               </div>
             </div>
@@ -324,25 +324,25 @@ export default function ProfileTabView({
               <div>
                 <span className="text-slate-400 font-medium block">Previous Secondary School</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.previousSchool || 'Government College, Lagos'}
+                  {currentUser.biodata.previousSchool || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Enrolled Programme</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.targetExam || currentUser.application?.programme || 'IJMB Advanced Level'}
+                  {currentUser.application?.programme || currentUser.biodata.targetExam || 'Not Enrolled'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Target Higher Institution</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.targetInstitution || 'University of Ibadan'}
+                  {currentUser.biodata.targetInstitution || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Target Course of Study</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.targetCourse || 'Medicine & Surgery (MBBS)'}
+                  {currentUser.biodata.targetCourse || '—'}
                 </strong>
               </div>
             </div>
@@ -373,25 +373,25 @@ export default function ProfileTabView({
               <div>
                 <span className="text-slate-400 font-medium block">Guardian Full Name</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.guardianName || 'Dr. Ibrahim Yusuf'}
+                  {currentUser.biodata.guardianName || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Relationship</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.guardianRelationship || 'Father / Sponsor'}
+                  {currentUser.biodata.guardianRelationship || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Guardian Contact Phone</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.guardianPhone || '+234 803 987 6543'}
+                  {currentUser.biodata.guardianPhone || '—'}
                 </strong>
               </div>
               <div>
                 <span className="text-slate-400 font-medium block">Guardian Residential Address</span>
                 <strong className="text-[#111A43] font-bold text-sm block mt-0.5">
-                  {currentUser.biodata.address || 'Same as Student'}
+                  {currentUser.biodata.guardianAddress || currentUser.biodata.address || '—'}
                 </strong>
               </div>
             </div>

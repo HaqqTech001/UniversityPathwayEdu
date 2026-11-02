@@ -18,6 +18,8 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { upecAuthApi } from '../lib/upecAuthApi';
@@ -73,6 +75,17 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
   const [resendSeconds, setResendSeconds] = useState(0);
   const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState('');
+  const [registeredStudentId, setRegisteredStudentId] = useState<string | null>(null);
+  const [copiedStudentId, setCopiedStudentId] = useState(false);
+
+  const copyStudentId = () => {
+    if (!registeredStudentId) return;
+    navigator.clipboard.writeText(registeredStudentId).then(() => {
+      setCopiedStudentId(true);
+      window.setTimeout(() => setCopiedStudentId(false), 2500);
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     if (resendSeconds <= 0) return;
     const timer = window.setTimeout(() => setResendSeconds(n => Math.max(0, n - 1)), 1000);
@@ -127,16 +140,24 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     }
 
     setAuthLoading(true);
-    let res: {success:boolean;error?:string};
+    let res: {success:boolean;studentId?:string;error?:string};
     try { res = await registerAccount(regFullName, regEmail, regPhone, regPassword); }
     catch { res = {success:false,error:'Unable to create your account. Please try again.'}; }
     finally { setAuthLoading(false); }
 
     if (res.success) {
       setVerificationEmail(regEmail);
+      if (res.studentId) {
+        setRegisteredStudentId(res.studentId);
+        setLoginIdentifier(res.studentId);
+      }
       setAuthMode('email-verify');
       setResendSeconds(60);
-      setAuthSuccess('Account created. Check your inbox and spam folder for a six-digit verification code. If no email arrives, use Resend verification code.');
+      setAuthSuccess(
+        res.studentId
+          ? `Account created! Your official Student ID is ${res.studentId}. A six-digit verification code has been dispatched to your email.`
+          : 'Account created. Check your inbox and spam folder for a six-digit verification code. If no email arrives, use Resend verification code.'
+      );
     } else if (res.error?.includes('Account created but email delivery failed')) {
       setVerificationEmail(regEmail);
       setAuthMode('email-verify');
@@ -183,7 +204,17 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
     const verified=await verifyEmail(emailToken.trim(),verificationEmail.trim());
     setAuthLoading(false);
     if(!verified)setAuthError('Verification failed. Check your email and confirmation code.');
-    else {setAuthSuccess('Email verified. You may now sign in.');setAuthMode('signin');}
+    else {
+      setAuthSuccess(
+        registeredStudentId
+          ? `Email verified! You can now sign in using your official Student ID (${registeredStudentId}) or your email.`
+          : 'Email verified. You may now sign in.'
+      );
+      if (registeredStudentId) {
+        setLoginIdentifier(registeredStudentId);
+      }
+      setAuthMode('signin');
+    }
   };
 
   useEffect(()=>{setAuthError(null);setAuthSuccess(null);},[authMode]);
@@ -560,22 +591,36 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
             {authMode === 'signin' && (
               <form onSubmit={handleSignIn} className="space-y-4 site-page-enter">
                 <div>
-                  <label className="block text-xs font-bold text-[#0b1a42] mb-1.5">
-                    Registration Number or Email
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-[#0b1a42]">
+                      Email Address or Student ID
+                    </label>
+                    {/^UP\/\d{4}\//i.test(loginIdentifier.trim()) && (
+                      <span className="text-[10px] font-bold text-[#123578] bg-[#eef3ff] px-2 py-0.5 rounded-md border border-[#d6e3ff]">
+                        Student ID Recognized
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <User size={16} />
+                      {/^UP\//i.test(loginIdentifier.trim()) ? (
+                        <Hash size={16} className="text-[#c62839]" />
+                      ) : (
+                        <User size={16} />
+                      )}
                     </div>
                     <input
                       type="text"
                       required
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="Enter your registration number or email"
+                      placeholder="e.g. UP/2026/001 or candidate@email.com"
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#0b1a42] outline-none min-h-[44px]"
                     />
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Enter your registered email address or official Student ID in UP/YYYY/SERIAL format
+                  </p>
                 </div>
 
                 <div>
@@ -703,6 +748,35 @@ export default function AuthPage({ initialMode = 'signin', onNavigate }: AuthPag
                 ===================================================================== */}
             {authMode === 'email-verify' && (
               <form onSubmit={handleEmailVerify} className="space-y-3 site-page-enter">
+                {registeredStudentId && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-[#111A43] to-[#1c2c69] text-white shadow-md border border-white/10 mb-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-extrabold tracking-widest text-[#f0bb5b] uppercase">
+                        Official Student ID Issued
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold">
+                        Generated
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mt-1.5">
+                      <div className="font-mono text-2xl font-black text-white tracking-wider">
+                        {registeredStudentId}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={copyStudentId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer border border-white/20 shrink-0"
+                        title="Copy Student ID"
+                      >
+                        {copiedStudentId ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        <span>{copiedStudentId ? 'Copied!' : 'Copy ID'}</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-2.5 leading-relaxed">
+                      Please copy or write down your Student ID. You can sign in using either this Student ID (<strong className="text-white font-mono">{registeredStudentId}</strong>) or your registered email address with your password.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-[#0b1a42] mb-1">Email Address</label>
                   <input

@@ -165,8 +165,8 @@ export default function StudentPortalLayout({
                 <p className="font-bold text-white truncate max-w-[130px]">
                   {currentUser?.fullName || 'Student'}
                 </p>
-                <p className="text-[10px] text-slate-400">
-                  {currentUser?.regNumber || 'Registration pending'}
+                <p className="text-[10px] text-slate-300 font-mono">
+                  {currentUser?.studentId || currentUser?.regNumber || 'Registration pending'}
                 </p>
               </div>
             </div>
