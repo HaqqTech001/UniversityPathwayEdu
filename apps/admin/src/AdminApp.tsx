@@ -6,7 +6,7 @@ import AdminPortalApp from '../../../src/admin/AdminPortalApp';
 import StaffLogin from '../../../apps/ops/src/StaffLogin.jsx';
 // @ts-ignore -- shared JavaScript auth client used by the existing Admin Desk.
 import { clearOpsToken, getOpsToken, opsRequest } from '../../../apps/ops/src/api.js';
-import '../../../apps/ops/src/style.css';
+import './admin-login.css';
 
 type StaffProfile = {
   role: string;
@@ -74,7 +74,7 @@ export default function AdminApp() {
   }
 
   if (!profile) {
-    return <StaffLogin onSuccess={verifyStaffSession} />;
+    return <StaffLogin onSuccess={verifyStaffSession} logoSrc="/logo/pathway-footer.png" />;
   }
 
   return (
