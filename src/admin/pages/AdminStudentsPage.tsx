@@ -545,11 +545,21 @@ export default function AdminStudentsPage() {
             </section>
             {/* Profile Header */}
             <div className="flex items-start gap-4">
-              <img
-                src={selectedStudent.avatar}
-                alt={selectedStudent.name}
-                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-slate-100 shadow-sm shrink-0"
-              />
+              {selectedStudent.avatar ? (
+                <img
+                  src={selectedStudent.avatar}
+                  alt={selectedStudent.name}
+                  className="w-16 h-16 rounded-2xl object-cover ring-2 ring-slate-100 shadow-sm shrink-0"
+                />
+              ) : (
+                <div
+                  role="img"
+                  aria-label={selectedStudent.name}
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xl font-bold text-[#111A43] ring-2 ring-slate-100 shadow-sm"
+                >
+                  {selectedStudent.name.trim().charAt(0).toUpperCase() || "?"}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-[#111A43] truncate">{selectedStudent.name}</h3>
