@@ -96,7 +96,7 @@ type SectionState<T> = {
 const notify = (message: string, kind: 'success' | 'error' | 'info' = 'info') =>
   window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
 
-const base = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 class ApiError extends Error {
   status: number;

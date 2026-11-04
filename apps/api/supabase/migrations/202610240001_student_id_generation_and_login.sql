@@ -236,10 +236,14 @@ DECLARE
   v_assigned_id text;
 BEGIN
   FOR r IN 
-    SELECT id, created_at 
-    FROM public.local_accounts 
-    WHERE student_id IS NULL OR student_id = ''
-    ORDER BY created_at ASC
+    SELECT account.id, account.created_at 
+    FROM public.local_accounts AS account
+    WHERE (account.student_id IS NULL OR account.student_id = '')
+      AND NOT EXISTS (
+        SELECT 1 FROM public.local_staff_members AS staff
+        WHERE staff.account_id = account.id
+      )
+    ORDER BY account.created_at ASC
   LOOP
     v_year := COALESCE(EXTRACT(YEAR FROM r.created_at)::integer, EXTRACT(YEAR FROM CURRENT_DATE)::integer);
     v_assigned_id := public.upec_assign_student_id(r.id, v_year);

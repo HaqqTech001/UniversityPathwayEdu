@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Camera,ImagePlus,UserRound,Check,X,RotateCcw} from 'lucide-react';
 import {getStudentToken} from '../context/AuthContext';
-const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+const base=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
 export default function StudentPhotoUpload({fullName,email}:{fullName?:string;email?:string}){
  const camera=useRef<HTMLInputElement>(null),gallery=useRef<HTMLInputElement>(null);
  const [file,setFile]=useState<File|null>(null),[photo,setPhoto]=useState<string|null>(null),[preview,setPreview]=useState<string|null>(null);

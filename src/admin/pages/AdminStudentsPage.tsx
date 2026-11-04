@@ -34,7 +34,7 @@ interface Student {
   name: string;
   appId: string;
   programme: 'IJMB' | 'JAMB' | 'WAEC';
-  status: 'Admitted' | 'Pending' | 'Awaiting Docs' | 'Suspended' | 'Rejected';
+  status: 'Admitted' | 'Pending' | 'Awaiting Docs' | 'Suspended' | 'Rejected' | 'Not Applied';
   year: string;
   phone: string;
   email: string;
@@ -48,13 +48,13 @@ interface Student {
   mode: string;
   admissionDate: string;
   studentId: string;
+  accountId: string;
+  applicationId: string | null;
   expectedCompletion: string;
   avatar: string;
 }
 
 const notifyAdmin = (message:string,kind:'error'|'success'|'info'='info') => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind}}));
-
-const displayName = (item:Record<string,unknown>) => { const form=(item.form_data && typeof item.form_data==='object' ? item.form_data : {}) as Record<string,unknown>; const profile=(item.profile && typeof item.profile==='object'?item.profile:{}) as Record<string,unknown>; const first=String(item.first_name||form.firstName||form.first_name||profile.first_name||'').trim(); const last=String(item.last_name||form.lastName||form.last_name||profile.last_name||'').trim(); return String(item.student_name||item.applicant_name||item.full_name||form.fullName||form.full_name||profile.full_name||[first,last].filter(Boolean).join(' ')||'Name unavailable'); };
 
 export default function AdminStudentsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
@@ -71,23 +71,27 @@ export default function AdminStudentsPage() {
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setApiError('Please sign in to load application records.');setApiLoading(false);notifyAdmin('Please sign in to access student records.','error');return;}
     setApiLoading(true);setApiError('');
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/students',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
       .then(data=>{if(!controller.signal.aborted){
-        const records=Array.isArray(data.applications)?data.applications:Array.isArray(data.data?.applications)?data.data.applications:[];
-        setStudents(records.map((item:Record<string,unknown>,index:number)=>{
-          const form=(item.form_data&&typeof item.form_data==='object'?item.form_data:{}) as Record<string,unknown>;
-          const profile=(item.profile&&typeof item.profile==='object'?item.profile:{}) as Record<string,unknown>;
-          const rawStatus=String(item.status||'');
+        const records=Array.isArray(data.students)?data.students:[];
+        setStudents(records.map((item:Record<string,any>,index:number)=>{
+          const application=(item.application&&typeof item.application==='object'?item.application:null) as Record<string,any>|null;
+          const details=(item.biodata?.details&&typeof item.biodata.details==='object'?item.biodata.details:{}) as Record<string,any>;
+          const form=(application?.form_data&&typeof application.form_data==='object'?application.form_data:{}) as Record<string,any>;
+          const profile={...form,...details};
+          const rawStatus=String(application?.status||'');
+          const name=String(item.full_name||[profile.firstName,profile.otherNames,profile.surname].filter(Boolean).join(' ')||'Name unavailable');
           return {
-            id:index+1,name:displayName(item),appId:String(item.reference_number||item.application_id||item.id||''),
-            programme:String(item.programme||form.programme||'') as Student['programme'],
-            status:rawStatus==='approved'?'Admitted':rawStatus==='action_required'?'Awaiting Docs':rawStatus==='rejected'?'Rejected':rawStatus==='suspended'?'Suspended':'Pending',
-            year:String(item.academic_session||''),phone:String(item.phone||form.phone||profile.phone||''),
-            email:String(item.email||form.email||profile.email||''),dob:String(form.date_of_birth||''),gender:String(form.gender||''),
-            address:String(form.address||''),nationality:String(form.nationality||''),guardian:String(form.guardian_name||''),
-            guardianPhone:String(form.guardian_phone||''),class:'',mode:'',admissionDate:String(item.submitted_at||''),
-            studentId:String(item.id||''),expectedCompletion:'',avatar:String(item.avatar_url||profile.avatar_url||'')
+            id:index+1,name,appId:String(application?.reference_number||'Not applied'),
+            programme:String(application?.programme||profile.programme||'') as Student['programme'],
+            status:!application?'Not Applied':rawStatus==='approved'?'Admitted':rawStatus==='action_required'?'Awaiting Docs':rawStatus==='rejected'?'Rejected':rawStatus==='suspended'?'Suspended':'Pending',
+            year:String(application?.academic_session||''),phone:String(item.phone||profile.phone||''),
+            email:String(item.email||profile.email||''),dob:String(profile.dateOfBirth||profile.date_of_birth||''),gender:String(profile.gender||''),
+            address:String(profile.address||''),nationality:String(profile.nationality||profile.stateOfOrigin||''),guardian:String(profile.guardianName||profile.guardian_name||''),
+            guardianPhone:String(profile.guardianPhone||profile.guardian_phone||''),class:'',mode:'',admissionDate:String(application?.submitted_at||item.created_at||''),
+            studentId:String(item.student_id||''),accountId:String(item.id||''),applicationId:application?.id?String(application.id):null,
+            expectedCompletion:'',avatar:String(profile.avatar_url||'')
           };
         }));
       }})
@@ -96,7 +100,7 @@ export default function AdminStudentsPage() {
     return()=>controller.abort();
   },[reload]);
 
-  const [applicationDetail,setApplicationDetail]=useState<{application:{status:string;form_data:Record<string,unknown>|null;subjects:unknown};reviews:{id:string;new_status:string;note:string;created_at:string}[]}|null>(null);
+  const [applicationDetail,setApplicationDetail]=useState<{application:{status:string;form_data:Record<string,unknown>|null;subjects:unknown}|null;reviews:{id:string;new_status:string;note:string;created_at:string}[]}|null>(null);
   const [detailLoading,setDetailLoading]=useState(false);
   const [detailError,setDetailError]=useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -107,10 +111,10 @@ export default function AdminStudentsPage() {
     const controller=new AbortController();
     setDetailLoading(true);
     const token=sessionStorage.getItem('upec_staff_token');
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId),{
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId),{
       headers:{Authorization:'Bearer '+token},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application details.');return data;})
-      .then(data=>{if(!controller.signal.aborted)setApplicationDetail(data);})
+      .then(data=>{if(!controller.signal.aborted)setApplicationDetail({application:data.applications?.[0]||null,reviews:data.reviews||[]});})
       .catch(error=>{if(!controller.signal.aborted)setDetailError(error instanceof Error?error.message:'Unable to load details.');})
       .finally(()=>{if(!controller.signal.aborted)setDetailLoading(false);});
     return()=>controller.abort();
@@ -120,7 +124,7 @@ export default function AdminStudentsPage() {
   const [reviewSaving,setReviewSaving]=useState(false);
   const [reviewFeedback,setReviewFeedback]=useState('');
   const submitReview=async()=>{
-    if(!selectedStudent||reviewSaving)return;
+    if(!selectedStudent||!selectedStudent.applicationId||reviewSaving)return;
     const note=reviewNote.trim();
     if(['rejected','action_required'].includes(reviewStatus)&&note.length<5){
       setReviewFeedback('Provide a reason of at least five characters.');return;
@@ -129,7 +133,7 @@ export default function AdminStudentsPage() {
     setReviewSaving(true);setReviewFeedback('');
     try{
       const token=sessionStorage.getItem('upec_staff_token');
-      const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId)+'/status',{
+      const response=await fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/status',{
         method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
         body:JSON.stringify({status:reviewStatus,note})
       });
@@ -147,13 +151,13 @@ export default function AdminStudentsPage() {
   const [documentNote,setDocumentNote]=useState<Record<string,string>>({});
   const [documentSaving,setDocumentSaving]=useState<string|null>(null);
   const [documentReload,setDocumentReload]=useState(0);
-  const apiBase=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+  const apiBase=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
   useEffect(()=>{
     setDocuments([]);setDocumentError('');
-    if(!selectedStudent)return;
+    if(!selectedStudent?.applicationId)return;
     const controller=new AbortController();
     setDocumentsLoading(true);
-    fetch(apiBase+'/api/staff/applications/'+encodeURIComponent(selectedStudent.studentId)+'/documents',{
+    fetch(apiBase+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/documents',{
       headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load documents.');return data;})
       .then(data=>{if(!controller.signal.aborted)setDocuments(data.documents||[]);})
@@ -215,13 +219,16 @@ export default function AdminStudentsPage() {
       searchFilter &&
       !s.name.toLowerCase().includes(searchFilter.toLowerCase()) &&
       !s.appId.toLowerCase().includes(searchFilter.toLowerCase()) &&
-      !s.phone.includes(searchFilter)
+      !s.phone.includes(searchFilter) &&
+      !s.email.toLowerCase().includes(searchFilter.toLowerCase()) &&
+      !s.studentId.toLowerCase().includes(searchFilter.toLowerCase())
     ) {
       return false;
     }
     return true;
   });
 
+  const applicationCount=students.filter(s=>s.applicationId).length;
   const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleStudents = filteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize);
@@ -245,6 +252,8 @@ export default function AdminStudentsPage() {
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Pending</span>;
       case 'Awaiting Docs':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">Awaiting Docs</span>;
+      case 'Not Applied':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Not applied</span>;
       case 'Suspended':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Suspended</span>;
       default:
@@ -276,8 +285,8 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Loaded application summary">
-        {[{label:'Applications',value:students.length,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
+      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-5" aria-label="Live student directory summary">
+        {[{label:'Registered students',value:students.length,icon:Users},{label:'Applications',value:applicationCount,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
@@ -325,6 +334,8 @@ export default function AdminStudentsPage() {
               <option value="Pending">Pending</option>
               <option value="Awaiting Docs">Awaiting Docs</option>
               <option value="Suspended">Suspended</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Not Applied">Not Applied</option>
             </select>
           </div>
 
@@ -369,6 +380,8 @@ export default function AdminStudentsPage() {
               <option value="Pending">Pending</option>
               <option value="Awaiting Docs">Awaiting Docs</option>
               <option value="Suspended">Suspended</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Not Applied">Not Applied</option>
             </select>
           </div>
 
@@ -391,7 +404,7 @@ export default function AdminStudentsPage() {
         <div className={`min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col ${drawerOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
           <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
             {apiLoading&&Array.from({length:6},(_,i)=><div key={i} className="flex animate-pulse items-center gap-3 px-3 py-3" aria-label="Loading student"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-200"/><div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-slate-200"/><div className="h-2 w-1/2 rounded bg-slate-100"/></div></div>)}
-            {visibleStudents.map(student=><div key={student.studentId} onClick={()=>{setSelectedStudent(student);setDrawerOpen(true);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){setSelectedStudent(student);setDrawerOpen(true);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.studentId===student.studentId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
+            {visibleStudents.map(student=><div key={student.accountId} onClick={()=>{setSelectedStudent(student);setDrawerOpen(true);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){setSelectedStudent(student);setDrawerOpen(true);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.accountId===student.accountId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
               {student.avatar?<img src={student.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover"/>:<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#111A43]"><Users size={18}/></span>}
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#111A43]">{student.name}</p><button type="button" onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(student.appId).then(()=>notifyAdmin('Application ID copied','success')).catch(()=>notifyAdmin('Unable to copy ID','error'));}} className="mt-1 block max-w-full truncate text-left font-mono text-[11px] text-slate-500" title="Tap to copy application ID">{student.appId} · Copy</button></div>
               <div className="shrink-0 text-right">{getStatusBadge(student.status)}<ChevronRight size={15} className="ml-auto mt-1 text-slate-400"/></div>
@@ -488,12 +501,12 @@ export default function AdminStudentsPage() {
               <X size={18} />
             </button>
 
-            <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Live application details">
-              <h4 className="text-sm font-bold text-[#111A43]">Application details (live)</h4>
+            <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Live student account and application details">
+              <h4 className="text-sm font-bold text-[#111A43]">Student record (live)</h4>
               {detailLoading?<p className="mt-2 text-xs">Loading application…</p>:detailError?<p role="alert" className="mt-2 text-xs text-red-700">{detailError}</p>:applicationDetail?(
                 <div className="mt-2 space-y-3 text-xs">
-                  <p><strong>Backend status:</strong> {applicationDetail.application.status}</p>
-                  <div><strong>Submitted fields:</strong><dl className="mt-2 grid gap-2">{Object.entries(applicationDetail.application.form_data||{}).filter(([,value])=>['string','number','boolean'].includes(typeof value)).map(([key,value])=><div key={key} className="break-words"><dt className="font-semibold text-slate-500">{key.replace(/_/g,' ')}</dt><dd>{String(value)}</dd></div>)}</dl></div>
+                  {applicationDetail.application?<><p><strong>Backend status:</strong> {applicationDetail.application.status}</p>
+                  <div><strong>Submitted fields:</strong><dl className="mt-2 grid gap-2">{Object.entries(applicationDetail.application.form_data||{}).filter(([,value])=>['string','number','boolean'].includes(typeof value)).map(([key,value])=><div key={key} className="break-words"><dt className="font-semibold text-slate-500">{key.replace(/_/g,' ')}</dt><dd>{String(value)}</dd></div>)}</dl></div></>:<p>This account has not submitted a programme application yet.</p>}
                   <div><strong>Review history:</strong>{applicationDetail.reviews.length===0?<p className="mt-1">No reviews recorded.</p>:applicationDetail.reviews.map(review=><p key={review.id} className="mt-2 border-t pt-2">{review.new_status} · {new Date(review.created_at).toLocaleDateString('en-NG')}<br/>{review.note}</p>)}</div>
                 </div>
               ):null}
@@ -512,7 +525,7 @@ export default function AdminStudentsPage() {
                 <textarea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} maxLength={2000} rows={3} placeholder="Explain your decision" className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
               </label>
               {reviewFeedback&&<p role="status" className="text-xs text-slate-700">{reviewFeedback}</p>}
-              <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
+              <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail?.application||!selectedStudent.applicationId} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
             </section>
             <section className="mb-4 rounded-xl border border-slate-200 p-4 space-y-3" aria-label="Application documents">
               <h4 className="text-sm font-bold text-[#111A43]">Submitted documents</h4>
@@ -542,7 +555,7 @@ export default function AdminStudentsPage() {
                   <h3 className="text-lg font-bold text-[#111A43] truncate">{selectedStudent.name}</h3>
                   {getStatusBadge(selectedStudent.status)}
                 </div>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedStudent.appId}</p>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedStudent.studentId||selectedStudent.appId}</p>
                 <p className="text-xs text-slate-600 font-medium mt-0.5">B.Sc. Computer Science ({selectedStudent.programme})</p>
                 <p className="text-[11px] text-slate-400">2025 Academic Session</p>
               </div>

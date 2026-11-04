@@ -113,7 +113,7 @@ export default function AdminAcademicPage() {
     const token = sessionStorage.getItem('upec_staff_token');
     if (!token) throw Error('Please sign in to the staff portal.');
     const response = await fetch(
-      (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api/staff/academic' + path,
+      (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/staff/academic' + path,
       {
         ...init,
         headers: {

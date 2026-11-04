@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowUpRight, FileText, ClipboardCheck, AlertCircle, GraduationCap, CreditCard, BookOpen, MessageSquare, Users, Bell, ChevronLeft, ChevronRight, RefreshCw, Wallet, TrendingUp } from 'lucide-react';
 import { AdminTabId } from '../types';
 
-interface Metrics { total:number; submitted:number; under_review:number; action_required:number }
+interface Metrics { total:number; students:number; submitted:number; under_review:number; action_required:number }
 interface Props { onNavigateTab?: (tab:AdminTabId)=>void }
 const notify = (message:string) => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind:'error'}}));
 
@@ -24,9 +24,9 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     if(!token){setNotificationsReady(true);return;}
     const controller=new AbortController();
     setNotificationsReady(false);
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/notifications',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/activity',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{if(!response.ok)throw Error('Notifications unavailable');return response.json();})
-      .then(data=>{if(!controller.signal.aborted){const items=Array.isArray(data)?data:Array.isArray(data.notifications)?data.notifications:[];setNotifications(items.map((item:Record<string,unknown>)=>({id:String(item.id||''),title:String(item.title||'Notification'),body:String(item.message||item.body||''),created_at:String(item.created_at||item.sent_at||'')})).sort((a:{created_at:string},b:{created_at:string})=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,5));}})
+      .then(data=>{if(!controller.signal.aborted){const items=Array.isArray(data.activities)?data.activities:[];setNotifications(items.map((item:Record<string,unknown>)=>({id:String(item.id||''),title:String(item.title||'Notification'),body:String(item.message||item.body||''),created_at:String(item.created_at||item.sent_at||'')})).sort((a:{created_at:string},b:{created_at:string})=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,5));}})
       .catch(()=>{if(!controller.signal.aborted)setNotifications([]);})
       .finally(()=>{if(!controller.signal.aborted)setNotificationsReady(true);});
     return()=>controller.abort();
@@ -36,7 +36,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setLoading(false);return;}
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/metrics',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/applications/metrics',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application metrics.');return data;})
       .then(data=>{if(!controller.signal.aborted)setMetrics(data);})
       .catch(error=>{if(!controller.signal.aborted){setMetrics(null);notify(error instanceof Error?error.message:'Dashboard data unavailable.');}})
@@ -44,6 +44,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     return()=>controller.abort();
   },[retry]);
   const cards=[
+    {label:'Registered students',value:metrics?.students,icon:GraduationCap,tab:'students' as AdminTabId},
     {label:'Applications',value:metrics?.total,icon:FileText,tab:'students' as AdminTabId},
     {label:'Submitted',value:metrics?.submitted,icon:ClipboardCheck,tab:'students' as AdminTabId},
     {label:'Under review',value:metrics?.under_review,icon:Users,tab:'students' as AdminTabId},
@@ -66,7 +67,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
       <div className="min-w-0"><h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1><p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Institution operations overview</p></div>
       <button type="button" onClick={()=>setRetry(n=>n+1)} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard" className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] disabled:opacity-50"><RefreshCw size={17} className={loading?"animate-spin":""}/></button>
     </header>
-    <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+    <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
       {cards.map(({label,value,icon:Icon,tab})=><button type="button" key={label} onClick={()=>onNavigateTab(tab)} className="flex min-h-[68px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
         <div className="min-w-0"><p className="text-lg font-extrabold leading-tight text-[#111A43]">{loading?<span className="block h-5 w-14 animate-pulse rounded bg-slate-200" aria-label="Loading metric"/>:typeof value==='number'?value.toLocaleString('en-NG'):'—'}</p><p className="truncate text-[11px] font-medium text-slate-600" title={label}>{label}</p></div><Icon size={19} className="shrink-0 text-[#C62839]"/>
       </button>)}

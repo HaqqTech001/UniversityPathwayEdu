@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {getStudentToken} from '../context/AuthContext';
 type Entry={id:string;programme_code:string;status:string;charge:number;paid:number;period:string;category:'Registration'|'Monthly lessons'};
 const money=(n:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(n);
-const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+const base=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
 export default function StudentFeeStatement(){
  const [entries,setEntries]=useState<Entry[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const load=async()=>{
