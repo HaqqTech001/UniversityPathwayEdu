@@ -45,7 +45,6 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   },[retry]);
   const cards=[
     {label:'Registered students',value:metrics?.students,icon:GraduationCap,tab:'students' as AdminTabId},
-    {label:'Registered students',value:metrics?.students,icon:GraduationCap,tab:'students' as AdminTabId},
     {label:'Applications',value:metrics?.total,icon:FileText,tab:'students' as AdminTabId},
     {label:'Submitted',value:metrics?.submitted,icon:ClipboardCheck,tab:'students' as AdminTabId},
     {label:'Under review',value:metrics?.under_review,icon:Users,tab:'students' as AdminTabId},
@@ -68,7 +67,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
       <div className="min-w-0"><h1 className="text-xl font-extrabold leading-tight text-[#111A43] sm:text-2xl">Dashboard</h1><p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Institution operations overview</p></div>
       <button type="button" onClick={()=>setRetry(n=>n+1)} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard" className="rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] disabled:opacity-50"><RefreshCw size={17} className={loading?"animate-spin":""}/></button>
     </header>
-    <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-5">
+    <section aria-label="Live application metrics" className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
       {cards.map(({label,value,icon:Icon,tab})=><button type="button" key={label} onClick={()=>onNavigateTab(tab)} className="flex min-h-[68px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">
         <div className="min-w-0"><p className="text-lg font-extrabold leading-tight text-[#111A43]">{loading?<span className="block h-5 w-14 animate-pulse rounded bg-slate-200" aria-label="Loading metric"/>:typeof value==='number'?value.toLocaleString('en-NG'):'—'}</p><p className="truncate text-[11px] font-medium text-slate-600" title={label}>{label}</p></div><Icon size={19} className="shrink-0 text-[#C62839]"/>
       </button>)}
