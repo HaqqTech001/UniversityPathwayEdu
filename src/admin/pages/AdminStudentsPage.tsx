@@ -513,7 +513,7 @@ export default function AdminStudentsPage() {
 
 </div><div className="mt-5 flex gap-2"><button type="button" onClick={()=>{setSelectedProgramme('All Programmes');setSelectedStatus('All Status');setSelectedYear('All Years');}} className="flex-1 rounded-xl border px-4 py-3 text-sm">Reset</button><button type="button" onClick={()=>setFilterOpen(false)} className="flex-1 rounded-xl bg-[#111A43] px-4 py-3 text-sm font-bold text-white">Show {filteredStudents.length} results</button></div></section></div>}
       {/* Main Two-Column Layout */}
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-2 overflow-hidden xl:grid-cols-12">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-2 overflow-hidden">
         {/* Left Column: Student Directory Table */}
         <div className="min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
