@@ -148,7 +148,7 @@ export default function AdminStudentsPage() {
       .catch(error=>{if(!controller.signal.aborted)setDetailError(error instanceof Error?error.message:'Unable to load details.');})
       .finally(()=>{if(!controller.signal.aborted)setDetailLoading(false);});
     return()=>controller.abort();
-  },[selectedStudent,detailReload]);
+  },[selectedStudent?.accountId,detailReload]);
   useEffect(()=>{
     if(!selectedStudent)return;
     const controller=new AbortController();
@@ -204,7 +204,7 @@ export default function AdminStudentsPage() {
       .catch(error=>{if(!controller.signal.aborted)setDocumentError(error instanceof Error?error.message:'Unable to load documents.');})
       .finally(()=>{if(!controller.signal.aborted)setDocumentsLoading(false);});
     return()=>controller.abort();
-  },[selectedStudent,documentReload]);
+  },[selectedStudent?.accountId,selectedStudent?.applicationId,documentReload]);
   const viewDocument=async(id:string)=>{
     try{
       setDocumentError('');
