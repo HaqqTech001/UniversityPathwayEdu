@@ -28,54 +28,18 @@ const studentIdPattern = /^UP\/\d{4}\/\d{3,}$/i;
 
 async function assignStudentId(accountId, regDate = new Date()) {
   const year = regDate.getFullYear();
-  try {
-    const { data, error } = await db.rpc('upec_assign_student_id', {
-      p_account_id: accountId,
-      p_year: year,
-    });
-    if (!error && data) return data;
-  } catch (_) {}
-
-  // Database-backed sequential fallback if RPC not installed yet
-  const prefix = `UP/${year}/`;
-  let nextSerial = 1;
-  try {
-    const { data: existingList } = await db
-      .from('local_accounts')
-      .select('student_id')
-      .ilike('student_id', `${prefix}%`)
-      .order('student_id', { ascending: false })
-      .limit(100);
-
-    let maxSerial = 0;
-    if (Array.isArray(existingList)) {
-      for (const item of existingList) {
-        const match = item?.student_id?.match(/^UP\/\d{4}\/(\d+)$/i);
-        if (match) {
-          const val = parseInt(match[1], 10);
-          if (!isNaN(val) && val > maxSerial) maxSerial = val;
-        }
-      }
-    }
-    nextSerial = maxSerial + 1;
-  } catch (_) {}
-
-  const studentId = `${prefix}${String(nextSerial).padStart(3, '0')}`;
-
-  try {
-    await db.from('local_accounts').update({ student_id: studentId }).eq('id', accountId);
-  } catch (_) {}
-
-  try {
-    await db.from('student_identifiers').upsert({
-      account_id: accountId,
-      student_id: studentId,
-      year,
-      serial: nextSerial,
-    });
-  } catch (_) {}
-
-  return studentId;
+  // Authoritative PostgreSQL atomic assignment only (no unsafe JavaScript calculation)
+  const { data, error } = await db.rpc('upec_assign_student_id', {
+    p_account_id: accountId,
+    p_year: year,
+  });
+  if (error || !data) {
+    const err = new Error(error?.message || 'Database atomic Student ID generation failed');
+    err.code = error?.code || 'STUDENT_ID_GENERATION_FAILED';
+    err.status = 503;
+    throw err;
+  }
+  return data;
 }
 
 async function issueCode(account, purpose) {
@@ -122,28 +86,98 @@ router.post('/register',wrap(async(req,res)=>{
   if(String(fullName||'').trim().length<2)return respond(res,400,'Enter your full name.');
   if(String(phone||'').trim().length<5)return respond(res,400,'Enter a valid phone number.');
   if(typeof password!=='string'||password.length<10||password.length>128)return respond(res,400,'Password must have at least 10 characters.');
-  const password_hash=await hashPassword(password);
-  const {data,error}=await db.from('local_accounts').insert({email,full_name:fullName.trim(),phone:phone.trim(),password_hash}).select('id,email').single();
-  if(error){if(error.code==='23505')return respond(res,409,'Email already registered');throw error;}
+  
+  const password_hash = await hashPassword(password);
+  let accountId = null;
+  let studentId = null;
 
-  // Concurrency-safe immediate Student ID generation
-  let studentId = '';
+  // 1. Try PostgreSQL transactional registration RPC first
+  let rpcSuccess = false;
   try {
-    studentId = await assignStudentId(data.id);
-    data.student_id = studentId;
-  } catch (idErr) {
-    console.error('Student ID generation fallback issue:', idErr);
+    const { data: txData, error: txError } = await db.rpc('upec_register_student_account', {
+      p_email: email,
+      p_full_name: fullName.trim(),
+      p_phone: phone.trim(),
+      p_password_hash: password_hash,
+      p_year: new Date().getFullYear(),
+    });
+    if (!txError && txData?.student_id) {
+      accountId = txData.id;
+      studentId = txData.student_id;
+      rpcSuccess = true;
+    } else if (txError && txError.message?.includes('EMAIL_REGISTERED')) {
+      return respond(res, 409, 'Email already registered');
+    }
+  } catch (_) {}
+
+  // 2. Safe resilient path if transactional RPC is not yet loaded
+  if (!rpcSuccess) {
+    const { data: existing, error: findError } = await db.from('local_accounts').select('id,email,verified_at,student_id').eq('email', email).maybeSingle();
+    if (findError) throw findError;
+
+    if (existing) {
+      if (existing.verified_at) return respond(res, 409, 'Email already registered');
+      // Resume partially created unverified account safely
+      accountId = existing.id;
+      const { error: updateErr } = await db.from('local_accounts').update({
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        password_hash,
+        updated_at: new Date().toISOString(),
+      }).eq('id', existing.id);
+      if (updateErr) throw updateErr;
+
+      if (existing.student_id) {
+        studentId = existing.student_id;
+      }
+    } else {
+      const { data: created, error: insertError } = await db.from('local_accounts').insert({
+        email,
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        password_hash,
+      }).select('id,email').single();
+      if (insertError) {
+        if (insertError.code === '23505') return respond(res, 409, 'Email already registered');
+        throw insertError;
+      }
+      accountId = created.id;
+    }
+
+    // Call authoritative PostgreSQL atomic generation
+    try {
+      studentId = await assignStudentId(accountId);
+    } catch (genError) {
+      console.error('Authoritative Student ID allocation failed:', genError.message);
+      // FAIL SAFELY: Never return fabricated ID, never send email claiming ID exists, return 503 retryable
+      return res.status(503).json({
+        error: 'Student ID allocation service is temporarily unavailable. Your registration details have been securely recorded; please retry registration shortly.',
+        retryable: true,
+      });
+    }
   }
 
-  try{await issueCode({...data, student_id: studentId},'signup');}catch(err){console.error('Registration email delivery failed',err);return res.status(202).json({message:'Account created. Verification email could not be delivered yet; please request another code from the verification screen.',studentId,emailPending:true});}
-  res.status(201).json({message:'Verification code sent',studentId});
+  // Only dispatch verification email after Student ID is authoritatively persisted
+  try {
+    await issueCode({ id: accountId, email, student_id: studentId }, 'signup');
+  } catch (err) {
+    console.error('Registration email delivery failed', err);
+    return res.status(202).json({
+      message: 'Account created. Verification email could not be delivered yet; please request another code from the verification screen.',
+      studentId,
+      emailPending: true,
+    });
+  }
+
+  res.status(201).json({ message: 'Verification code sent', studentId });
 }));
 router.post('/resend',wrap(async(req,res)=>{
   const rawIdentifier=String(req.body?.email||req.body?.identifier||'').trim();
   const purpose=req.body?.purpose==='recovery'?'recovery':'signup';
   let account = null;
   if (studentIdPattern.test(rawIdentifier)) {
-    const {data} = await db.from('local_accounts').select('id,email,verified_at,student_id').ilike('student_id', rawIdentifier.toUpperCase()).maybeSingle();
+    const {data, error} = await db.from('local_accounts').select('id,email,verified_at,student_id').ilike('student_id', rawIdentifier.toUpperCase()).maybeSingle();
+    if (error && error.code !== '42703') throw error;
     account = data;
   } else {
     const email = normalize(rawIdentifier);
@@ -186,13 +220,13 @@ router.post('/login',wrap(async(req,res)=>{
     account = data;
 
     if (!account) {
-      try {
-        const { data: identRow } = await db.from('student_identifiers').select('account_id').ilike('student_id', upperId).maybeSingle();
-        if (identRow?.account_id) {
-          const accRes = await db.from('local_accounts').select('*').eq('id', identRow.account_id).maybeSingle();
-          account = accRes.data;
-        }
-      } catch (_) {}
+      const { data: identRow, error: identErr } = await db.from('student_identifiers').select('account_id').ilike('student_id', upperId).maybeSingle();
+      if (identErr && identErr.code !== '42P01') throw identErr;
+      if (identRow?.account_id) {
+        const { data: accData, error: accErr } = await db.from('local_accounts').select('*').eq('id', identRow.account_id).maybeSingle();
+        if (accErr) throw accErr;
+        account = accData;
+      }
     }
   } else {
     const email=normalize(rawIdentifier);
@@ -238,11 +272,13 @@ router.post('/resolve-identifier',wrap(async(req,res)=>{
     let account = null;
     if(studentIdPattern.test(identifier)){
       const upperId = identifier.toUpperCase();
-      const {data} = await db.from('local_accounts').select('id,email,password_hash').ilike('student_id',upperId).maybeSingle();
+      const {data, error} = await db.from('local_accounts').select('id,email,password_hash').ilike('student_id',upperId).maybeSingle();
+      if(error && error.code !== '42703') throw error;
       account = data;
     } else {
       const email = normalize(identifier);
-      const {data} = await db.from('local_accounts').select('id,email,password_hash').eq('email',email).maybeSingle();
+      const {data, error} = await db.from('local_accounts').select('id,email,password_hash').eq('email',email).maybeSingle();
+      if(error) throw error;
       account = data;
     }
     const candidate=await hashPassword(password);
@@ -265,10 +301,22 @@ router.post('/resolve-identifier',wrap(async(req,res)=>{
 }));
 router.post('/recover',wrap(async(req,res)=>{
   const rawIdentifier=String(req.body?.email||req.body?.identifier||'').trim();
+  if(!rawIdentifier) return respond(res,400,'Enter your email address or Student ID.');
   let account = null;
+
   if(studentIdPattern.test(rawIdentifier)){
-    const {data} = await db.from('local_accounts').select('id,email,student_id').ilike('student_id', rawIdentifier.toUpperCase()).maybeSingle();
+    const {data, error} = await db.from('local_accounts').select('id,email,student_id').ilike('student_id', rawIdentifier.toUpperCase()).maybeSingle();
+    if(error && error.code !== '42703') throw error;
     account = data;
+    if(!account){
+      const {data:identRow, error:identErr} = await db.from('student_identifiers').select('account_id').ilike('student_id', rawIdentifier.toUpperCase()).maybeSingle();
+      if(identErr && identErr.code !== '42P01') throw identErr;
+      if(identRow?.account_id){
+        const {data:accData, error:accErr} = await db.from('local_accounts').select('id,email,student_id').eq('id', identRow.account_id).maybeSingle();
+        if(accErr) throw accErr;
+        account = accData;
+      }
+    }
   } else {
     const email=normalize(rawIdentifier);
     if(!emailPattern.test(email))return respond(res,400,'Invalid email or Student ID');
@@ -276,6 +324,7 @@ router.post('/recover',wrap(async(req,res)=>{
     if(error)throw error;
     account = data;
   }
+  // Always sends recovery code to account.email (registered email)
   if(account)await issueCode(account,'recovery');
   res.json({message:'If the account exists, a recovery code has been sent'});
 }));
@@ -299,4 +348,5 @@ router.get('/me',requireRole('student'),wrap(async(req,res)=>{
   if(error||!data)return respond(res,401,'Unauthorized');
   res.json({user:{id:data.id,studentId:data.student_id||null,email:data.email,fullName:data.full_name,phone:data.phone,isEmailVerified:!!data.verified_at}});
 }));
+export { assignStudentId, studentIdPattern };
 export default router;

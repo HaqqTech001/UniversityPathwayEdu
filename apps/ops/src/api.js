@@ -1,7 +1,12 @@
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 const TOKEN_KEY = 'upec_ops_session';
 export function getOpsToken(){return sessionStorage.getItem(TOKEN_KEY);}
-export function clearOpsToken(){sessionStorage.removeItem(TOKEN_KEY);}
+export function clearOpsToken(){
+ sessionStorage.removeItem(TOKEN_KEY);
+ sessionStorage.removeItem('upec_staff_token');
+ localStorage.removeItem(TOKEN_KEY);
+ localStorage.removeItem('upec_staff_token');
+}
 export async function opsRequest(path,options={}){
  const token=getOpsToken();
  const response=await fetch(API_BASE+'/api/staff'+path,{
