@@ -45,6 +45,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   },[retry]);
   const cards=[
     {label:'Registered students',value:metrics?.students,icon:GraduationCap,tab:'students' as AdminTabId},
+    {label:'Registered students',value:metrics?.students,icon:GraduationCap,tab:'students' as AdminTabId},
     {label:'Applications',value:metrics?.total,icon:FileText,tab:'students' as AdminTabId},
     {label:'Submitted',value:metrics?.submitted,icon:ClipboardCheck,tab:'students' as AdminTabId},
     {label:'Under review',value:metrics?.under_review,icon:Users,tab:'students' as AdminTabId},
