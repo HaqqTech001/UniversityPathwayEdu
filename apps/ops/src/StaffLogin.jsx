@@ -8,7 +8,7 @@ export default function StaffLogin({onSuccess,logoSrc='/pathway-logos/pathway-he
  const [error,setError]=useState('');
  const submit=async(event)=>{
   event.preventDefault();if(busy)return;setBusy(true);setError('');
-  try{await staffSignIn(email.trim(),password);await onSuccess();}
+  try{await staffSignIn(email.trim(),password);const verified=await onSuccess();if(verified===false)setError('Your staff session could not be verified. Please try again.');}
   catch(err){setError(err instanceof Error?err.message:'Unable to sign in');}
   finally{setBusy(false);}
  };
