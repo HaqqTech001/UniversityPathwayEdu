@@ -71,7 +71,7 @@ export default function AdminStudentsPage() {
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setApiError('Please sign in to load application records.');setApiLoading(false);notifyAdmin('Please sign in to access student records.','error');return;}
     setApiLoading(true);setApiError('');
-    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/students',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
       .then(data=>{if(!controller.signal.aborted){
         const records=Array.isArray(data.students)?data.students:[];
@@ -111,7 +111,7 @@ export default function AdminStudentsPage() {
     const controller=new AbortController();
     setDetailLoading(true);
     const token=sessionStorage.getItem('upec_staff_token');
-    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId),{
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId),{
       headers:{Authorization:'Bearer '+token},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application details.');return data;})
       .then(data=>{if(!controller.signal.aborted)setApplicationDetail({application:data.applications?.[0]||null,reviews:data.reviews||[]});})
@@ -133,7 +133,7 @@ export default function AdminStudentsPage() {
     setReviewSaving(true);setReviewFeedback('');
     try{
       const token=sessionStorage.getItem('upec_staff_token');
-      const response=await fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/status',{
+      const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/status',{
         method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
         body:JSON.stringify({status:reviewStatus,note})
       });
@@ -151,7 +151,7 @@ export default function AdminStudentsPage() {
   const [documentNote,setDocumentNote]=useState<Record<string,string>>({});
   const [documentSaving,setDocumentSaving]=useState<string|null>(null);
   const [documentReload,setDocumentReload]=useState(0);
-  const apiBase=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
+  const apiBase=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
   useEffect(()=>{
     setDocuments([]);setDocumentError('');
     if(!selectedStudent?.applicationId)return;
