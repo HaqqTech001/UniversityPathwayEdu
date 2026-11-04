@@ -56,7 +56,7 @@ export default function AdminFinancePage() {
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token)return;
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance/summary',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
     .then(async res=>{const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not load summary');return data;})
     .then(data=>{if(!controller.signal.aborted)setSummary(data);})
     .catch(err=>{if(!controller.signal.aborted)setSummaryError(err instanceof Error?err.message:'Summary unavailable');});
@@ -70,7 +70,7 @@ export default function AdminFinancePage() {
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setLedgerError('Staff login required.');setLedgerLoading(false);return;}
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
       .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{id:string;type:string;amount_ngn:number;recorded_at:string;invoice?:{programme_code?:string}},index:number)=>({
         id:index+1,name:'Verified payment',appId:entry.id,
