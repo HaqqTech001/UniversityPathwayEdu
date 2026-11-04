@@ -2,8 +2,14 @@
 
 UPEC uses Supabase (PostgreSQL + Auth), **not MySQL**.
 
-Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in apps/api/.env. Never expose the service-role key in the frontend. Run npm install and npm run dev in apps/api.
+Configure the following in apps/api/.env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, JWT_SECRET, OTP_SECRET, AUTH_PASSWORD_PEPPER and the required mail settings. Never expose the service-role key in either frontend. Run npm install and npm run dev in apps/api.
 
-GET /health is the API health endpoint. GET /api/backend/status checks the live `local_accounts` table through the server-side Supabase service-role client.
+## Frontend API routing
 
-**Migration in progress:** the previously added MySQL-based CBT routes are deliberately disabled. The old rooms.js remains in the repository but is not imported. Authentication, profiles, applications, payments and supervised CBT endpoints still need to be implemented against Supabase. Do not deploy as a complete backend.
+The student website (port 3000), standalone admin app (port 3100), and Admin Desk (port 5174) call the backend through the same-origin /api path by default. Their Vite development servers proxy /api to http://localhost:4000. For deployments, configure the hosting reverse proxy to forward /api/* to the Express API, or set VITE_API_URL to the API origin at build time. If using a separate API origin, add the exact frontend origins to WEB_ORIGINS. Do not put SUPABASE_SERVICE_ROLE_KEY in VITE_* variables.
+
+## Health checks
+
+- GET /health checks that the Express process is running.
+- GET /api/backend/status checks a real query against public.local_accounts through the server-side Supabase service-role client.
+- Staff dashboard metrics and the student directory read from local_accounts, local_student_biodata and local_student_applications. The student directory intentionally includes registered accounts before they submit an application; application review actions remain unavailable until an application exists.
