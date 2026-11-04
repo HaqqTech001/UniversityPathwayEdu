@@ -57,5 +57,14 @@ export default function StaffPortalPage({ onNavigate }: PageProps) {
       <button disabled={busy} className="w-full rounded-lg bg-[#C62839] p-3 font-bold text-white disabled:opacity-50">{busy ? 'Signing in…' : 'Sign in'}</button>
     </form>
   </main>;
-  return <AdminPortalApp onNavigate={onNavigate} />;
+  return <AdminPortalApp onNavigate={onNavigate} onLogout={() => {
+    sessionStorage.removeItem('upec_staff_token');
+    localStorage.removeItem('upec_staff_token');
+    sessionStorage.removeItem('upec_admin_token');
+    localStorage.removeItem('upec_admin_token');
+    sessionStorage.removeItem('upec_ops_session');
+    localStorage.removeItem('upec_ops_session');
+    setToken(null);
+    onNavigate('/staff/login');
+  }} />;
 }

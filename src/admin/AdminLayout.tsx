@@ -36,6 +36,7 @@ interface AdminLayoutProps {
   onNavigate: (path: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onLogout?: () => void;
   children: React.ReactNode;
 }
 
@@ -45,6 +46,7 @@ export default function AdminLayout({
   onNavigate,
   searchQuery,
   onSearchChange,
+  onLogout,
   children,
 }: AdminLayoutProps) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -52,6 +54,26 @@ export default function AdminLayout({
   const [selectedSession, setSelectedSession] = useState('2025/2026');
   const [currentTime, setCurrentTime] = useState('10:24 AM');
   const [currentDate, setCurrentDate] = useState(() => new Date().toLocaleDateString(undefined, {weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+
+  const handleSignOut = () => {
+    setProfileDropdownOpen(false);
+    setMobileDrawerOpen(false);
+    sessionStorage.removeItem('upec_staff_token');
+    localStorage.removeItem('upec_staff_token');
+    sessionStorage.removeItem('upec_admin_token');
+    localStorage.removeItem('upec_admin_token');
+    sessionStorage.removeItem('upec_ops_session');
+    localStorage.removeItem('upec_ops_session');
+
+    if (onLogout) {
+      onLogout();
+    } else {
+      onNavigate('/staff/login');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/staff/login';
+      }
+    }
+  };
 
   useEffect(() => {
     setMobileDrawerOpen(false);
@@ -241,11 +263,8 @@ export default function AdminLayout({
                   <div className="border-t border-slate-100 pt-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        onNavigate('/');
-                      }}
-                      className="w-full px-4 py-2 text-left text-xs font-bold text-[#C62839] hover:bg-red-50 flex items-center gap-2"
+                      onClick={handleSignOut}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-[#C62839] hover:bg-red-50 flex items-center gap-2 cursor-pointer"
                     >
                       <LogOut size={15} />
                       <span>Sign Out</span>
@@ -367,6 +386,14 @@ export default function AdminLayout({
                 >
                   <Home size={14} />
                   <span>Public Website</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full py-2.5 rounded-xl bg-[#C62839] text-xs font-bold text-white flex items-center justify-center gap-2"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </div>

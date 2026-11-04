@@ -16,9 +16,10 @@ import AdminStaffPage from './pages/AdminStaffPage';
 interface AdminPortalAppProps {
   onNavigate?: (path: string) => void;
   initialTab?: AdminTabId;
+  onLogout?: () => void;
 }
 
-export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard' }: AdminPortalAppProps) {
+export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard', onLogout }: AdminPortalAppProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '').toLowerCase();
@@ -122,6 +123,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       activeTab={activeTab}
       onTabChange={handleTabChange}
       onNavigate={onNavigate}
+      onLogout={onLogout}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
     >
