@@ -285,7 +285,7 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Live student directory summary">
+      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-5" aria-label="Live student directory summary">
         {[{label:'Registered students',value:students.length,icon:Users},{label:'Applications',value:applicationCount,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
@@ -334,6 +334,8 @@ export default function AdminStudentsPage() {
               <option value="Pending">Pending</option>
               <option value="Awaiting Docs">Awaiting Docs</option>
               <option value="Suspended">Suspended</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Not Applied">Not Applied</option>
             </select>
           </div>
 
@@ -378,6 +380,8 @@ export default function AdminStudentsPage() {
               <option value="Pending">Pending</option>
               <option value="Awaiting Docs">Awaiting Docs</option>
               <option value="Suspended">Suspended</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Not Applied">Not Applied</option>
             </select>
           </div>
 
