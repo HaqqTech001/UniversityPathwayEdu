@@ -1,5 +1,5 @@
 // Backend-managed authentication and student portal API client.
-const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const baseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 type AuthUser = { id: string; studentId?: string | null; email: string; fullName: string; phone: string; isEmailVerified: boolean };
 type LoginResult = { token: string; user: AuthUser };
