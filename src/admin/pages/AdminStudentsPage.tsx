@@ -582,8 +582,8 @@ export default function AdminStudentsPage() {
                       <td className="py-3 px-2 text-slate-500">{s.year}</td>
                       <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{s.phone}</td>
                       <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
-                          <MoreVertical size={15} />
+                        <button type="button" title="Open student profile" aria-label={'Open '+s.name+' profile'} onClick={()=>openStudent(s)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#111A43]">
+                          <Eye size={15} />
                         </button>
                       </td>
                     </tr>
