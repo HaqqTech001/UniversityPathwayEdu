@@ -55,6 +55,32 @@ interface Student {
 }
 
 const notifyAdmin = (message:string,kind:'error'|'success'|'info'='info') => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind}}));
+const asRecord = (value:unknown):Record<string,any> => {
+  if(value&&typeof value==='object'&&!Array.isArray(value))return value as Record<string,any>;
+  if(typeof value==='string'){
+    try{const parsed=JSON.parse(value);return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed as Record<string,any>:{};}catch{return {};}
+  }
+  return {};
+};
+const flattenProfile = (value:Record<string,any>,prefix=''):Record<string,any> => {
+  const output:Record<string,any>={};
+  for(const [key,item] of Object.entries(value)){
+    const path=prefix?prefix+'.'+key:key;
+    if(item&&typeof item==='object'&&!Array.isArray(item)){
+      Object.assign(output,flattenProfile(item as Record<string,any>,path));
+    }else output[path]=item;
+  }
+  return output;
+};
+const profileValue = (source:Record<string,any>,...names:string[]) => {
+  const entries=Object.entries(source);
+  for(const name of names){
+    const wanted=name.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const match=entries.find(([key,value])=>key.split('.').pop()!.toLowerCase().replace(/[^a-z0-9]/g,'')===wanted&&value!==null&&value!==undefined&&String(value).trim()!=='');
+    if(match)return match[1];
+  }
+  return undefined;
+};
 
 export default function AdminStudentsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
@@ -77,8 +103,8 @@ export default function AdminStudentsPage() {
         const records=Array.isArray(data.students)?data.students:[];
         setStudents(records.map((item:Record<string,any>,index:number)=>{
           const application=(item.application&&typeof item.application==='object'?item.application:null) as Record<string,any>|null;
-          const details=(item.biodata?.details&&typeof item.biodata.details==='object'?item.biodata.details:{}) as Record<string,any>;
-          const form=(application?.form_data&&typeof application.form_data==='object'?application.form_data:{}) as Record<string,any>;
+          const details=flattenProfile(asRecord(item.biodata?.details));
+          const form=flattenProfile(asRecord(application?.form_data));
           const profile={...form,...details};
           const rawStatus=String(application?.status||'');
           const name=String(item.full_name||[profile.firstName||profile.first_name,profile.otherNames||profile.other_names,profile.surname||profile.lastName||profile.last_name].filter(Boolean).join(' ')||'Name unavailable');
@@ -119,10 +145,10 @@ export default function AdminStudentsPage() {
       .then(data=>{if(!controller.signal.aborted){
         const applications=Array.isArray(data.applications)?data.applications:[];
         const latestApplication=applications[0]||null;
-        const details=(data.biodata?.details&&typeof data.biodata.details==='object'?data.biodata.details:{}) as Record<string,any>;
-        const form=(latestApplication?.form_data&&typeof latestApplication.form_data==='object'?latestApplication.form_data:{}) as Record<string,any>;
+        const details=flattenProfile(asRecord(data.biodata?.details));
+        const form=flattenProfile(asRecord(latestApplication?.form_data));
         const merged={...form,...details};
-        const pick=(...keys:string[])=>keys.map(key=>merged[key]).find(value=>value!==undefined&&value!==null&&String(value).trim()!=='');
+        const pick=(...keys:string[])=>profileValue(merged,...keys);
         setSelectedStudent(current=>current?{
           ...current,
           name:String(data.student?.full_name||[pick('firstName','first_name'),pick('otherNames','other_names'),pick('surname','lastName','last_name')].filter(Boolean).join(' ')||current.name),
@@ -318,7 +344,7 @@ export default function AdminStudentsPage() {
   };
   const detailApplications=applicationDetail?.applications||[];
   const currentApplication=detailApplications[0]||null;
-  const profileDetails={...(currentApplication?.form_data||{}),...(applicationDetail?.biodata?.details||{})} as Record<string,any>;
+  const profileDetails={...flattenProfile(asRecord(currentApplication?.form_data)),...flattenProfile(asRecord(applicationDetail?.biodata?.details))};
   const detailFields=Object.entries(profileDetails).filter(([,value])=>value!==null&&value!==undefined&&value!=='');
   const applicationStatus=(raw:string)=>{
     const map:Record<string,Student['status']>={approved:'Admitted',submitted:'Pending',under_review:'Pending',action_required:'Awaiting Docs',rejected:'Rejected',suspended:'Suspended'};
@@ -357,7 +383,7 @@ export default function AdminStudentsPage() {
           </dl></section>
           <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5"><h3 className="mb-4 text-base font-extrabold text-[#111A43]">Programme and registration</h3><dl className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 sm:gap-4">
             {[
-              ['Student ID',selectedStudent.studentId],['Programme',currentApplication?.programme||selectedStudent.programme],['Academic session',currentApplication?.academic_session||selectedStudent.year],['Application reference',currentApplication?.reference_number||selectedStudent.appId],['Application status',currentApplication?.status],['Submitted at',currentApplication?.submitted_at],['Coaching mode',profileDetails.coachingMode||profileDetails.coaching_mode],['Preferred session',profileDetails.preferredSession||profileDetails.preferred_session],['Subjects',currentApplication?.subjects],['Biodata completed',applicationDetail?.biodata?.completed_at],['Last biodata update',applicationDetail?.biodata?.updated_at]
+              ['Student ID',selectedStudent.studentId],['Programme',currentApplication?.programme||selectedStudent.programme],['Academic session',currentApplication?.academic_session||selectedStudent.year],['Application reference',currentApplication?.reference_number||selectedStudent.appId],['Application status',currentApplication?.status],['Submitted at',currentApplication?.submitted_at],['Coaching mode',profileValue(profileDetails,'coachingMode','coaching_mode','mode')],['Preferred session',profileValue(profileDetails,'preferredSession','preferred_session')],['Subjects',currentApplication?.subjects],['Biodata completed',applicationDetail?.biodata?.completed_at],['Last biodata update',applicationDetail?.biodata?.updated_at]
             ].map(([label,value])=><div key={label}><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words [overflow-wrap:anywhere] text-sm font-semibold text-slate-800">{displayValue(value)}</dd></div>)}
           </dl>
           <div className="mt-5 border-t border-slate-100 pt-4"><h4 className="mb-3 text-sm font-bold text-[#111A43]">Student editing permissions</h4>
