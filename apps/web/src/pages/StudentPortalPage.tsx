@@ -101,7 +101,7 @@ export default function StudentPortalPage({ onNavigate }: PageProps) {
     const controller=new AbortController();
     const token=getStudentToken();
     if (!token) return;
-    const base=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
+    const base=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
     fetch(base+'/api/student/profile/photo',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(r=>r.ok?r.json():null)
       .then(data=>{if(!controller.signal.aborted)setDashboardPhoto(typeof data?.url==='string'?data.url:null);})
