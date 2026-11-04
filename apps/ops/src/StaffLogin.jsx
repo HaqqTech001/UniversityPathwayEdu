@@ -1,6 +1,6 @@
 import React,{useState} from 'react';
 import {staffSignIn} from './api';
-export default function StaffLogin({onSuccess}){
+export default function StaffLogin({onSuccess,logoSrc='/pathway-logos/pathway-header.png'}){
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
  const [showPassword,setShowPassword]=useState(false);
@@ -29,7 +29,7 @@ export default function StaffLogin({onSuccess}){
     <div className="ops-login-feature-footer">UNIVERSITY PATHWAY EDUCATIONAL CONSULT <small>EDUCATION · GUIDANCE · OPPORTUNITY</small></div>
    </aside>
    <section className="ops-login-card" aria-labelledby="ops-login-title">
-    <div className="ops-login-logo"><img src="/pathway-logos/pathway-header.png" alt="University Pathway Educational Consult" /></div>
+    <div className="ops-login-logo"><img src={logoSrc} alt="University Pathway Educational Consult" /></div>
     <h2 id="ops-login-title">Staff Sign In</h2>
     <p className="ops-login-intro">Access the University Pathway Admin Desk to manage admissions, programmes, students and more.</p>
     <form onSubmit={submit} className="ops-login-form">
