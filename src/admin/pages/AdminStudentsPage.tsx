@@ -221,13 +221,16 @@ export default function AdminStudentsPage() {
       searchFilter &&
       !s.name.toLowerCase().includes(searchFilter.toLowerCase()) &&
       !s.appId.toLowerCase().includes(searchFilter.toLowerCase()) &&
-      !s.phone.includes(searchFilter)
+      !s.phone.includes(searchFilter) &&
+      !s.email.toLowerCase().includes(searchFilter.toLowerCase()) &&
+      !s.studentId.toLowerCase().includes(searchFilter.toLowerCase())
     ) {
       return false;
     }
     return true;
   });
 
+  const applicationCount=students.filter(s=>s.applicationId).length;
   const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleStudents = filteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize);
@@ -251,6 +254,8 @@ export default function AdminStudentsPage() {
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Pending</span>;
       case 'Awaiting Docs':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">Awaiting Docs</span>;
+      case 'Not Applied':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Not applied</span>;
       case 'Suspended':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Suspended</span>;
       default:
@@ -282,8 +287,8 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Loaded application summary">
-        {[{label:'Applications',value:students.length,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
+      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Live student directory summary">
+        {[{label:'Registered students',value:students.length,icon:Users},{label:'Applications',value:applicationCount,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
@@ -494,8 +499,8 @@ export default function AdminStudentsPage() {
               <X size={18} />
             </button>
 
-            <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Live application details">
-              <h4 className="text-sm font-bold text-[#111A43]">Application details (live)</h4>
+            <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Live student account and application details">
+              <h4 className="text-sm font-bold text-[#111A43]">Student record (live)</h4>
               {detailLoading?<p className="mt-2 text-xs">Loading application…</p>:detailError?<p role="alert" className="mt-2 text-xs text-red-700">{detailError}</p>:applicationDetail?(
                 <div className="mt-2 space-y-3 text-xs">
                   {applicationDetail.application?<><p><strong>Backend status:</strong> {applicationDetail.application.status}</p>
@@ -518,7 +523,7 @@ export default function AdminStudentsPage() {
                 <textarea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} maxLength={2000} rows={3} placeholder="Explain your decision" className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
               </label>
               {reviewFeedback&&<p role="status" className="text-xs text-slate-700">{reviewFeedback}</p>}
-              <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail?.application} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
+              <button type="button" onClick={submitReview} disabled={reviewSaving||detailLoading||Boolean(detailError)||!applicationDetail?.application||!selectedStudent.applicationId} className="rounded-lg bg-[#111A43] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewSaving?'Saving…':'Save review decision'}</button>
             </section>
             <section className="mb-4 rounded-xl border border-slate-200 p-4 space-y-3" aria-label="Application documents">
               <h4 className="text-sm font-bold text-[#111A43]">Submitted documents</h4>
