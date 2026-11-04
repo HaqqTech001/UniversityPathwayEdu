@@ -58,7 +58,43 @@ router.get('/applications/metrics',permit('applications.read'),wrap(async(req,re
  const failure=results.find(result=>result.error);
  if(failure)throw failure.error;
  const counts=Object.fromEntries(statuses.map((status,index)=>[status,results[index+1].count??0]));
- res.json({total:results[0].count??0,...counts});
+ const students=await db.from('local_accounts').select('id',{count:'exact',head:true});
+ if(students.error)throw students.error;
+ res.json({total:results[0].count??0,students:students.count??0,...counts});
+}));
+// Student directory: registered student accounts are independent of programme applications.
+router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
+ const limit=Math.min(500,Math.max(1,Number.parseInt(String(req.query.limit||'200'),10)||200));
+ const [accounts,biodata,applications]=await Promise.all([
+  db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').order('created_at',{ascending:false}).limit(limit),
+  db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').limit(1000),
+  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').order('created_at',{ascending:false}).limit(1000)
+ ]);
+ for(const result of [accounts,biodata,applications])if(result.error)throw result.error;
+ const biodataByAccount=new Map((biodata.data||[]).map(row=>[row.account_id,row]));
+ const latestApplication=new Map();
+ for(const row of applications.data||[])if(!latestApplication.has(row.account_id))latestApplication.set(row.account_id,row);
+ const students=(accounts.data||[]).map(account=>{
+  const profile=biodataByAccount.get(account.id)||null;
+  const application=latestApplication.get(account.id)||null;
+  return {id:account.id,email:account.email,full_name:account.full_name,phone:account.phone,verified_at:account.verified_at,student_id:account.student_id,created_at:account.created_at,biodata:profile,application};
+ });
+ res.json({students,total:students.length,limit,hasMore:students.length===limit});
+}));
+router.get('/students/:id',permit('applications.read'),wrap(async(req,res)=>{
+ const id=req.params.id;
+ if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid student ID.'});
+ const [account,biodata,applications]=await Promise.all([
+  db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').eq('id',id).maybeSingle(),
+  db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').eq('account_id',id).maybeSingle(),
+  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').eq('account_id',id).order('created_at',{ascending:false}).limit(20)
+ ]);
+ for(const result of [account,biodata,applications])if(result.error)throw result.error;
+ if(!account.data)return res.status(404).json({error:'Student account not found.'});
+ const applicationIds=(applications.data||[]).map(row=>row.id);
+ const reviews=applicationIds.length?await db.from('local_application_reviews').select('id,application_id,previous_status,new_status,note,created_at').in('application_id',applicationIds).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
+ if(reviews.error)throw reviews.error;
+ res.json({student:account.data,biodata:biodata.data,applications:applications.data||[],reviews:reviews.data||[]});
 }));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
