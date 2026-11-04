@@ -58,23 +58,29 @@ router.get('/applications/metrics',permit('applications.read'),wrap(async(req,re
  const failure=results.find(result=>result.error);
  if(failure)throw failure.error;
  const counts=Object.fromEntries(statuses.map((status,index)=>[status,results[index+1].count??0]));
- const students=await db.from('local_accounts').select('id',{count:'exact',head:true});
- if(students.error)throw students.error;
- res.json({total:results[0].count??0,students:students.count??0,...counts});
+ const [students,staff]=await Promise.all([
+  db.from('local_accounts').select('id',{count:'exact',head:true}),
+  db.from('local_staff_members').select('account_id')
+ ]);
+ if(students.error)throw students.error;if(staff.error)throw staff.error;
+ res.json({total:results[0].count??0,students:Math.max(0,(students.count??0)-(staff.data||[]).length),...counts});
 }));
 // Student directory: registered student accounts are independent of programme applications.
 router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  const limit=Math.min(500,Math.max(1,Number.parseInt(String(req.query.limit||'200'),10)||200));
- const [accounts,biodata,applications]=await Promise.all([
+ const [accounts,biodata,applications,staff]=await Promise.all([
   db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').order('created_at',{ascending:false}).limit(limit),
+  
   db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').limit(1000),
-  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').order('created_at',{ascending:false}).limit(1000)
+  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').order('created_at',{ascending:false}).limit(1000),
+  db.from('local_staff_members').select('account_id')
  ]);
- for(const result of [accounts,biodata,applications])if(result.error)throw result.error;
+ for(const result of [accounts,biodata,applications,staff])if(result.error)throw result.error;
+ const staffIds=new Set((staff.data||[]).map(row=>row.account_id));
  const biodataByAccount=new Map((biodata.data||[]).map(row=>[row.account_id,row]));
  const latestApplication=new Map();
  for(const row of applications.data||[])if(!latestApplication.has(row.account_id))latestApplication.set(row.account_id,row);
- const students=(accounts.data||[]).map(account=>{
+ const students=(accounts.data||[]).filter(account=>!staffIds.has(account.id)).map(account=>{
   const profile=biodataByAccount.get(account.id)||null;
   const application=latestApplication.get(account.id)||null;
   return {id:account.id,email:account.email,full_name:account.full_name,phone:account.phone,verified_at:account.verified_at,student_id:account.student_id,created_at:account.created_at,biodata:profile,application};
