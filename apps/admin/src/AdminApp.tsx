@@ -42,9 +42,11 @@ export default function AdminApp() {
       // the verified Admin Desk token; do not create a second authentication flow.
       sessionStorage.setItem('upec_staff_token', token);
       setProfile(result as StaffProfile);
+      return true;
     } catch {
       clearAdminSession();
       setProfile(null);
+      return false;
     } finally {
       setChecking(false);
     }
