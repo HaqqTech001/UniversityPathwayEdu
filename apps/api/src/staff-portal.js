@@ -96,6 +96,15 @@ router.get('/students/:id',permit('applications.read'),wrap(async(req,res)=>{
  if(reviews.error)throw reviews.error;
  res.json({student:account.data,biodata:biodata.data,applications:applications.data||[],reviews:reviews.data||[]});
 }));
+router.get('/activity',permit('applications.read'),wrap(async(req,res)=>{
+ const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,status,submitted_at').order('created_at',{ascending:false}).limit(5);
+ if(error)throw error;
+ const ids=[...new Set((data||[]).map(row=>row.account_id))];
+ const accounts=ids.length?await db.from('local_accounts').select('id,full_name').in('id',ids):{data:[],error:null};
+ if(accounts.error)throw accounts.error;
+ const names=new Map((accounts.data||[]).map(row=>[row.id,row.full_name]));
+ res.json({activities:(data||[]).map(row=>({id:row.id,title:'Application '+String(row.status||'updated').replaceAll('_',' '),body:(names.get(row.account_id)||'Student')+' · '+row.reference_number+' · '+row.programme,created_at:row.submitted_at}))});
+}));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
