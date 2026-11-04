@@ -69,7 +69,7 @@ router.get('/applications/metrics',permit('applications.read'),wrap(async(req,re
 router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  const limit=Math.min(500,Math.max(1,Number.parseInt(String(req.query.limit||'200'),10)||200));
  const [accounts,biodata,applications,staff]=await Promise.all([
-  db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').order('created_at',{ascending:false}).limit(limit),
+  db.from('local_accounts').select('id,email,full_name,phone,verified_at,created_at').order('created_at',{ascending:false}).limit(limit),
   
   db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').limit(1000),
   db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').order('created_at',{ascending:false}).limit(1000),
@@ -83,7 +83,7 @@ router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  const students=(accounts.data||[]).filter(account=>!staffIds.has(account.id)).map(account=>{
   const profile=biodataByAccount.get(account.id)||null;
   const application=latestApplication.get(account.id)||null;
-  return {id:account.id,email:account.email,full_name:account.full_name,phone:account.phone,verified_at:account.verified_at,student_id:account.student_id,created_at:account.created_at,biodata:profile,application};
+  return {id:account.id,email:account.email,full_name:account.full_name,phone:account.phone,verified_at:account.verified_at,student_id:null,created_at:account.created_at,biodata:profile,application};
  });
  res.json({students,total:students.length,limit,hasMore:students.length===limit});
 }));
@@ -91,7 +91,7 @@ router.get('/students/:id',permit('applications.read'),wrap(async(req,res)=>{
  const id=req.params.id;
  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid student ID.'});
  const [account,biodata,applications]=await Promise.all([
-  db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').eq('id',id).maybeSingle(),
+  db.from('local_accounts').select('id,email,full_name,phone,verified_at,created_at').eq('id',id).maybeSingle(),
   db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').eq('account_id',id).maybeSingle(),
   db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').eq('account_id',id).order('created_at',{ascending:false}).limit(20)
  ]);
