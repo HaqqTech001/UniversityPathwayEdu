@@ -3,7 +3,7 @@ import {getStudentToken} from '../context/AuthContext';
 
 type Fee={id:string;programme_code:string;billing_month:string;amount_due_ngn:number;amount_paid_ngn:number;status:string};
 type Receipt={id:string;monthly_fee_id:string;review_status:string;created_at:string};
-const api=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/student/finance';
+const api=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/student/finance';
 const allowed=['application/pdf','image/jpeg','image/png'];
 const money=(v:number)=>Number(v).toLocaleString('en-NG',{style:'currency',currency:'NGN'});
 
