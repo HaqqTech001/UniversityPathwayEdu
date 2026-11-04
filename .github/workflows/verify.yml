@@ -43,3 +43,21 @@ jobs:
           node-version: '24'
       - run: |
           for file in apps/api/src/*.js; do node --check "$file" || exit 1; done
+
+  admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install admin dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check standalone admin
+        run: npm run lint
+      - name: Build standalone admin
+        run: npm run build
