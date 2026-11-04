@@ -24,7 +24,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     if(!token){setNotificationsReady(true);return;}
     const controller=new AbortController();
     setNotificationsReady(false);
-    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/activity',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/activity',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{if(!response.ok)throw Error('Notifications unavailable');return response.json();})
       .then(data=>{if(!controller.signal.aborted){const items=Array.isArray(data.activities)?data.activities:[];setNotifications(items.map((item:Record<string,unknown>)=>({id:String(item.id||''),title:String(item.title||'Notification'),body:String(item.message||item.body||''),created_at:String(item.created_at||item.sent_at||'')})).sort((a:{created_at:string},b:{created_at:string})=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,5));}})
       .catch(()=>{if(!controller.signal.aborted)setNotifications([]);})
@@ -36,7 +36,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setLoading(false);return;}
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/applications/metrics',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/metrics',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application metrics.');return data;})
       .then(data=>{if(!controller.signal.aborted)setMetrics(data);})
       .catch(error=>{if(!controller.signal.aborted){setMetrics(null);notify(error instanceof Error?error.message:'Dashboard data unavailable.');}})
