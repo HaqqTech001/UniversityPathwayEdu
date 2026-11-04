@@ -56,8 +56,6 @@ interface Student {
 
 const notifyAdmin = (message:string,kind:'error'|'success'|'info'='info') => window.dispatchEvent(new CustomEvent('upec-admin-toast',{detail:{message,kind}}));
 
-const displayName = (item:Record<string,unknown>) => { const form=(item.form_data && typeof item.form_data==='object' ? item.form_data : {}) as Record<string,unknown>; const profile=(item.profile && typeof item.profile==='object'?item.profile:{}) as Record<string,unknown>; const first=String(item.first_name||form.firstName||form.first_name||profile.first_name||'').trim(); const last=String(item.last_name||form.lastName||form.last_name||profile.last_name||'').trim(); return String(item.student_name||item.applicant_name||item.full_name||form.fullName||form.full_name||profile.full_name||[first,last].filter(Boolean).join(' ')||'Name unavailable'); };
-
 export default function AdminStudentsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
