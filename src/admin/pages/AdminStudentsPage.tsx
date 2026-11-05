@@ -375,13 +375,13 @@ export default function AdminStudentsPage() {
   if(selectedStudent){
     return (
       <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-3 overflow-x-hidden overflow-y-auto bg-slate-50 p-2 sm:gap-4 sm:p-4 lg:p-5">
-        <div className="flex w-full min-w-0 shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <button type="button" onClick={closeStudent} className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#111A43] hover:bg-slate-50"><ChevronLeft size={17}/> Back to students</button>
-            <div className="min-w-0"><h1 className="text-xl font-extrabold text-[#111A43] sm:text-2xl">Student profile</h1><p className="text-xs text-slate-500">Complete account, biodata and application record</p></div>
+        <header className="flex w-full min-w-0 shrink-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-2">
+            <button type="button" onClick={closeStudent} aria-label="Back to students" title="Back to students" className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#111A43] transition hover:bg-slate-50"><ChevronLeft size={17}/></button>
+            <div className="min-w-0"><h1 className="text-xl font-extrabold leading-tight tracking-tight text-[#111A43] sm:text-2xl">Student profile</h1><p className="truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Complete account, biodata and application record</p></div>
           </div>
-          <button type="button" onClick={()=>{setDetailReload(n=>n+1);setDocumentReload(n=>n+1);setReload(n=>n+1);}} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#111A43] sm:w-auto"><RotateCcw size={15}/> Refresh record</button>
-        </div>
+          <button type="button" onClick={()=>{setDetailReload(n=>n+1);setDocumentReload(n=>n+1);}} disabled={detailLoading||documentsLoading} aria-label="Refresh student profile" title="Refresh student profile" className="shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] transition hover:bg-slate-50 disabled:opacity-50"><RotateCcw size={17} className={detailLoading||documentsLoading?'animate-spin':''}/></button>
+        </header>
         <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5 lg:p-6">
           <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-2xl font-bold text-[#111A43] shadow-sm sm:h-28 sm:w-28">
