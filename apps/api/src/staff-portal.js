@@ -87,6 +87,20 @@ router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  });
  res.json({students,total:students.length,limit,hasMore:students.length===limit});
 }));
+router.get('/students/:id/photo',permit('applications.read'),wrap(async(req,res)=>{
+  const id=req.params.id;
+  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid student ID.'});
+  const [account,photo]=await Promise.all([
+   db.from('local_accounts').select('id').eq('id',id).maybeSingle(),
+   db.from('upec_student_photos').select('storage_path').eq('student_account_id',id).maybeSingle()
+  ]);
+  if(account.error)throw account.error;if(photo.error)throw photo.error;
+  if(!account.data)return res.status(404).json({error:'Student account not found.'});
+  if(!photo.data)return res.json({url:null});
+  const signed=await db.storage.from('upec-student-photos').createSignedUrl(photo.data.storage_path,300);
+  if(signed.error)throw signed.error;
+  res.json({url:signed.data.signedUrl});
+}));
 router.get('/students/:id',permit('applications.read'),wrap(async(req,res)=>{
  const id=req.params.id;
  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid student ID.'});
