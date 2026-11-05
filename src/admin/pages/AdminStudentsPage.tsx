@@ -132,7 +132,28 @@ export default function AdminStudentsPage() {
   const [detailLoading,setDetailLoading]=useState(false);
   const [detailError,setDetailError]=useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [profilePhotoUrl,setProfilePhotoUrl]=useState<string|null>(null);
+  const [profilePhotoLoading,setProfilePhotoLoading]=useState(false);
   const [detailReload,setDetailReload]=useState(0);
+  useEffect(()=>{
+    setProfilePhotoUrl(null);
+    if(!selectedStudent?.accountId){setProfilePhotoLoading(false);return;}
+    const controller=new AbortController();
+    const token=sessionStorage.getItem('upec_staff_token');
+    setProfilePhotoLoading(true);
+    fetch(apiBase+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId)+'/photo',{
+      headers:{Authorization:'Bearer '+token},signal:controller.signal
+    }).then(async response=>{
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Unable to load student photograph.');
+      return data;
+    }).then(data=>{
+      if(!controller.signal.aborted)setProfilePhotoUrl(typeof data.url==='string'&&data.url?data.url:null);
+    }).catch(error=>{
+      if(!controller.signal.aborted){setProfilePhotoUrl(null);notifyAdmin(error instanceof Error?error.message:'Unable to load student photograph.','error');}
+    }).finally(()=>{if(!controller.signal.aborted)setProfilePhotoLoading(false);});
+    return()=>controller.abort();
+  },[selectedStudent?.accountId,detailReload]);
   useEffect(()=>{
     setApplicationDetail(null);setDetailError('');
     if(!selectedStudent)return;
@@ -363,10 +384,18 @@ export default function AdminStudentsPage() {
         </div>
         <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5 lg:p-6">
           <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-2xl font-bold text-[#111A43]">
-              {selectedStudent.avatar?<img src={selectedStudent.avatar} alt="" className="h-full w-full object-cover"/>:selectedStudent.name.trim().charAt(0).toUpperCase()||'?'}
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-2xl font-bold text-[#111A43] shadow-sm sm:h-28 sm:w-28">
+              {profilePhotoUrl?<img src={profilePhotoUrl} alt={selectedStudent.name+' passport photograph'} className="h-full w-full object-cover" onError={()=>setProfilePhotoUrl(null)}/>:<span>{profilePhotoLoading?'…':selectedStudent.name.trim().charAt(0).toUpperCase()||'?'}</span>}
             </div>
-            <div className="w-full min-w-0 flex-1 sm:w-auto"><h2 className="break-words text-lg font-extrabold text-[#111A43] sm:text-xl">{selectedStudent.name}</h2><p className="mt-1 break-all font-mono text-xs text-slate-600 sm:text-sm">{selectedStudent.studentId||'Student ID not assigned'}</p><p className="mt-1 break-words text-sm text-slate-600">{selectedStudent.email||'Email not provided'} <span className="text-slate-400">·</span> {selectedStudent.phone||'Phone not provided'}</p></div>
+            <div className="w-full min-w-0 flex-1 sm:w-auto">
+              <h2 className="break-words text-lg font-extrabold text-[#111A43] sm:text-xl">{selectedStudent.name}</h2>
+              <p className="mt-1 text-xs font-medium text-slate-400">Student ID</p>
+              <p className="break-all text-sm font-bold text-[#111A43]">{selectedStudent.studentId||'Not assigned'}</p>
+              <div className="mt-2 grid min-w-0 grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
+                <div className="min-w-0"><p className="text-xs font-medium text-slate-400">Email address</p><p className="break-words text-sm font-bold text-[#111A43] [overflow-wrap:anywhere]">{selectedStudent.email||'Not provided'}</p></div>
+                <div className="min-w-0"><p className="text-xs font-medium text-slate-400">Phone number</p><p className="break-words text-sm font-bold text-[#111A43]">{selectedStudent.phone||'Not provided'}</p></div>
+              </div>
+            </div>
             <div className="self-start sm:self-center">{getStatusBadge(selectedStudent.status)}</div>
           </div>
           {detailLoading&&<p className="mt-4 text-sm text-slate-500">Loading full student record…</p>}
@@ -379,19 +408,19 @@ export default function AdminStudentsPage() {
           <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5"><h3 className="mb-4 text-base font-extrabold text-[#111A43]">Personal information</h3><dl className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 sm:gap-4">
             {[
               ['Full name',selectedStudent.name],['Email',selectedStudent.email],['Phone',selectedStudent.phone],['Date of birth',selectedStudent.dob],['Gender',selectedStudent.gender],['Address',selectedStudent.address],['Nationality / State of origin',selectedStudent.nationality],['Guardian name',selectedStudent.guardian],['Guardian phone',selectedStudent.guardianPhone],['Account verified',applicationDetail?.student?.verified_at?'Yes':'No'],['Account created',applicationDetail?.student?.created_at]
-            ].map(([label,value])=><div key={label}><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words [overflow-wrap:anywhere] text-sm font-semibold text-slate-800">{displayValue(value)}</dd></div>)}
+            ].map(([label,value])=><div key={label}><dt className="text-xs font-medium text-slate-400">{label}</dt><dd className="mt-0.5 break-words text-sm font-bold text-[#111A43] [overflow-wrap:anywhere]">{displayValue(value)}</dd></div>)}
           </dl></section>
           <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5"><h3 className="mb-4 text-base font-extrabold text-[#111A43]">Programme and registration</h3><dl className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 sm:gap-4">
             {[
               ['Student ID',selectedStudent.studentId],['Programme',currentApplication?.programme||selectedStudent.programme],['Academic session',currentApplication?.academic_session||selectedStudent.year],['Application reference',currentApplication?.reference_number||selectedStudent.appId],['Application status',currentApplication?.status],['Submitted at',currentApplication?.submitted_at],['Coaching mode',profileValue(profileDetails,'coachingMode','coaching_mode','mode')],['Preferred session',profileValue(profileDetails,'preferredSession','preferred_session')],['Subjects',currentApplication?.subjects],['Biodata completed',applicationDetail?.biodata?.completed_at],['Last biodata update',applicationDetail?.biodata?.updated_at]
-            ].map(([label,value])=><div key={label}><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words [overflow-wrap:anywhere] text-sm font-semibold text-slate-800">{displayValue(value)}</dd></div>)}
+            ].map(([label,value])=><div key={label}><dt className="text-xs font-medium text-slate-400">{label}</dt><dd className="mt-0.5 break-words text-sm font-bold text-[#111A43] [overflow-wrap:anywhere]">{displayValue(value)}</dd></div>)}
           </dl>
           <div className="mt-5 border-t border-slate-100 pt-4"><h4 className="mb-3 text-sm font-bold text-[#111A43]">Student editing permissions</h4>
             <label className="mb-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={studentPermissions.biodata_edit_allowed} disabled={permissionsSaving} onChange={()=>toggleStudentPermission('biodata_edit_allowed')}/> Allow biodata editing</label>
             <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={studentPermissions.programme_change_allowed} disabled={permissionsSaving} onChange={()=>toggleStudentPermission('programme_change_allowed')}/> Allow programme change</label>
           </div></section>
           <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5 2xl:col-span-2"><div className="mb-3 flex items-center justify-between"><h3 className="text-base font-extrabold text-[#111A43]">All submitted biodata fields</h3><span className="text-xs text-slate-500">{detailFields.length} fields</span></div>
-            {detailFields.length?<dl className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">{detailFields.map(([key,value])=><div key={key} className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{key.replace(/([A-Z])/g,' $1').replace(/_/g,' ')}</dt><dd className="mt-1 break-words [overflow-wrap:anywhere] text-sm font-medium text-slate-800">{displayValue(value)}</dd></div>)}</dl>:<p className="text-sm text-slate-500">No biodata fields have been submitted yet.</p>}
+            {detailFields.length?<dl className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">{detailFields.map(([key,value])=><div key={key} className="min-w-0"><dt className="text-xs font-medium text-slate-400">{key.replace(/([A-Z])/g,' $1').replace(/_/g,' ')}</dt><dd className="mt-0.5 break-words text-sm font-bold text-[#111A43] [overflow-wrap:anywhere]">{displayValue(value)}</dd></div>)}</dl>:<p className="text-sm text-slate-500">No biodata fields have been submitted yet.</p>}
           </section>
           <section className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5 2xl:col-span-2"><h3 className="mb-3 text-base font-extrabold text-[#111A43]">Application review history</h3>
             {applicationDetail?.reviews?.length?<div className="space-y-3">{applicationDetail.reviews.map(review=><div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-[#111A43]">{review.new_status.replace(/_/g,' ')}</strong><span className="text-xs text-slate-500">{review.created_at?new Date(review.created_at).toLocaleString('en-NG'):'Date unavailable'}</span></div><p className="mt-1 text-sm text-slate-700">{displayValue(review.note)}</p></div>)}</div>:<p className="text-sm text-slate-500">No review history recorded.</p>}
