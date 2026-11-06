@@ -86,6 +86,7 @@ export default function AdminAcademicPage() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState('All');
   const [programmeFilter, setProgrammeFilter] = useState('All');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
 
   const [catalogue, setCatalogue] = useState<{ programmes: any[]; subjects: any[] }>({
@@ -305,7 +306,7 @@ export default function AdminAcademicPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [query, statusFilter, programmeFilter, pageSize]);
+  }, [query, statusFilter, programmeFilter, pageSize, currentArea]);
 
   const activePlan = timetablePlans.find((plan) => plan.id === timetableClass);
   const timetableRows = (academicData.timetable || []).filter((row) => row.plan_id === timetableClass);
@@ -394,6 +395,7 @@ export default function AdminAcademicPage() {
     setQuery('');
     setStatusFilter('All');
     setProgrammeFilter('All');
+    setFilterOpen(false);
     setPage(1);
   };
 
@@ -889,67 +891,73 @@ export default function AdminAcademicPage() {
           ========================================================================= */}
       {currentArea && currentArea !== 'Timetable' && currentArea !== 'Attendance' && (
         <div className="space-y-4">
-          {/* Filter Toolbar */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-              <div className="relative flex-1 min-w-[200px]">
+          {/* Student-module search and responsive filters */}
+          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+            <div className="flex items-center gap-1.5">
+              <div className="relative min-w-0 flex-1">
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={`Search ${currentArea.toLowerCase()} by name, code or description…`}
-                  className="w-full pl-9 pr-3 py-2 bg-[#F7F8FC] border border-slate-200 rounded-xl text-xs font-medium text-[#111A43] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#111A43]"
+                  placeholder={`Search ${currentArea.toLowerCase()} by name, code or details…`}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-[#111A43] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#111A43]/20"
                 />
               </div>
-
-              {currentArea === 'Subjects' && (
-                <select
-                  value={programmeFilter}
-                  onChange={(e) => setProgrammeFilter(e.target.value)}
-                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-[#111A43] focus:outline-none"
-                >
-                  <option value="All">All Programmes</option>
-                  {catalogue.programmes.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-[#111A43] focus:outline-none"
-              >
-                <option value="All">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                {currentArea === 'Assignments' && (
-                  <>
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="closed">Closed</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:text-[#111A43] border border-slate-200 rounded-xl transition-colors cursor-pointer"
-              >
-                Reset
+              <button type="button" aria-label={`Open ${currentArea} filters`} onClick={() => setFilterOpen(true)} className="shrink-0 rounded-xl border border-slate-200 p-2 text-[#111A43] hover:bg-slate-50 md:hidden">
+                <Filter size={18} />
               </button>
+              <div className="hidden items-center gap-2 md:flex">
+                {currentArea !== 'Programmes' && (
+                  <select value={programmeFilter} onChange={(e) => setProgrammeFilter(e.target.value)} className="min-w-[145px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-[#111A43] focus:outline-none">
+                    <option value="All">Programme: All</option>
+                    {catalogue.programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="min-w-[125px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-[#111A43] focus:outline-none">
+                  <option value="All">Status: All</option>
+                  {currentArea === 'Assignments' ? <><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option></> : <><option value="Active">Active</option><option value="Inactive">Inactive</option></>}
+                </select>
+                <button type="button" onClick={resetFilters} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-[#111A43]">Reset</button>
+              </div>
             </div>
           </div>
 
+          {filterOpen && (
+            <div className="fixed inset-0 z-[80] md:hidden">
+              <button type="button" aria-label="Close filters" onClick={() => setFilterOpen(false)} className="absolute inset-0 w-full bg-slate-900/50" />
+              <section role="dialog" aria-modal="true" aria-label={`Filter ${currentArea}`} className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white p-5 shadow-2xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <div><h2 className="font-bold text-[#111A43]">Filter {currentArea}</h2><p className="mt-0.5 text-xs text-slate-500">Narrow down the records shown</p></div>
+                  <button type="button" onClick={() => setFilterOpen(false)} aria-label="Close filters" className="rounded-lg p-1 text-slate-500"><X size={20} /></button>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {currentArea !== 'Programmes' && (
+                    <label className="text-xs font-semibold text-slate-600">Programme
+                      <select value={programmeFilter} onChange={(e) => setProgrammeFilter(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-[#111A43]">
+                        <option value="All">All Programmes</option>
+                        {catalogue.programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <label className="text-xs font-semibold text-slate-600">Status
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-[#111A43]">
+                      <option value="All">All Statuses</option>
+                      {currentArea === 'Assignments' ? <><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option></> : <><option value="Active">Active</option><option value="Inactive">Inactive</option></>}
+                    </select>
+                  </label>
+                </div>
+                <div className="mt-5 flex gap-2">
+                  <button type="button" onClick={resetFilters} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Reset</button>
+                  <button type="button" onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-[#111A43] px-4 py-3 text-sm font-bold text-white">Show {filtered.length} results</button>
+                </div>
+              </section>
+            </div>
+          )}
+
           {/* Records Table and Detail Drawer */}
-          <div className="flex gap-4 items-start">
-            <div className="flex-1 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
+          <div className="flex min-w-0 flex-col items-stretch gap-3 lg:flex-row lg:items-start lg:gap-4">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[650px] text-xs">
                   <thead>
                     <tr className="bg-[#F7F8FC] border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
@@ -1025,8 +1033,26 @@ export default function AdminAcademicPage() {
                 </table>
               </div>
 
+              <div className="divide-y divide-slate-100 md:hidden">
+                {loading && Array.from({length:5},(_,i)=><div key={i} className="flex animate-pulse items-center gap-3 px-3 py-4"><div className="h-10 w-10 rounded-xl bg-slate-200"/><div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-slate-200"/><div className="h-2 w-1/2 rounded bg-slate-100"/></div></div>)}
+                {visible.map((item,index)=>(
+                  <button key={item.id} type="button" onClick={()=>setSelected(item)} className={`flex w-full min-w-0 items-center gap-3 border-l-4 px-3 py-3 text-left transition-colors ${selected?.id===item.id?'border-[#C62839] bg-rose-50':'border-transparent bg-white hover:bg-slate-50'}`}>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#111A43]/[0.06] text-[#111A43]">{currentArea==='Programmes'?<GraduationCap size={18}/>:currentArea==='Subjects'?<BookOpen size={18}/>:currentArea==='Classes'?<Users size={18}/>:<FileText size={18}/>}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-[#111A43]">{item.title}</span>
+                      <span className="mt-1 block truncate text-[11px] text-slate-500">{item.subtitle || item.details.description || item.details.instructions || 'No additional identifier'}</span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status==='Active'||item.status==='published'?'border-emerald-100 bg-emerald-50 text-emerald-700':item.status==='draft'?'border-amber-100 bg-amber-50 text-amber-700':'border-slate-200 bg-slate-100 text-slate-600'}`}>{item.status}</span>
+                      <ChevronRight size={15} className="text-slate-400"/>
+                    </span>
+                  </button>
+                ))}
+                {!loading&&!visible.length&&<p className="p-8 text-center text-sm text-slate-500">No matching {currentArea.toLowerCase()} records.</p>}
+              </div>
+
               {/* Table Footer / Pagination */}
-              <div className="p-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-white p-3 text-xs text-slate-500 sm:p-4">
                 <span>
                   Showing {filtered.length ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
                   {Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} records
@@ -1068,7 +1094,7 @@ export default function AdminAcademicPage() {
 
             {/* Selected Record Aside */}
             {selected && (
-              <aside className="w-80 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs shrink-0 space-y-4">
+              <aside className="w-full shrink-0 space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs lg:w-80 lg:p-5">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h3 className="text-sm font-bold text-[#111A43]">Record Details</h3>
                   <button
