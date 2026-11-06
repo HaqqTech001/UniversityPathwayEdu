@@ -192,7 +192,7 @@ router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const offset=Math.max(0,Number.parseInt(req.query.offset,10)||0);
  if(subjectId&&!uuid(subjectId))return res.status(400).json({error:'Invalid subject ID.'});
  if(status&&!['draft','published'].includes(status))return res.status(400).json({error:'Invalid question status.'});
- let query=db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,explanation,status,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
+ let query=db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,explanation,question_type,topic,subtopic,difficulty,exam_type,exam_year,solution_steps,source_name,source_reference,source_license,status,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
  if(subjectId)query=query.eq('subject_id',subjectId);
  if(status)query=query.eq('status',status);
  if(search)query=query.ilike('prompt',`%${search.replace(/[%_]/g,'\\router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
@@ -217,7 +217,7 @@ router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
  !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
  !['A','B','C','D'].includes(correctOption)||typeof explanation!=='string'||explanation.length>5000)
   return res.status(400).json({error:'Check the question, options, answer and subject.'});
- let query=db.from('upec_teacher_questions').update({subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),updated_at:new Date().toISOString()}).eq('id',id);
+ let query=db.from('upec_teacher_questions').update({subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),question_type:req.body.questionType||'single_choice',topic:req.body.topic||'',subtopic:req.body.subtopic||'',difficulty:req.body.difficulty||'medium',exam_type:req.body.examType||'',exam_year:req.body.examYear||null,solution_steps:req.body.solutionSteps||'',source_name:req.body.sourceName||'',source_reference:req.body.sourceReference||'',source_license:req.body.sourceLicense||'',updated_at:new Date().toISOString()}).eq('id',id);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
  const {data,error}=await query.select('id,subject_id,prompt,options,correct_option,explanation,status').maybeSingle();
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
@@ -230,10 +230,31 @@ router.post('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(subjectId)||typeof prompt!=='string'||prompt.trim().length<10||prompt.length>5000||
  !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
  !['A','B','C','D'].includes(correctOption)||typeof explanation!=='string'||explanation.length>5000 )return res.status(400).json({error:'Check the question, options, answer and subject.'});
- const {data,error}=await db.from('upec_teacher_questions').insert({subject_id:subjectId,author_account_id:req.actor.sub,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),status:'draft'}).select('id,subject_id,prompt,status').single();
+ const {data,error}=await db.from('upec_teacher_questions').insert({subject_id:subjectId,author_account_id:req.actor.sub,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),question_type:req.body.questionType||'single_choice',topic:req.body.topic||'',subtopic:req.body.subtopic||'',difficulty:req.body.difficulty||'medium',exam_type:req.body.examType||'',exam_year:req.body.examYear||null,solution_steps:req.body.solutionSteps||'',source_name:req.body.sourceName||'',source_reference:req.body.sourceReference||'',source_license:req.body.sourceLicense||'',status:'draft'}).select('id,subject_id,prompt,status').single();
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
  if(error)throw error;
  res.status(201).json({question:data});
+}));
+router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
+ const rows=req.body?.questions;
+ if(!Array.isArray(rows)||!rows.length||rows.length>500)return res.status(400).json({error:'Provide between 1 and 500 question records.'});
+ const accepted=[],rejected=[];
+ rows.forEach((row,index)=>{
+  const options=row?.options;
+  const valid=uuid(row?.subjectId)&&typeof row?.prompt==='string'&&row.prompt.trim().length>=10&&row.prompt.length<=5000&&
+   options&&typeof options==='object'&&!Array.isArray(options)&&['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)&&
+   ['A','B','C','D'].includes(row?.correctOption)&&
+   ['single_choice','multiple_select','true_false','short_answer','numeric'].includes(row?.questionType||'single_choice')&&
+   ['easy','medium','hard'].includes(row?.difficulty||'medium')&&
+   (row?.examYear==null||row.examYear===''||(Number.isInteger(Number(row.examYear))&&Number(row.examYear)>=1950&&Number(row.examYear)<=2100));
+  if(!valid){rejected.push({row:index+1,reason:'Invalid subject, prompt, options, answer, type, difficulty or year.'});return;}
+  accepted.push({subject_id:row.subjectId,author_account_id:req.actor.sub,prompt:row.prompt.trim(),options:Object.fromEntries(['A','B','C','D'].map(k=>[k,row.options[k].trim()])),correct_option:row.correctOption,explanation:String(row.explanation||'').slice(0,5000),question_type:row.questionType||'single_choice',topic:String(row.topic||'').slice(0,160),subtopic:String(row.subtopic||'').slice(0,160),difficulty:row.difficulty||'medium',exam_type:String(row.examType||'').slice(0,40),exam_year:row.examYear?Number(row.examYear):null,solution_steps:String(row.solutionSteps||'').slice(0,12000),source_name:String(row.sourceName||'').slice(0,160),source_reference:String(row.sourceReference||'').slice(0,500),source_license:String(row.sourceLicense||'').slice(0,160),status:'draft'});
+ });
+ if(!accepted.length)return res.status(400).json({error:'No valid questions to import.',rejected});
+ const {data,error}=await db.from('upec_teacher_questions').insert(accepted).select('id');
+ if(error?.code==='23503')return res.status(400).json({error:'One or more subject IDs are invalid.',rejected});
+ if(error)throw error;
+ res.status(201).json({imported:data?.length||0,rejected});
 }));
 router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  const id=req.params.id,status=req.body?.status;
