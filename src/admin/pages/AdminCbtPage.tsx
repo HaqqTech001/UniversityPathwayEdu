@@ -127,7 +127,29 @@ async function api(path: string, init: RequestInit = {}) {
   return data;
 }
 
-const SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
+
+const parseQuestionCsv = (input: string) => {
+  const rows: string[][] = [];
+  let row: string[] = [], cell = '', quoted = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (ch === '"' && quoted && input[i + 1] === '"') { cell += '"'; i++; }
+    else if (ch === '"') quoted = !quoted;
+    else if (ch === ',' && !quoted) { row.push(cell.trim()); cell = ''; }
+    else if ((ch === '\\n' || ch === '\\r') && !quoted) {
+      if (ch === '\\r' && input[i + 1] === '\\n') i++;
+      row.push(cell.trim()); cell = '';
+      if (row.some(value => value !== '')) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell.trim());
+  if (row.some(value => value !== '')) rows.push(row);
+  if (rows.length < 2) throw new Error('Paste a CSV header followed by at least one question row.');
+  const headers = rows[0].map(value => value.toLowerCase().replace(/[\\s_-]+/g, ''));
+  return rows.slice(1).map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
+};
+\nconst SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
 
 export default function AdminCbtPage() {
   const [activeSection, setActiveSection] = useState<SectionTab>('Overview');
@@ -155,7 +177,7 @@ export default function AdminCbtPage() {
   const [monitoringExamId, setMonitoringExamId] = useState<string>('');
 
   // Modals & Action Forms
-  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
+  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);\n  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);\n  const [bulkCsv, setBulkCsv] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
@@ -387,6 +409,41 @@ export default function AdminCbtPage() {
     } finally {
       setSavingAction(false);
     }
+  };
+
+
+  const handleBulkQuestionImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const records = parseQuestionCsv(bulkCsv);
+      const questions = records.map(row => ({
+        subjectId: row.subjectid || (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : ''),
+        prompt: row.prompt,
+        options: { A: row.optiona, B: row.optionb, C: row.optionc, D: row.optiond },
+        correctOption: (row.correctoption || '').toUpperCase(),
+        explanation: row.explanation,
+        questionType: row.questiontype || 'single_choice',
+        topic: row.topic,
+        subtopic: row.subtopic,
+        difficulty: row.difficulty || 'medium',
+        examType: row.examtype,
+        examYear: row.examyear || null,
+        solutionSteps: row.solutionsteps,
+        sourceName: row.sourcename,
+        sourceReference: row.sourcereference,
+        sourceLicense: row.sourcelicense
+      }));
+      setSavingAction(true);
+      const result = await api('/api/staff/academic/questions/bulk', {
+        method: 'POST', body: JSON.stringify({ questions })
+      });
+      notify(`Imported ${result.imported} questions; ${result.rejected?.length || 0} rows need correction.`, result.rejected?.length ? 'info' : 'success');
+      setBulkCsv('');
+      setIsBulkImportOpen(false);
+      void fetchQuestions();
+    } catch (err: any) {
+      notify(err.message || 'Bulk import failed.', 'error');
+    } finally { setSavingAction(false); }
   };
 
   // Toggle Question Status
@@ -711,6 +768,14 @@ export default function AdminCbtPage() {
               className={examsState.loading || questionsState.loading || subjectsState.loading ? 'animate-spin text-[#111A43]' : ''}
             />
             <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          <button
+            onClick={() => setIsBulkImportOpen(true)}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+          >
+            <ClipboardList size={14} />
+            <span>Bulk Import</span>
           </button>
 
           <button
@@ -2038,6 +2103,29 @@ export default function AdminCbtPage() {
               >
                 {savingAction ? 'Saving...' : 'Save Question to Bank'}
               </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+
+      {isBulkImportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
+          <form onSubmit={handleBulkQuestionImport} className="max-h-[90dvh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div>
+                <h2 className="text-base font-bold text-[#111A43]">Import Questions in Bulk</h2>
+                <p className="mt-1 text-[11px] text-slate-500">Paste CSV content. Imported questions remain drafts until reviewed and published.</p>
+              </div>
+              <button type="button" onClick={() => setIsBulkImportOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3 text-[11px] text-slate-600">
+              Required headers: <b>prompt, optionA, optionB, optionC, optionD, correctOption</b>. Optional: subjectId, explanation, questionType, topic, subtopic, difficulty, examType, examYear, solutionSteps, sourceName, sourceReference, sourceLicense. If subjectId is omitted, select a subject filter before importing.
+            </div>
+            <textarea required rows={12} value={bulkCsv} onChange={e => setBulkCsv(e.target.value)} placeholder={'prompt,optionA,optionB,optionC,optionD,correctOption,explanation,topic,difficulty,examType,examYear,solutionSteps\\n"Find x if 2x + 4 = 10","2","3","4","5","B","Subtract 4, then divide by 2","Linear equations","easy","JAMB",2024,"2x=6; x=3"} className="w-full rounded-lg border border-slate-200 p-3 font-mono text-xs" />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setIsBulkImportOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600">Cancel</button>
+              <button type="submit" disabled={savingAction || !bulkCsv.trim()} className="rounded-lg bg-[#C62839] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{savingAction ? 'Importing...' : 'Validate & Import'}</button>
             </div>
           </form>
         </div>
