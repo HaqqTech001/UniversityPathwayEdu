@@ -128,11 +128,11 @@ router.get('/assessments/attempts/:id/corrections',wrap(async(req,res)=>{
  if(!availability.available)return res.status(403).json({available:false,...availability});
  const {data:links,error:linksError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',exam.id).order('position');
  if(linksError)throw linksError;
- const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options,correct_option,explanation').in('id',(links||[]).map(x=>x.question_id));
+ const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options,correct_option,explanation,solution_steps,topic,subtopic,difficulty,exam_type,exam_year').in('id',(links||[]).map(x=>x.question_id));
  if(questionError)throw questionError;
  const byId=new Map((questions||[]).map(q=>[q.id,q]));
  const answers=attempt.answers&&typeof attempt.answers==='object'&&!Array.isArray(attempt.answers)?attempt.answers:{};
- res.json({available:true,title:exam.title,score:attempt.score,totalQuestions:attempt.total_questions,submittedAt:attempt.submitted_at,questions:(links||[]).map(link=>{const q=byId.get(link.question_id);if(!q)return null;const selected=answers[q.id]||null;return {id:q.id,prompt:q.prompt,options:q.options,selectedAnswer:selected,correctAnswer:q.correct_option,isCorrect:selected===q.correct_option,explanation:q.explanation||''};}).filter(Boolean)});
+ res.json({available:true,title:exam.title,score:attempt.score,totalQuestions:attempt.total_questions,submittedAt:attempt.submitted_at,questions:(links||[]).map(link=>{const q=byId.get(link.question_id);if(!q)return null;const selected=answers[q.id]||null;return {id:q.id,prompt:q.prompt,options:q.options,selectedAnswer:selected,correctAnswer:q.correct_option,isCorrect:selected===q.correct_option,explanation:q.explanation||'',solutionSteps:q.solution_steps||'',topic:q.topic||'',subtopic:q.subtopic||'',difficulty:q.difficulty||'medium',examType:q.exam_type||'',examYear:q.exam_year||null};}).filter(Boolean)});
 }));
 router.get('/assessment-results',wrap(async(req,res)=>{
  const {error:expiryError}=await db.rpc('upec_finalize_expired_attempts',{p_student:req.actor.sub});
