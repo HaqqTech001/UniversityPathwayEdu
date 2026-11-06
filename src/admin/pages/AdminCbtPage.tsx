@@ -469,7 +469,7 @@ export default function AdminCbtPage() {
       const params = new URLSearchParams({ subjectId, examType: pdfExamType, examYear: pdfExamYear });
       const response = await fetch(base + '/api/staff/academic/questions/extract-pdf?' + params.toString(), {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/pdf' },
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': pdfFile.name.toLowerCase().endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf' },
         body: pdfFile
       });
       const data = await response.json().catch(() => ({}));
@@ -2334,15 +2334,15 @@ export default function AdminCbtPage() {
           <div className="max-h-[94dvh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-[#111A43]">Extract questions from a PDF</h2>
-                <p className="mt-1 text-xs text-slate-500">AI extraction creates editable candidates only. Nothing enters the bank until you review and import it.</p>
+                <h2 className="text-lg font-bold text-[#111A43]">Extract questions from a document</h2>
+                <p className="mt-1 text-xs text-slate-500">PDFs and DOCX files are supported. Extraction creates editable candidates only; nothing enters the bank until you review and import it.</p>
               </div>
               <button type="button" onClick={() => setIsPdfExtractOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X size={18}/></button>
             </div>
             <form onSubmit={extractPdfQuestions} className="grid grid-cols-1 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="text-xs font-semibold text-slate-700 sm:col-span-2">
-                PDF question paper (max 12 MB)
-                <input type="file" accept="application/pdf,.pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+                PDF or Word question paper (DOCX, max 12 MB)
+                <input type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
                 {pdfFile && <span className="mt-1 block text-[10px] text-slate-500">{pdfFile.name} · {(pdfFile.size / 1024 / 1024).toFixed(2)} MB</span>}
               </label>
               <label className="text-xs font-semibold text-slate-700">
