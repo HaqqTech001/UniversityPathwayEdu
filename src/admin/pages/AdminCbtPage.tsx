@@ -196,6 +196,13 @@ export default function AdminCbtPage() {
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [bulkCsv, setBulkCsv] = useState('');
+  const [isPdfExtractOpen, setIsPdfExtractOpen] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfSubjectId, setPdfSubjectId] = useState('');
+  const [pdfExamType, setPdfExamType] = useState('JAMB');
+  const [pdfExamYear, setPdfExamYear] = useState('');
+  const [pdfCandidates, setPdfCandidates] = useState<any[]>([]);
+  const [pdfExtracting, setPdfExtracting] = useState(false);
   const [isProviderImportOpen, setIsProviderImportOpen] = useState(false);
   const [providerName, setProviderName] = useState('auto');
   const [providerExam, setProviderExam] = useState('utme');
@@ -443,6 +450,64 @@ export default function AdminCbtPage() {
     }
   };
 
+
+  const updatePdfCandidate = (index: number, field: string, value: any) => {
+    setPdfCandidates(current => current.map((question, i) => i === index ? { ...question, [field]: value } : question));
+  };
+
+  const extractPdfQuestions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdfFile) { notify('Choose a PDF question paper first.', 'error'); return; }
+    const subjectId = pdfSubjectId || (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : '');
+    if (!subjectId) { notify('Choose the subject these questions belong to.', 'error'); return; }
+    if (pdfFile.size > 12 * 1024 * 1024) { notify('PDF must be 12 MB or smaller.', 'error'); return; }
+    setPdfExtracting(true);
+    setPdfCandidates([]);
+    try {
+      const token = sessionStorage.getItem('upec_staff_token');
+      if (!token) throw new Error('Staff authentication token required. Please sign in again.');
+      const params = new URLSearchParams({ subjectId, examType: pdfExamType, examYear: pdfExamYear });
+      const response = await fetch(base + '/api/staff/academic/questions/extract-pdf?' + params.toString(), {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/pdf' },
+        body: pdfFile
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new ApiError(data.error || 'PDF extraction failed.', response.status);
+      setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: 'Uploaded source document' })));
+      notify('Extracted ' + (data.extracted || 0) + ' question candidates. Review every answer before importing.', 'success');
+    } catch (err: any) {
+      notify(err.message || 'Could not extract questions from this PDF.', 'error');
+    } finally { setPdfExtracting(false); }
+  };
+
+  const importReviewedPdfQuestions = async () => {
+    const subjectId = pdfSubjectId || (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : '');
+    const ready = pdfCandidates.filter(q => ['A','B','C','D'].includes(q.correctOption));
+    if (!ready.length) { notify('Confirm the correct answer for at least one question before importing.', 'error'); return; }
+    if (ready.length !== pdfCandidates.length) { notify('Some questions still need an answer confirmed. Resolve them or remove them before importing.', 'error'); return; }
+    setSavingAction(true);
+    try {
+      const result = await api('/api/staff/academic/questions/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ questions: ready.map(q => ({
+          subjectId, prompt: q.prompt, options: q.options, correctOption: q.correctOption,
+          explanation: q.explanation, solutionSteps: q.solutionSteps, topic: q.topic,
+          subtopic: q.subtopic, difficulty: q.difficulty || 'medium', examType: q.examType || pdfExamType,
+          examYear: q.examYear || (pdfExamYear ? Number(pdfExamYear) : null), questionType: 'single_choice',
+          sourceName: q.sourceName || pdfFile?.name || 'PDF upload', sourceReference: q.sourceReference || pdfFile?.name || '',
+          sourceLicense: q.sourceLicense || 'Uploaded source document'
+        })) })
+      });
+      notify('Imported ' + result.imported + ' reviewed questions as drafts. ' + (result.rejected?.length || 0) + ' were rejected.', result.rejected?.length ? 'info' : 'success');
+      setPdfCandidates([]);
+      setPdfFile(null);
+      setIsPdfExtractOpen(false);
+      void fetchQuestions();
+    } catch (err: any) {
+      notify(err.message || 'Could not import reviewed questions.', 'error');
+    } finally { setSavingAction(false); }
+  };
 
   const handleBulkQuestionImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -855,6 +920,14 @@ export default function AdminCbtPage() {
           >
             <BookOpen size={14} />
             <span>Provider Library</span>
+          </button>
+
+          <button
+            onClick={() => { setPdfSubjectId(selectedSubjectFilter === 'all' ? '' : selectedSubjectFilter); setPdfCandidates([]); setIsPdfExtractOpen(true); }}
+            className="flex items-center gap-1 rounded-lg border border-[#C62839]/20 bg-[#C62839]/5 px-3 py-2 text-xs font-bold text-[#C62839] hover:bg-[#C62839]/10 transition"
+          >
+            <FileQuestion size={14} />
+            <span>Extract from PDF</span>
           </button>
 
           <button
@@ -2255,6 +2328,75 @@ export default function AdminCbtPage() {
         </div>
       )}
 
+
+      {isPdfExtractOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-3">
+          <div className="max-h-[94dvh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-[#111A43]">Extract questions from a PDF</h2>
+                <p className="mt-1 text-xs text-slate-500">AI extraction creates editable candidates only. Nothing enters the bank until you review and import it.</p>
+              </div>
+              <button type="button" onClick={() => setIsPdfExtractOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X size={18}/></button>
+            </div>
+            <form onSubmit={extractPdfQuestions} className="grid grid-cols-1 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="text-xs font-semibold text-slate-700 sm:col-span-2">
+                PDF question paper (max 12 MB)
+                <input type="file" accept="application/pdf,.pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+                {pdfFile && <span className="mt-1 block text-[10px] text-slate-500">{pdfFile.name} · {(pdfFile.size / 1024 / 1024).toFixed(2)} MB</span>}
+              </label>
+              <label className="text-xs font-semibold text-slate-700">
+                Destination subject
+                <select value={pdfSubjectId || (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : '')} onChange={e => setPdfSubjectId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs">
+                  <option value="">Choose subject</option>
+                  {subjectsState.data.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs font-semibold text-slate-700">
+                  Exam type
+                  <select value={pdfExamType} onChange={e => setPdfExamType(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs">
+                    {['JAMB','WAEC','NECO','IJMB','Post-UTME','Other'].map(x => <option key={x}>{x}</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-700">
+                  Year (optional)
+                  <input type="number" min="1950" max="2100" value={pdfExamYear} onChange={e => setPdfExamYear(e.target.value)} placeholder="e.g. 2024" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs"/>
+                </label>
+              </div>
+              <div className="flex items-end sm:col-span-2 lg:col-span-4">
+                <button type="submit" disabled={pdfExtracting || !pdfFile} className="rounded-lg bg-[#111A43] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+                  {pdfExtracting ? 'Extracting document…' : 'Extract question candidates'}
+                </button>
+              </div>
+            </form>
+            {pdfCandidates.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div><h3 className="text-sm font-bold text-[#111A43]">Review extracted questions ({pdfCandidates.length})</h3><p className="text-[11px] text-slate-500">Check every prompt, option and answer against the original paper. Unconfirmed answers cannot be imported.</p></div>
+                  <button type="button" onClick={importReviewedPdfQuestions} disabled={savingAction || pdfCandidates.some(q => !['A','B','C','D'].includes(q.correctOption))} className="rounded-lg bg-[#C62839] px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{savingAction ? 'Importing…' : 'Import reviewed drafts'}</button>
+                </div>
+                {pdfCandidates.map((q, index) => (
+                  <section key={index} className="space-y-2 rounded-xl border border-slate-200 p-3">
+                    <div className="flex items-center justify-between"><span className="text-xs font-bold text-[#111A43]">Question {index + 1}</span><span className="text-[10px] text-amber-700">{q.reviewNotes || 'Verify against source'}</span></div>
+                    <textarea value={q.prompt} onChange={e => updatePdfCandidate(index, 'prompt', e.target.value)} rows={3} className="w-full rounded-lg border border-slate-200 p-2 text-xs" aria-label={'Question '+(index+1)+' prompt'}/>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {(['A','B','C','D'] as const).map(letter => <label key={letter} className="text-[10px] font-semibold text-slate-600">{letter}<input value={q.options[letter]} onChange={e => updatePdfCandidate(index, 'options', {...q.options,[letter]:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>)}
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <label className="text-[10px] font-semibold text-slate-600">Correct answer<select value={q.correctOption || ''} onChange={e => updatePdfCandidate(index,'correctOption',e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"><option value="">Needs verification</option>{['A','B','C','D'].map(x=><option key={x}>{x}</option>)}</select></label>
+                      <label className="text-[10px] font-semibold text-slate-600">Topic<input value={q.topic || ''} onChange={e=>updatePdfCandidate(index,'topic',e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
+                      <label className="text-[10px] font-semibold text-slate-600">Difficulty<select value={q.difficulty || 'medium'} onChange={e=>updatePdfCandidate(index,'difficulty',e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
+                    </div>
+                    <label className="block text-[10px] font-semibold text-slate-600">Explanation<textarea value={q.explanation || ''} onChange={e=>updatePdfCandidate(index,'explanation',e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
+                    <label className="block text-[10px] font-semibold text-slate-600">Worked solution<textarea value={q.solutionSteps || ''} onChange={e=>updatePdfCandidate(index,'solutionSteps',e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {isProviderImportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3">
