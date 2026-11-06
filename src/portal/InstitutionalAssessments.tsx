@@ -53,8 +53,13 @@ export default function InstitutionalAssessments(){
   let cancelled=false;
   upecAuthApi.assessmentAttempt(token(),attempt).catch(e=>{
    if(cancelled)return;
-   setError(e instanceof Error?e.message:'The examination has expired.');
+   setError(e instanceof Error?e.message:'The examination has expired. Your attempt has been finalised.');
    setQuestions([]);
+   setAttempt('');
+   setActiveExam(null);
+   setExpires('');
+   setAnswers({});
+   hydrated.current=false;
    void refreshHistory().catch(()=>{});
   });
   return()=>{cancelled=true;};
@@ -64,7 +69,7 @@ export default function InstitutionalAssessments(){
  const current=questions[currentIndex];
 
  const open=async(exam:Exam)=>{
-  setBusy(true);setError('');setResult(null);setSaveState('saved');setLastSaved('');hydrated.current=false;
+  setBusy(true);setError('');setResult(null);setCorrectionReview(null);setSaveState('saved');setLastSaved('');hydrated.current=false;
   try{
    const value=token();const started=await upecAuthApi.startAssessment(value,exam.id);const details=await upecAuthApi.assessmentAttempt(value,started.attemptId);
    setActiveExam(exam);setAttempt(started.attemptId);setQuestions(details.questions||[]);setExpires(details.attempt.expiresAt||'');setAnswers(details.attempt.answers||{});setCurrentIndex(0);setFlagged([]);hydrated.current=true;
