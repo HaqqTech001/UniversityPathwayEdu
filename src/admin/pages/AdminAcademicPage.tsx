@@ -27,7 +27,7 @@ import {
   X,
 } from 'lucide-react';
 
-type Area = 'Programmes' | 'Subjects' | 'Timetable' | 'Attendance' | 'Assignments';
+type Area = 'Programmes' | 'Subjects' | 'Classes' | 'Timetable' | 'Attendance' | 'Assignments';
 type AcademicRecord = {
   id: string;
   title: string;
@@ -39,12 +39,20 @@ type AcademicRecord = {
 const sections = [
   { name: 'Programmes' as const, icon: GraduationCap, description: 'Academic pathways, degrees, and certificate programmes' },
   { name: 'Subjects' as const, icon: BookOpen, description: 'Curriculum courses, modules, and subject offerings' },
+  { name: 'Classes' as const, icon: Users, description: 'Student cohorts, streams, and academic class groups' },
   { name: 'Timetable' as const, icon: CalendarDays, description: 'Cohort schedules, weekly periods, and lecture matrices' },
   { name: 'Attendance' as const, icon: ClipboardCheck, description: 'Class attendance tracking and session logs' },
   { name: 'Assignments' as const, icon: FileText, description: 'Coursework tasks, submission deadlines, and evaluation' },
 ];
 
 const fieldMap: Record<string, { key: string; label: string; type: string; optional?: boolean }[]> = {
+  Classes: [
+    { key: 'programme_id', label: 'Programme', type: 'programme' },
+    { key: 'name', label: 'Class name', type: 'text' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'academic_session', label: 'Academic session', type: 'text' },
+    { key: 'stream', label: 'Stream (optional)', type: 'text', optional: true },
+  ],
   Attendance: [
     { key: 'programme_id', label: 'Programme', type: 'programme' },
     { key: 'learning_mode', label: 'Learning mode', type: 'mode' },
@@ -135,7 +143,7 @@ export default function AdminAcademicPage() {
       request('/catalogue'),
       request('/attendance/students'),
       request('/timetable-plans'),
-      ...['timetable', 'attendance', 'assignments'].map((key) =>
+      ...['classes', 'timetable', 'attendance', 'assignments'].map((key) =>
         request('/' + key).then((data) => ({ key, records: data.records || [] }))
       ),
     ])
@@ -191,6 +199,8 @@ export default function AdminAcademicPage() {
               .filter(([key]) => !['created_at', 'class_id'].includes(key))
               .map(([key, value]) => [key, key === 'due_at' && value ? value.slice(0, 16) : value])
           )
+        : currentArea === 'Classes'
+        ? { programme_id: catalogue.programmes[0]?.id || '', academic_session: '2025/2026' }
         : {}
     );
     setForm({
@@ -386,54 +396,48 @@ export default function AdminAcademicPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Header with Title, Description, Academic Session selector, and Primary Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#111A43] tracking-tight">Academic Management</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Manage academic programmes, subject curricula, timetables, attendance, and coursework assignments.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 self-start sm:self-auto">
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-[#111A43] shadow-xs">
-            <Calendar size={14} className="text-[#c62839]" />
-            <span>2025/2026 Academic Session</span>
-            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">Current</span>
+      {!currentArea ? (
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black text-[#111A43] tracking-tight">Academic Record</h1>
+            <p className="mt-1 text-xs text-slate-500">Manage programmes, subjects, classes, attendance, timetables and coursework.</p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setRefreshCount((n) => n + 1)}
-            aria-label="Refresh academic records"
-            title="Refresh academic data"
-            className="p-2.5 bg-white hover:bg-slate-50 text-[#111A43] rounded-xl border border-slate-200 shadow-xs transition-colors"
-          >
-            <RefreshCw size={15} />
+          <button type="button" onClick={() => setRefreshCount((n) => n + 1)} aria-label="Refresh academic records" title="Refresh" className="shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-[#111A43] shadow-xs hover:bg-slate-50">
+            <RefreshCw size={16} />
           </button>
-
-          {currentArea && (
-            <button
-              type="button"
-              onClick={() => {
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <button type="button" onClick={() => { setActiveTab('overview'); setSelected(null); setAttendanceStudent(null); setTimetableOpen(false); }} aria-label="Back to Academic Record" title="Back" className="mt-0.5 shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-[#111A43] hover:bg-slate-50">
+              <ArrowLeft size={17} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl font-black tracking-tight text-[#111A43] sm:text-2xl">{currentArea}</h1>
+              <p className="mt-1 text-xs text-slate-500">{sections.find((section) => section.name === currentArea)?.description}</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => setRefreshCount((n) => n + 1)} aria-label="Refresh workspace" title="Refresh" className="rounded-xl border border-slate-200 bg-white p-2 text-[#111A43] shadow-xs hover:bg-slate-50">
+              <RefreshCw size={15} />
+            </button>
+            {currentArea !== 'Attendance' && (
+              <button type="button" onClick={() => {
                 if (currentArea === 'Timetable') {
                   setPlanEditing(null);
                   setPlanForm({ programme_id: catalogue.programmes[0]?.id || '', learning_mode: 'physical', title: '', description: '' });
                   setPlanModal(true);
-                } else {
-                  beginEdit();
-                }
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
-            >
-              <Plus size={15} />
-              <span>{currentArea === 'Timetable' ? 'Create Timetable' : `Add ${currentArea.slice(0, -1)}`}</span>
-            </button>
-          )}
+                } else beginEdit();
+              }} className="inline-flex items-center gap-1.5 rounded-xl bg-[#c62839] px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#a51b2b]">
+                <Plus size={14} /><span>{currentArea === 'Timetable' ? 'Create' : currentArea === 'Classes' ? 'Add Class' : currentArea === 'Programmes' ? 'Add Programme' : currentArea === 'Subjects' ? 'Add Subject' : 'Add Assignment'}</span>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 2. Top KPI Summary Cards */}
+      {!currentArea && (
+      {/* 2. Academic Record statistics */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-[#111A43] text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -490,46 +494,7 @@ export default function AdminAcademicPage() {
           </div>
         </div>
       </div>
-
-      {/* 3. Sub-tabs Navigation Strip */}
-      <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-bold text-slate-500 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('overview');
-            setSelected(null);
-          }}
-          className={`pb-3 transition-colors cursor-pointer shrink-0 ${
-            activeTab === 'overview'
-              ? 'text-[#c62839] border-b-2 border-[#c62839] font-extrabold'
-              : 'hover:text-[#111A43]'
-          }`}
-        >
-          Academic Overview
-        </button>
-
-        {sections.map((s) => (
-          <button
-            key={s.name}
-            type="button"
-            onClick={() => {
-              setActiveTab(s.name);
-              setSelected(null);
-              setQuery('');
-              setStatusFilter('All');
-              setProgrammeFilter('All');
-              setPage(1);
-            }}
-            className={`pb-3 transition-colors cursor-pointer shrink-0 ${
-              activeTab === s.name
-                ? 'text-[#c62839] border-b-2 border-[#c62839] font-extrabold'
-                : 'hover:text-[#111A43]'
-            }`}
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
+      )}
 
       {/* Error Banner */}
       {error && (
@@ -546,7 +511,7 @@ export default function AdminAcademicPage() {
           ========================================================================= */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {sections.map(({ name, icon: Icon, description }) => (
               <button
                 key={name}
@@ -579,9 +544,13 @@ export default function AdminAcademicPage() {
                       ? `${catalogue.subjects.length} Courses`
                       : name === 'Timetable'
                       ? `${timetablePlans.length} Plans`
+                      : name === 'Classes'
+                      ? `${(academicData.classes || []).length} Classes`
                       : name === 'Attendance'
                       ? `${(academicData.attendance || []).length} Records`
-                      : `${(academicData.assignments || []).length} Tasks`}
+                      : name === 'Assignments'
+                      ? `${(academicData.assignments || []).length} Tasks`
+                      : `${timetablePlans.length} Plans`}
                   </span>
                   <span className="text-[#111A43] font-bold">Open Module</span>
                 </div>
@@ -589,40 +558,6 @@ export default function AdminAcademicPage() {
             ))}
           </div>
 
-          {/* Quick Roster & Programmes Summary Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#111A43]">Active Academic Programmes</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Approved university pathway curricula and certificate courses</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('Programmes')}
-                className="text-xs font-bold text-[#c62839] hover:underline"
-              >
-                View All Programmes →
-              </button>
-            </div>
-
-            <div className="mt-4 divide-y divide-slate-100 text-xs">
-              {catalogue.programmes.slice(0, 5).map((p) => (
-                <div key={p.id} className="py-3 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <strong className="text-[#111A43] font-bold block text-sm">{p.name}</strong>
-                    <span className="text-slate-400 font-mono text-[11px]">{p.code || 'CODE-TBD'}</span>
-                    <span className="text-slate-500 ml-2">· {p.description || 'Institutional pathway'}</span>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 shrink-0">
-                    Active
-                  </span>
-                </div>
-              ))}
-              {!catalogue.programmes.length && !loading && (
-                <p className="py-8 text-center text-slate-400">No programmes registered yet.</p>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -1159,7 +1094,7 @@ export default function AdminAcademicPage() {
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h2 className="text-lg font-black text-[#111A43]">
-                {editing ? 'Edit' : 'Create'} {currentArea.slice(0, -1)}
+                {editing ? 'Edit' : 'Create'} {currentArea === 'Classes' ? 'Class' : currentArea === 'Programmes' ? 'Programme' : currentArea === 'Subjects' ? 'Subject' : currentArea === 'Assignments' ? 'Assignment' : currentArea}
               </h2>
               <button
                 type="button"
@@ -1286,6 +1221,8 @@ export default function AdminAcademicPage() {
                         </option>
                       ))}
                     </select>
+                  ) : field.type === 'textarea' ? (
+                    <textarea required={!field.optional} rows={3} value={String(otherForm[field.key] ?? '')} onChange={(e) => setOtherForm((v) => ({ ...v, [field.key]: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#111A43]" />
                   ) : (
                     <input
                       required={!field.optional}
