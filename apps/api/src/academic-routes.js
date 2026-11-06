@@ -217,7 +217,10 @@ router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
  !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
  !['A','B','C','D'].includes(correctOption)||typeof explanation!=='string'||explanation.length>5000)
   return res.status(400).json({error:'Check the question, options, answer and subject.'});
- let query=db.from('upec_teacher_questions').update({subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),question_type:req.body.questionType||'single_choice',topic:req.body.topic||'',subtopic:req.body.subtopic||'',difficulty:req.body.difficulty||'medium',exam_type:req.body.examType||'',exam_year:req.body.examYear||null,solution_steps:req.body.solutionSteps||'',source_name:req.body.sourceName||'',source_reference:req.body.sourceReference||'',source_license:req.body.sourceLicense||'',updated_at:new Date().toISOString()}).eq('id',id);
+ const updates={subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),updated_at:new Date().toISOString()};
+ const metadataFields={questionType:'question_type',topic:'topic',subtopic:'subtopic',difficulty:'difficulty',examType:'exam_type',examYear:'exam_year',solutionSteps:'solution_steps',sourceName:'source_name',sourceReference:'source_reference',sourceLicense:'source_license'};
+ for(const [input,column] of Object.entries(metadataFields))if(Object.prototype.hasOwnProperty.call(req.body||{},input))updates[column]=input==='examYear'?(req.body[input]?Number(req.body[input]):null):req.body[input];
+ let query=db.from('upec_teacher_questions').update(updates).eq('id',id);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
  const {data,error}=await query.select('id,subject_id,prompt,options,correct_option,explanation,status').maybeSingle();
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
