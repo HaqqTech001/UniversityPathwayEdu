@@ -330,12 +330,12 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
  try{
   response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key),{
    method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({contents:[{parts:isPdf?[{text:prompt},{inlineData:{mimeType:'application/pdf',data:req.body.toString('base64')}}]:[{text:prompt+'\\n\\nExtracted DOCX document text:\\n'+docxText+(docxHasDrawing?'\\n\\nNOTE: This DOCX contains embedded drawing/image content that was not converted to pixels. Flag questions that appear to depend on missing visual material in reviewNotes.':'')}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1}})
+   body:JSON.stringify({contents:[{parts:isPdf?[{text:prompt},{inlineData:{mimeType:'application/pdf',data:req.body.toString('base64')}}]:[{text:prompt+'\n\nExtracted DOCX document text:\n'+docxText+(docxHasDrawing?'\n\nNOTE: This DOCX contains embedded drawing/image content that was not converted to pixels. Flag questions that appear to depend on missing visual material in reviewNotes.':'')}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1}})
   });
- }catch(error){clearTimeout(timer);return res.status(502).json({error:error.name==='AbortError'?'PDF extraction timed out. Try a smaller document.':'Could not reach the document extraction service.'});}
+ }catch(error){clearTimeout(timer);return res.status(502).json({error:error.name==='AbortError'?'Document extraction timed out. Try a smaller document.':'Could not reach the document extraction service.'});}
  clearTimeout(timer);
  const payload=await response.json().catch(()=>({}));
- if(!response.ok){console.error('Gemini PDF extraction failed:',response.status,payload?.error?.message||'');return res.status(502).json({error:'Document extraction service could not process this PDF.'});}
+ if(!response.ok){console.error('Gemini document extraction failed:',response.status,payload?.error?.message||'');return res.status(502).json({error:'Document extraction service could not process this document.'});}
  const raw=(payload.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('');
  let parsed;
  try{parsed=JSON.parse(raw);}catch{return res.status(502).json({error:'The extraction service returned an unreadable response. Please retry the PDF.'});}
