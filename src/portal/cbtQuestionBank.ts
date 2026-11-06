@@ -7,6 +7,11 @@ export interface CbtQuestion {
   options: string[];
   answer: number; // 0=A, 1=B, 2=C, 3=D
   explanation: string;
+  solutionSteps?: string;
+  examType?: string;
+  examYear?: number | null;
+  sourceProvider?: string;
+  imageUrl?: string | null;
 }
 
 // Original UPEC practice questions. These are not official JAMB past questions.
