@@ -149,7 +149,8 @@ const parseQuestionCsv = (input: string) => {
   const headers = rows[0].map(value => value.toLowerCase().replace(/[\s_-]+/g, ''));
   return rows.slice(1).map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
 };
-\nconst SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
+
+const SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
 
 export default function AdminCbtPage() {
   const [activeSection, setActiveSection] = useState<SectionTab>('Overview');
