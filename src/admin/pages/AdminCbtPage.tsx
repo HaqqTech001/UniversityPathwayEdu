@@ -181,6 +181,16 @@ export default function AdminCbtPage() {
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [bulkCsv, setBulkCsv] = useState('');
+  const [isProviderImportOpen, setIsProviderImportOpen] = useState(false);
+  const [providerName, setProviderName] = useState('auto');
+  const [providerExam, setProviderExam] = useState('utme');
+  const [providerSubject, setProviderSubject] = useState('mathematics');
+  const [providerYear, setProviderYear] = useState('2024');
+  const [providerTargetSubject, setProviderTargetSubject] = useState('');
+  const [providerPreview, setProviderPreview] = useState<any[]>([]);
+  const [providerSelected, setProviderSelected] = useState<number[]>([]);
+  const [providerLoading, setProviderLoading] = useState(false);
+
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
@@ -447,6 +457,53 @@ export default function AdminCbtPage() {
     } catch (err: any) {
       notify(err.message || 'Bulk import failed.', 'error');
     } finally { setSavingAction(false); }
+  };
+
+
+  const fetchProviderPreview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProviderLoading(true);
+    setProviderPreview([]);
+    setProviderSelected([]);
+    try {
+      const params = new URLSearchParams({
+        provider: providerName, exam: providerExam, subject: providerSubject.trim().toLowerCase().replace(/\\s+/g, '-'),
+        year: providerYear, limit: '30'
+      });
+      const result = await api(`/api/staff/academic/provider-questions?${params.toString()}`);
+      setProviderPreview(result.questions || []);
+      setProviderSelected((result.questions || []).map((_: any, index: number) => index));
+      notify(`Found ${result.importable || 0} importable questions from ${result.provider}.`, 'success');
+    } catch (err: any) {
+      notify(err.message || 'Could not retrieve provider questions.', 'error');
+    } finally { setProviderLoading(false); }
+  };
+
+  const importProviderSelection = async () => {
+    if (!providerTargetSubject) { notify('Select the UPEC subject these questions belong to.', 'error'); return; }
+    const selected = providerSelected.map(index => providerPreview[index]).filter(Boolean);
+    if (!selected.length) { notify('Select at least one question to import.', 'error'); return; }
+    setProviderLoading(true);
+    try {
+      const questions = selected.map(q => ({
+        subjectId: providerTargetSubject, prompt: q.prompt, options: q.options,
+        correctOption: q.correctOption, explanation: q.explanation,
+        solutionSteps: q.solutionSteps, questionType: 'single_choice',
+        difficulty: 'medium', examType: q.examType, examYear: q.examYear,
+        sourceName: q.sourceProvider, sourceReference: q.providerId,
+        sourceLicense: 'Provider terms/licence to be verified before publication'
+      }));
+      const result = await api('/api/staff/academic/questions/bulk', {
+        method: 'POST', body: JSON.stringify({ questions })
+      });
+      notify(`Imported ${result.imported} questions as drafts. ${result.rejected?.length || 0} were rejected.`, result.rejected?.length ? 'info' : 'success');
+      setProviderPreview([]);
+      setProviderSelected([]);
+      setIsProviderImportOpen(false);
+      void fetchQuestions();
+    } catch (err: any) {
+      notify(err.message || 'Provider import failed.', 'error');
+    } finally { setProviderLoading(false); }
   };
 
   // Toggle Question Status
@@ -771,6 +828,14 @@ export default function AdminCbtPage() {
               className={examsState.loading || questionsState.loading || subjectsState.loading ? 'animate-spin text-[#111A43]' : ''}
             />
             <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          <button
+            onClick={() => { setProviderTargetSubject(selectedSubjectFilter === 'all' ? '' : selectedSubjectFilter); setIsProviderImportOpen(true); }}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
+          >
+            <BookOpen size={14} />
+            <span>Provider Library</span>
           </button>
 
           <button
@@ -2131,6 +2196,73 @@ export default function AdminCbtPage() {
               <button type="submit" disabled={savingAction || !bulkCsv.trim()} className="rounded-lg bg-[#C62839] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{savingAction ? 'Importing...' : 'Validate & Import'}</button>
             </div>
           </form>
+        </div>
+      )}
+
+
+      {isProviderImportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3">
+          <div className="max-h-[92dvh] w-full max-w-5xl space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-[#111A43]">External Past-Question Providers</h2>
+                <p className="mt-1 text-[11px] text-slate-500">Preview provider content, select questions and import them into the UPEC bank as drafts.</p>
+              </div>
+              <button type="button" onClick={() => setIsProviderImportOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+            </div>
+            <form onSubmit={fetchProviderPreview} className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <label className="text-[11px] font-semibold text-slate-600">Provider
+                <select value={providerName} onChange={e => setProviderName(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                  <option value="auto">Automatic fallback</option><option value="aloc">ALOC Station</option><option value="sdashapi">SdashAPI</option>
+                </select>
+              </label>
+              <label className="text-[11px] font-semibold text-slate-600">Exam
+                <select value={providerExam} onChange={e => setProviderExam(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                  <option value="utme">JAMB / UTME</option><option value="waec">WAEC</option><option value="neco">NECO</option><option value="post-utme">Post-UTME</option>
+                </select>
+              </label>
+              <label className="text-[11px] font-semibold text-slate-600">Provider subject slug
+                <input required value={providerSubject} onChange={e => setProviderSubject(e.target.value)} placeholder="mathematics" className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+              </label>
+              <label className="text-[11px] font-semibold text-slate-600">Year
+                <input required type="number" min="1990" max="2030" value={providerYear} onChange={e => setProviderYear(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+              </label>
+              <button disabled={providerLoading} className="self-end rounded-lg bg-[#111A43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{providerLoading ? 'Loading...' : 'Fetch Questions'}</button>
+            </form>
+            <label className="block max-w-sm text-[11px] font-semibold text-slate-600">Save under UPEC subject
+              <select required value={providerTargetSubject} onChange={e => setProviderTargetSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                <option value="">Choose destination subject</option>
+                {subjectsState.data.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+              </select>
+            </label>
+            {providerPreview.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700">{providerSelected.length} of {providerPreview.length} selected</span>
+                  <button type="button" onClick={() => setProviderSelected(providerSelected.length === providerPreview.length ? [] : providerPreview.map((_: any, i: number) => i))} className="font-semibold text-[#111A43]">{providerSelected.length === providerPreview.length ? 'Clear selection' : 'Select all'}</button>
+                </div>
+                <div className="max-h-[42dvh] space-y-2 overflow-y-auto">
+                  {providerPreview.map((q: any, index: number) => (
+                    <label key={q.providerId + '-' + index} className="flex gap-3 rounded-xl border border-slate-200 p-3 text-xs">
+                      <input type="checkbox" checked={providerSelected.includes(index)} onChange={e => setProviderSelected(old => e.target.checked ? [...old, index] : old.filter(x => x !== index))} className="mt-1" />
+                      <span className="min-w-0 flex-1">
+                        <span className="font-semibold text-slate-800">{index + 1}. {q.prompt}</span>
+                        <span className="mt-2 grid grid-cols-1 gap-1 text-slate-600 sm:grid-cols-2">
+                          {(['A','B','C','D'] as const).map(key => <span key={key}>{key}. {q.options?.[key]}</span>)}
+                        </span>
+                        <span className="mt-2 block text-[11px] text-emerald-700">Answer: {q.correctOption} · {q.sourceProvider} · {q.examYear || providerYear}</span>
+                        {q.explanation && <span className="mt-1 block text-[11px] text-slate-500">Explanation: {q.explanation}</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button type="button" disabled={providerLoading || !providerSelected.length} onClick={importProviderSelection} className="rounded-lg bg-[#C62839] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">Import selected as drafts ({providerSelected.length})</button>
+                </div>
+              </div>
+            ) : <p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">No preview loaded. Fetch questions to review available content.</p>}
+            <p className="text-[10px] leading-relaxed text-slate-400">Provider credentials remain on the API server. Review provider terms and content rights before publishing or retaining imported material.</p>
+          </div>
         </div>
       )}
 
