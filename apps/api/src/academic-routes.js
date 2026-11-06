@@ -232,7 +232,8 @@ router.post('/questions',grant(...questionRoles),wrap(async(req,res)=>{
 router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
  const rows=req.body?.questions;
  if(!Array.isArray(rows)||!rows.length||rows.length>500)return res.status(400).json({error:'Provide between 1 and 500 question records.'});
- const accepted=[],rejected=[];
+ const accepted=[],rejected=[],seen=new Set();
+ const normalize=value=>String(value||'').normalize('NFKC').replace(/\\s+/g,' ').trim().toLocaleLowerCase();
  rows.forEach((row,index)=>{
   const options=row?.options;
   const valid=uuid(row?.subjectId)&&typeof row?.prompt==='string'&&row.prompt.trim().length>=10&&row.prompt.length<=5000&&
@@ -242,10 +243,26 @@ router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
    ['easy','medium','hard'].includes(row?.difficulty||'medium')&&
    (row?.examYear==null||row.examYear===''||(Number.isInteger(Number(row.examYear))&&Number(row.examYear)>=1950&&Number(row.examYear)<=2100));
   if(!valid){rejected.push({row:index+1,reason:'Invalid subject, prompt, options, answer, type, difficulty or year.'});return;}
-  accepted.push({subject_id:row.subjectId,author_account_id:req.actor.sub,prompt:row.prompt.trim(),options:Object.fromEntries(['A','B','C','D'].map(k=>[k,row.options[k].trim()])),correct_option:row.correctOption,explanation:String(row.explanation||'').slice(0,5000),question_type:row.questionType||'single_choice',topic:String(row.topic||'').slice(0,160),subtopic:String(row.subtopic||'').slice(0,160),difficulty:row.difficulty||'medium',exam_type:String(row.examType||'').slice(0,40),exam_year:row.examYear?Number(row.examYear):null,solution_steps:String(row.solutionSteps||'').slice(0,12000),source_name:String(row.sourceName||'').slice(0,160),source_reference:String(row.sourceReference||'').slice(0,500),source_license:String(row.sourceLicense||'').slice(0,160),status:'draft'});
+  const key=row.subjectId+'::'+normalize(row.prompt);
+  if(seen.has(key)){rejected.push({row:index+1,reason:'Duplicate question in this import batch.'});return;}
+  seen.add(key);
+  accepted.push({rowNumber:index+1,record:{subject_id:row.subjectId,author_account_id:req.actor.sub,prompt:row.prompt.trim(),options:Object.fromEntries(['A','B','C','D'].map(k=>[k,row.options[k].trim()])),correct_option:row.correctOption,explanation:String(row.explanation||'').slice(0,5000),question_type:'single_choice',topic:String(row.topic||'').slice(0,160),subtopic:String(row.subtopic||'').slice(0,160),difficulty:row.difficulty||'medium',exam_type:String(row.examType||'').slice(0,40),exam_year:row.examYear?Number(row.examYear):null,solution_steps:String(row.solutionSteps||'').slice(0,12000),source_name:String(row.sourceName||'').slice(0,160),source_reference:String(row.sourceReference||'').slice(0,500),source_license:String(row.sourceLicense||'').slice(0,160),status:'draft'}});
  });
  if(!accepted.length)return res.status(400).json({error:'No valid questions to import.',rejected});
- const {data,error}=await db.from('upec_teacher_questions').insert(accepted).select('id');
+ const subjects=[...new Set(accepted.map(x=>x.record.subject_id))];
+ const prompts=[...new Set(accepted.map(x=>x.record.prompt))];
+ const {data:existing,error:lookupError}=await db.from('upec_teacher_questions').select('subject_id,prompt').in('subject_id',subjects).in('prompt',prompts);
+ if(lookupError)throw lookupError;
+ const existingKeys=new Set((existing||[]).map(q=>q.subject_id+'::'+normalize(q.prompt)));
+ const fresh=[];
+ for(const item of accepted){
+  const key=item.record.subject_id+'::'+normalize(item.record.prompt);
+  if(existingKeys.has(key)){rejected.push({row:item.rowNumber,reason:'This question already exists in the selected subject.'});continue;}
+  existingKeys.add(key);
+  fresh.push(item.record);
+ }
+ if(!fresh.length)return res.status(200).json({imported:0,rejected});
+ const {data,error}=await db.from('upec_teacher_questions').insert(fresh).select('id');
  if(error?.code==='23503')return res.status(400).json({error:'One or more subject IDs are invalid.',rejected});
  if(error)throw error;
  res.status(201).json({imported:data?.length||0,rejected});
