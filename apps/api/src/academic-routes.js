@@ -260,6 +260,45 @@ router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
  if(error)throw error;
  res.status(201).json({imported:data?.length||0,rejected});
 }));
+router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
+ const provider=String(req.query.provider||'auto').toLowerCase();
+ const subject=String(req.query.subject||'').toLowerCase();
+ const exam=String(req.query.exam||'utme').toLowerCase();
+ const year=Number(req.query.year);
+ const limit=Math.min(30,Math.max(1,Number.parseInt(req.query.limit,10)||20));
+ const examMap={utme:{aloc:'jamb',sdash:'utme'},jamb:{aloc:'jamb',sdash:'utme'},waec:{aloc:'waec',sdash:'wassce'},wassce:{aloc:'waec',sdash:'wassce'},neco:{aloc:'neco',sdash:'neco'},'post-utme':{aloc:'post_utme',sdash:'post-utme'}};
+ if(!['auto','aloc','sdashapi'].includes(provider)||!examMap[exam]||!/^[a-z0-9-]{2,50}$/.test(subject)||!Number.isInteger(year)||year<1990||year>2030)return res.status(400).json({error:'Choose a valid provider, examination, subject and year.'});
+ const providers=provider==='auto'?['aloc','sdashapi']:[provider];
+ const failures=[];
+ for(const source of providers){
+  const key=source==='aloc'?process.env.ALOC_API_KEY:process.env.SDASH_API_TOKEN;
+  if(!key)continue;
+  const base=source==='aloc'?'https://dev.aloc.com.ng/api/v1':'https://sdashapi.com/api/v1';
+  const aliases={'use-of-english':'english','literature-in-english':'englishlit','agricultural-science':'agriculture','crs':'crk','irs':'irk'};
+  const path=source==='aloc'
+   ?'/questions?subject='+encodeURIComponent(subject)+'&examType='+encodeURIComponent(examMap[exam].aloc)+'&year='+year+'&limit='+Math.min(15,limit)
+   :'/q?subject='+encodeURIComponent(aliases[subject]||subject)+'&type='+encodeURIComponent(examMap[exam].sdash)+'&year='+year+'&limit='+Math.min(30,limit);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{
+   const headers=source==='aloc'?{'X-API-Key':key}:{AccessToken:key};
+   const response=await fetch(base+path,{headers:{Accept:'application/json',...headers},signal:controller.signal});
+   if(!response.ok){failures.push(source+': HTTP '+response.status);continue;}
+   const payload=await response.json();
+   const raw=Array.isArray(payload.data)?payload.data:[];
+   const questions=raw.map((q,index)=>{
+    const optionSource=q.option||q.options||q.choices||{};
+    const entries=Array.isArray(optionSource)?optionSource.map((v,i)=>[String.fromCharCode(97+i),v]):Object.entries(optionSource);
+    const options=Object.fromEntries(entries.map(([k,v])=>[String(k).toLowerCase().replace(/^option\\s*/,'').replace(/[()]/g,''),typeof v==='object'?(v.text||v.value||''):String(v)]));
+    const answer=String(q.answer||q.correctAnswer||q.correct_answer||q.correct_option||'').toLowerCase().replace(/[()]/g,'').replace(/^option\\s*/,'');
+    return {providerId:String(q.id??q.question_id??index),prompt:String(q.question||q.prompt||q.text||''),options,correctOption:answer.toUpperCase(),explanation:String(q.solution||q.explanation||q.answer_explanation||''),solutionSteps:String(q.solution_steps||q.worked_solution||q.solution||''),imageUrl:q.image||q.imageUrl||null,examType:exam.toUpperCase(),examYear:Number(q.examyear||q.year||year),sourceProvider:source==='aloc'?'ALOC Station':'SdashAPI'};
+   }).filter(q=>q.prompt&&['A','B','C','D'].every(k=>q.options[k])&&['A','B','C','D'].includes(q.correctOption));
+   return res.json({provider:source,questions,totalReceived:raw.length,importable:questions.length,skipped:raw.length-questions.length,note:'Provider results are preview-only until imported. Imported records are saved as drafts.'});
+  }catch(error){failures.push(source+': '+(error.name==='AbortError'?'timeout':'request failed'));}
+  finally{clearTimeout(timer);}
+ }
+ if(providers.every(p=>!(p==='aloc'?process.env.ALOC_API_KEY:process.env.SDASH_API_TOKEN)))return res.status(503).json({error:'No question provider is configured. Set ALOC_API_KEY or SDASH_API_TOKEN on the API service.'});
+ res.status(502).json({error:'No provider returned usable questions.',details:failures});
+}));
 router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  const id=req.params.id,status=req.body?.status;
  if(!uuid(id)||!['draft','published'].includes(status))return res.status(400).json({error:'Invalid question or status.'});
