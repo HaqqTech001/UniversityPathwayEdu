@@ -313,9 +313,12 @@ export default function AdminCbtPage() {
   };
 
   useEffect(() => {
-    if (monitoringExamId && activeSection === 'Live Monitoring Desk') {
+    if (!monitoringExamId || activeSection !== 'Live Monitoring Desk') return;
+    void fetchLiveAttempts(monitoringExamId);
+    const refreshInterval = window.setInterval(() => {
       void fetchLiveAttempts(monitoringExamId);
-    }
+    }, 10000);
+    return () => window.clearInterval(refreshInterval);
   }, [monitoringExamId, activeSection]);
 
   // Student Search for Eligibility
