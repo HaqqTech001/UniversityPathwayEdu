@@ -187,6 +187,7 @@ export default function CbtExamWizard() {
     'Physical and Health Education',
   ];
   const subjectsWithQuestions = new Set(CBT_QUESTION_BANK.map(question => question.subject));
+  const providerExamLabel = 'UTME';
   const unavailableSubjects = selectedSubjects.filter(subject => !subjectsWithQuestions.has(subject));
   const canStartExam = selectedSubjects.length === 4 && (questionSource==='aloc'||unavailableSubjects.length===0) && !providerLoading;
 
@@ -259,7 +260,7 @@ export default function CbtExamWizard() {
             const options=['a','b','c','d'].map(k=>raw.options?.[k]??raw.options?.[k.toUpperCase()]);
             const answer='abcd'.indexOf(String(raw.correctAnswer||'').toLowerCase());
             if(!raw.id||!String(raw.text||raw.questionHtml||'').trim()||options.some(v=>typeof v!=='string'||!v.trim())||answer<0)return null;
-            return {id:String(raw.id),subject,topic:'Historical UTME '+historicalYear,prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:'This provider tier does not include worked solutions.'} as CbtQuestion;
+            return {id:String(raw.id),subject,topic:String(raw.topic||raw.section||('Historical '+providerExamLabel+' '+historicalYear)),prompt:String(raw.text||raw.questionHtml),options:options as string[],answer,explanation:String(raw.explanation||raw.solution||raw.answerExplanation||''),solutionSteps:String(raw.solutionSteps||raw.solution_steps||raw.workedSolution||raw.worked_solution||raw.solution||''),examType:String(raw.examType||raw.examtype||providerExamLabel),examYear:Number(raw.examYear||raw.examyear||historicalYear),sourceProvider:String(raw.sourceProvider||'Past-question provider'),imageUrl:raw.imageUrl||raw.image||null} as CbtQuestion;
           }).filter((q:CbtQuestion|null):q is CbtQuestion=>q!==null);
           const distinct=[...new Map(items.map(q=>[q.id,q])).values()];
           const required=historicalLength==='full'?(subject==='Use of English'?60:40):5;
@@ -1398,6 +1399,8 @@ export default function CbtExamWizard() {
                   <strong className="text-[#0b1a42] block text-[11px] mb-0.5">Solution Rationale:</strong>
                   <span>{q.explanation}</span>
                 </div>
+                {q.solutionSteps && q.solutionSteps !== q.explanation && <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-relaxed text-slate-700"><strong className="mb-1 block text-[11px] text-blue-900">Worked solution</strong><span className="whitespace-pre-wrap">{q.solutionSteps}</span></div>}
+                {q.imageUrl && <a href={q.imageUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-blue-700 underline">View question diagram</a>}
               </article>
             );
           })}
