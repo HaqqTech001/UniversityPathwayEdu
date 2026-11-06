@@ -267,6 +267,48 @@ router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
  if(error)throw error;
  res.status(201).json({imported:data?.length||0,rejected});
 }));
+router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:'application/pdf',limit:'12mb'}),wrap(async(req,res)=>{
+ const subjectId=String(req.query.subjectId||'');
+ const examType=String(req.query.examType||'').slice(0,40);
+ const examYear=Number(req.query.examYear);
+ if(!uuid(subjectId))return res.status(400).json({error:'Choose a valid destination subject.'});
+ if(!Buffer.isBuffer(req.body)||req.body.length<8||req.body.subarray(0,5).toString()!=='%PDF-')return res.status(400).json({error:'Upload a valid PDF document.'});
+ if(req.body.length>12*1024*1024)return res.status(413).json({error:'PDF must be 12 MB or smaller.'});
+ const key=process.env.GEMINI_API_KEY||process.env.GOOGLE_API_KEY;
+ if(!key)return res.status(503).json({error:'Document extraction is not configured. Add GEMINI_API_KEY to the API service.'});
+ const schema={type:'OBJECT',properties:{questions:{type:'ARRAY',items:{type:'OBJECT',properties:{
+  prompt:{type:'STRING'},optionA:{type:'STRING'},optionB:{type:'STRING'},optionC:{type:'STRING'},optionD:{type:'STRING'},
+  correctOption:{type:'STRING',enum:['A','B','C','D','UNKNOWN']},explanation:{type:'STRING'},solutionSteps:{type:'STRING'},
+  topic:{type:'STRING'},subtopic:{type:'STRING'},difficulty:{type:'STRING',enum:['easy','medium','hard']},
+  examType:{type:'STRING'},examYear:{type:'STRING'},reviewNotes:{type:'STRING'}
+ },required:['prompt','optionA','optionB','optionC','optionD','correctOption','explanation','solutionSteps','topic','subtopic','difficulty','examType','examYear','reviewNotes']}}},required:['questions']};
+ const prompt='Extract every objective multiple-choice question from this examination PDF. Preserve mathematical notation, units, symbols, tables and wording. Extract the four options exactly. Identify the correct option only when the document provides an answer key or the answer is unambiguous from a fully worked solution; otherwise use UNKNOWN and explain the uncertainty in reviewNotes. Do not invent missing options, answers, years or explanations. If an answer key appears elsewhere in the document, match it carefully by question number. Provide a concise explanation and worked solution steps only when supported by the source or directly solvable; label any calculated solution in reviewNotes. Ignore headers, page numbers and instructions that are not questions. Split compound question numbers into separate records. For unreadable or incomplete questions, include them only if the prompt and all four options are recoverable and describe the issue in reviewNotes. Exam type hint: '+(examType||'not supplied')+'. Exam year hint: '+(Number.isInteger(examYear)&&examYear>=1950&&examYear<=2100?examYear:'not supplied')+'. Return an empty questions array if no valid objective questions are present.';
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+ let response;
+ try{
+  response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key),{
+   method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({contents:[{parts:[{text:prompt},{inlineData:{mimeType:'application/pdf',data:req.body.toString('base64')}}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1}})
+  });
+ }catch(error){clearTimeout(timer);return res.status(502).json({error:error.name==='AbortError'?'PDF extraction timed out. Try a smaller document.':'Could not reach the document extraction service.'});}
+ clearTimeout(timer);
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok){console.error('Gemini PDF extraction failed:',response.status,payload?.error?.message||'');return res.status(502).json({error:'Document extraction service could not process this PDF.'});}
+ const raw=(payload.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('');
+ let parsed;
+ try{parsed=JSON.parse(raw);}catch{return res.status(502).json({error:'The extraction service returned an unreadable response. Please retry the PDF.'});}
+ const questions=Array.isArray(parsed.questions)?parsed.questions.slice(0,300).map((q,index)=>({
+  rowNumber:index+1,prompt:String(q.prompt||'').slice(0,5000),
+  options:{A:String(q.optionA||'').slice(0,1000),B:String(q.optionB||'').slice(0,1000),C:String(q.optionC||'').slice(0,1000),D:String(q.optionD||'').slice(0,1000)},
+  correctOption:['A','B','C','D'].includes(q.correctOption)?q.correctOption:'',
+  explanation:String(q.explanation||'').slice(0,5000),solutionSteps:String(q.solutionSteps||'').slice(0,12000),
+  topic:String(q.topic||'').slice(0,160),subtopic:String(q.subtopic||'').slice(0,160),
+  difficulty:['easy','medium','hard'].includes(q.difficulty)?q.difficulty:'medium',
+  examType:String(q.examType||examType).slice(0,40),examYear:Number(q.examYear||examYear)||null,
+  reviewNotes:String(q.reviewNotes||'').slice(0,1000),subjectId
+ })).filter(q=>q.prompt.length>=10&&Object.values(q.options).every(v=>v.trim().length>0)):[];
+ res.json({questions,extracted:questions.length,requiresReview:true,source:'PDF'});
+}));
 router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
  const provider=String(req.query.provider||'auto').toLowerCase();
  const subject=String(req.query.subject||'').toLowerCase();
