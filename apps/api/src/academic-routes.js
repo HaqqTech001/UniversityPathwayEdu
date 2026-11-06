@@ -238,7 +238,7 @@ router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
   const valid=uuid(row?.subjectId)&&typeof row?.prompt==='string'&&row.prompt.trim().length>=10&&row.prompt.length<=5000&&
    options&&typeof options==='object'&&!Array.isArray(options)&&['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)&&
    ['A','B','C','D'].includes(row?.correctOption)&&
-   ['single_choice','multiple_select','true_false','short_answer','numeric'].includes(row?.questionType||'single_choice')&&
+   (row?.questionType||'single_choice')==='single_choice'&&
    ['easy','medium','hard'].includes(row?.difficulty||'medium')&&
    (row?.examYear==null||row.examYear===''||(Number.isInteger(Number(row.examYear))&&Number(row.examYear)>=1950&&Number(row.examYear)<=2100));
   if(!valid){rejected.push({row:index+1,reason:'Invalid subject, prompt, options, answer, type, difficulty or year.'});return;}
