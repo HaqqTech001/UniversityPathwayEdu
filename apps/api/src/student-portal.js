@@ -143,12 +143,22 @@ router.get('/assessment-results',wrap(async(req,res)=>{
  const {data:assessments,error:assessmentError}=ids.length?await db.from('upec_assessments').select('id,title,status,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').in('id',ids):{data:[],error:null};
  if(assessmentError)throw assessmentError;
  const examById=new Map((assessments||[]).map(exam=>[exam.id,exam]));
- const results=[];
- for(const row of data||[]){
+ const {data:active,error:activeError}=ids.length?await db.from('upec_assessment_attempts').select('assessment_id').in('assessment_id',ids).is('submitted_at',null).gt('expires_at',new Date().toISOString()):{data:[],error:null};
+ if(activeError)throw activeError;
+ const activeIds=new Set((active||[]).map(item=>item.assessment_id));
+ const now=Date.now();
+ const results=(data||[]).map(row=>{
   const exam=examById.get(row.assessment_id);
-  const availability=exam?await correctionWindow(exam):{available:false,reason:'Assessment unavailable.'};
-  results.push({...row,title:exam?.title||'Institutional assessment',correctionsAvailable:availability.available,correctionsMessage:availability.reason});
- }
+  if(!exam)return {...row,title:'Institutional assessment',correctionsAvailable:false,correctionsMessage:'Assessment unavailable.'};
+  const ended=exam.status==='closed'||(exam.closes_at&&Date.parse(exam.closes_at)<=now);
+  const mode=exam.correction_release_mode||'after_close';
+  const released=mode==='after_close'||
+   (mode==='scheduled'&&exam.corrections_release_at&&Date.parse(exam.corrections_release_at)<=now)||
+   (mode==='manual'&&Boolean(exam.corrections_released_at));
+  const available=Boolean(ended&&!activeIds.has(exam.id)&&released);
+  const reason=!ended?'The examination is still open.':activeIds.has(exam.id)?'Other candidates are still completing this examination.':available?'Corrections are available.':mode==='scheduled'?'Corrections are scheduled for a later time.':'Corrections have not been released by the academic team.';
+  return {...row,title:exam.title,correctionsAvailable:available,correctionsMessage:reason};
+ });
  res.json({results});
 }));
 router.get('/learning/resources',wrap(async(req,res)=>{
