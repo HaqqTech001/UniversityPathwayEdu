@@ -48,8 +48,9 @@ const normalizeSdashQuestion=q=>({
  section:q.section||null,
  options:Object.fromEntries(Object.entries(q.option||{}).map(([key,value])=>[key.toLowerCase(),value])),
  correctAnswer:String(q.answer||'').toLowerCase(),
- explanation:q.solution||'',
- imageUrl:q.image||null,
+ explanation:q.explanation||q.solution||q.answer_explanation||'',
+ solutionSteps:q.solution_steps||q.worked_solution||q.solution||'',
+ imageUrl:q.image||q.imageUrl||null,
  examType:q.examtype||'UTME',
  examYear:q.examyear||null,
  sourceProvider:'SdashAPI'
