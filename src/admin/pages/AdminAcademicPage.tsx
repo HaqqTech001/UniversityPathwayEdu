@@ -437,8 +437,7 @@ export default function AdminAcademicPage() {
       )}
 
       {!currentArea && (
-      {/* 2. Academic Record statistics */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-[#111A43] text-white flex items-center justify-center shrink-0 shadow-xs">
             <GraduationCap size={22} />
@@ -459,6 +458,11 @@ export default function AdminAcademicPage() {
             <div className="text-xs font-bold text-slate-700 truncate">Subjects</div>
             <div className="text-[11px] text-slate-400 mt-0.5">Curriculum Offerings</div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-xs"><Users size={22} /></div>
+          <div className="min-w-0"><div className="text-xl font-black text-[#111A43]">{loading ? '—' : (academicData.classes || []).length}</div><div className="text-xs font-bold text-slate-700 truncate">Classes</div><div className="text-[11px] text-slate-400 mt-0.5">Student Cohorts</div></div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
@@ -805,6 +809,48 @@ export default function AdminAcademicPage() {
             })}
           </div>
 
+          {(() => {
+            const rows = (academicData.attendance || []).filter((row) => !attendanceStudent || row.student_id === attendanceStudent);
+            const total = rows.length;
+            const states = [
+              { state: 'present', label: 'Present', color: 'bg-emerald-500', text: 'text-emerald-700' },
+              { state: 'absent', label: 'Absent', color: 'bg-rose-500', text: 'text-rose-700' },
+              { state: 'late', label: 'Late', color: 'bg-amber-500', text: 'text-amber-700' },
+              { state: 'excused', label: 'Excused', color: 'bg-blue-500', text: 'text-blue-700' },
+            ];
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(260px,1fr)] gap-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><h3 className="text-sm font-extrabold text-[#111A43]">Attendance distribution</h3><p className="mt-1 text-xs text-slate-500">{attendanceStudent ? 'Selected student' : 'All approved students'} · {total} recorded entries</p></div>
+                    <span className="text-2xl font-black text-[#111A43]">{total}</span>
+                  </div>
+                  <div className="mt-6 flex h-4 w-full overflow-hidden rounded-full bg-slate-100">
+                    {states.map(({state,color}) => <div key={state} className={color} style={{width: total ? ((rows.filter((row) => row.status === state).length / total) * 100) + '%' : '0%'}} />)}
+                  </div>
+                  <div className="mt-5 grid grid-cols-2 gap-4">
+                    {states.map(({state,label,color,text}) => {
+                      const count = rows.filter((row) => row.status === state).length;
+                      const percent = total ? Math.round((count / total) * 100) : 0;
+                      return <div key={state} className="min-w-0"><div className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${color}`} /><span className="text-xs font-semibold text-slate-500">{label}</span></div><div className={`mt-1 text-xl font-black ${text}`}>{count}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${color}`} style={{width: percent + '%'}} /></div><p className="mt-1 text-[10px] text-slate-400">{percent}% of records</p></div>;
+                    })}
+                  </div>
+                </section>
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+                  <h3 className="text-sm font-extrabold text-[#111A43]">Attendance overview</h3>
+                  <p className="mt-1 text-xs text-slate-500">Recorded attendance by status</p>
+                  <div className="mt-5 space-y-4">
+                    {states.map(({state,label,color}) => {
+                      const count = rows.filter((row) => row.status === state).length;
+                      const width = total ? Math.max(count ? 3 : 0, count / total * 100) : 0;
+                      return <div key={state}><div className="mb-1 flex justify-between text-xs"><span className="font-semibold text-slate-600">{label}</span><strong className="text-[#111A43]">{count}</strong></div><div className="h-2.5 rounded-full bg-slate-100"><div className={`h-2.5 rounded-full ${color}`} style={{width: width + '%'}} /></div></div>;
+                    })}
+                  </div>
+                  {!total && <p className="mt-5 text-xs text-slate-400">Attendance charts will populate when records are entered.</p>}
+                </section>
+              </div>
+            );
+          })()}
           {/* Records List */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
             <h3 className="text-sm font-extrabold text-[#111A43] pb-3 border-b border-slate-100">
