@@ -178,7 +178,9 @@ export default function AdminCbtPage() {
   const [monitoringExamId, setMonitoringExamId] = useState<string>('');
 
   // Modals & Action Forms
-  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);\n  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);\n  const [bulkCsv, setBulkCsv] = useState('');
+  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkCsv, setBulkCsv] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
