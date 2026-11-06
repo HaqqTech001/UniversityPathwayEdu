@@ -5,7 +5,8 @@ import {upecAuthApi} from '../lib/upecAuthApi';
 
 type Exam={id:string;title:string;duration_minutes:number};
 type Question={id:string;prompt:string;options:Record<string,string>};
-type HistoryItem={id:string;assessment_id:string;submitted_at:string;score:number;total_questions:number};
+type HistoryItem={id:string;assessment_id:string;title:string;submitted_at:string;score:number;total_questions:number;correctionsAvailable:boolean;correctionsMessage:string};
+type CorrectionReview={title:string;score:number;totalQuestions:number;questions:Array<{id:string;prompt:string;options:Record<string,string>;selectedAnswer:string|null;correctAnswer:string;isCorrect:boolean;explanation:string}>};
 type Result={score:number;totalQuestions:number};
 type SaveState='saved'|'saving'|'unsaved';
 
@@ -18,6 +19,8 @@ export default function InstitutionalAssessments(){
  const [expires,setExpires]=useState('');
  const [answers,setAnswers]=useState<Record<string,string>>({});
  const [result,setResult]=useState<Result|null>(null);
+ const [correctionReview,setCorrectionReview]=useState<CorrectionReview|null>(null);
+ const [correctionLoading,setCorrectionLoading]=useState(false);
  const [busy,setBusy]=useState(false);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -85,7 +88,8 @@ export default function InstitutionalAssessments(){
   finally{setBusy(false);}
  };
 
- const leaveAttempt=()=>{setAttempt('');setActiveExam(null);setQuestions([]);setExpires('');setAnswers({});setResult(null);setError('');hydrated.current=false;void refreshHistory().catch(()=>{});};
+ const leaveAttempt=()=>{setAttempt('');setActiveExam(null);setQuestions([]);setExpires('');setAnswers({});setResult(null);setCorrectionReview(null);setError('');hydrated.current=false;void refreshHistory().catch(()=>{});};
+ const openCorrections=async(id:string)=>{setCorrectionLoading(true);setError('');try{const data=await upecAuthApi.assessmentCorrections(token(),id);setCorrectionReview(data);}catch(e){setError(e instanceof Error?e.message:'Corrections are not available yet.');}finally{setCorrectionLoading(false);}};
  const formatTime=(value:number)=>`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;
 
  return <section className="mt-5 space-y-5" aria-labelledby="institutional-tests">
@@ -95,6 +99,11 @@ export default function InstitutionalAssessments(){
   </header>
 
   {error&&<div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><AlertCircle size={17} className="mt-0.5 shrink-0"/><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={()=>setError('')} className="ml-auto"><X size={16}/></button></div>}
+
+  {correctionReview&&<div className="space-y-5">
+   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4"><div><button type="button" onClick={()=>setCorrectionReview(null)} className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#111a43]"><ArrowLeft size={13}/> Back to results</button><h4 className="text-lg font-bold text-[#111a43]">{correctionReview.title} — Corrections</h4><p className="mt-1 text-sm text-slate-500">Review each question alongside your answer and the correct answer.</p></div><p className="text-right text-xl font-black tabular-nums text-[#111a43]">{correctionReview.score}/{correctionReview.totalQuestions}</p></div>
+   <div className="space-y-4">{correctionReview.questions.map((q,index)=><article key={q.id} className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Question {index+1}</p><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${q.isCorrect?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>{q.isCorrect?'Correct':'Incorrect'}</span></div><p className="mt-3 whitespace-pre-wrap font-semibold leading-relaxed text-[#111a43]">{q.prompt}</p><div className="mt-4 space-y-2">{Object.entries(q.options).map(([key,value])=><div key={key} className={`rounded-lg border p-3 text-sm ${key===q.correctAnswer?'border-emerald-300 bg-emerald-50':key===q.selectedAnswer?'border-rose-200 bg-rose-50':'border-slate-100 bg-slate-50'}`}><span className="mr-2 font-bold">{key}.</span>{value}{key===q.correctAnswer&&<span className="ml-2 text-xs font-bold text-emerald-700">Correct answer</span>}{key===q.selectedAnswer&&<span className="ml-2 text-xs font-bold text-slate-600">Your answer</span>}</div>)}</div>{q.explanation&&<div className="mt-4 border-t border-slate-100 pt-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Explanation</p><p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{q.explanation}</p></div>}</article>)}</div>
+  </div>}
 
   {result&&<div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
    <div className="flex items-center gap-2 text-emerald-800"><CheckCircle2 size={20}/><h4 className="font-bold">Assessment submitted</h4></div>
@@ -113,7 +122,7 @@ export default function InstitutionalAssessments(){
    </div>
    <div className="space-y-3 border-t border-slate-200 pt-5">
     <h4 className="text-sm font-bold text-[#111a43]">Previous results</h4>
-    {history.length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Your submitted examination results will appear here.</p>:<div className="divide-y divide-slate-100 rounded-xl border border-slate-200">{history.map(item=>{const exam=exams.find(e=>e.id===item.assessment_id);return <div key={item.id} className="flex items-center justify-between gap-3 p-3.5"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[#111a43]">{exam?.title||'Institutional assessment'}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(item.submitted_at).toLocaleString()}</p></div><div className="shrink-0 text-right"><p className="font-bold tabular-nums text-[#111a43]">{item.score}/{item.total_questions}</p><p className="text-[11px] text-slate-400">Score</p></div></div>;})}</div>}
+    {history.length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Your submitted examination results will appear here.</p>:<div className="divide-y divide-slate-100 rounded-xl border border-slate-200">{history.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3.5"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[#111a43]">{item.title||'Institutional assessment'}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(item.submitted_at).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-3"><div className="text-right"><p className="font-bold tabular-nums text-[#111a43]">{item.score}/{item.total_questions}</p><p className="text-[11px] text-slate-400">Score</p></div>{item.correctionsAvailable?<button type="button" disabled={correctionLoading} onClick={()=>void openCorrections(item.id)} className="rounded-lg bg-[#111a43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{correctionLoading?'Loading…':'Review corrections'}</button>:<span className="max-w-36 text-right text-[11px] text-slate-400">{item.correctionsMessage||'Corrections pending'}</span>}</div></div>)}</div>}
    </div>
   </div>}
 
