@@ -421,8 +421,7 @@ export default function AdminAcademicPage() {
             <button type="button" onClick={() => setRefreshCount((n) => n + 1)} aria-label="Refresh workspace" title="Refresh" className="rounded-xl border border-slate-200 bg-white p-2 text-[#111A43] shadow-xs hover:bg-slate-50">
               <RefreshCw size={15} />
             </button>
-            {currentArea !== 'Attendance' && (
-              <button type="button" onClick={() => {
+            <button type="button" onClick={() => {
                 if (currentArea === 'Timetable') {
                   setPlanEditing(null);
                   setPlanForm({ programme_id: catalogue.programmes[0]?.id || '', learning_mode: 'physical', title: '', description: '' });
@@ -431,7 +430,6 @@ export default function AdminAcademicPage() {
               }} className="inline-flex items-center gap-1.5 rounded-xl bg-[#c62839] px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#a51b2b]">
                 <Plus size={14} /><span>{currentArea === 'Timetable' ? 'Create' : currentArea === 'Classes' ? 'Add Class' : currentArea === 'Programmes' ? 'Add Programme' : currentArea === 'Subjects' ? 'Add Subject' : 'Add Assignment'}</span>
               </button>
-            )}
           </div>
         </div>
       )}
@@ -605,20 +603,7 @@ export default function AdminAcademicPage() {
                 >
                   {timetableSaving ? 'Saving…' : 'Save Timetable Changes'}
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPlanEditing(null);
-                    setPlanForm({ programme_id: catalogue.programmes[0]?.id || '', learning_mode: 'physical', title: '', description: '' });
-                    setPlanModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#c62839] hover:bg-[#a51b2b] text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <Plus size={14} />
-                  <span>Create Timetable Plan</span>
-                </button>
-              )}
+              ) : null}
             </div>
           </div>
 
