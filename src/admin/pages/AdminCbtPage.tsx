@@ -156,6 +156,7 @@ export default function AdminCbtPage() {
 
   // Modals & Action Forms
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
     prompt: '',
@@ -352,8 +353,8 @@ export default function AdminCbtPage() {
     }
     setSavingAction(true);
     try {
-      await api('/api/staff/academic/questions', {
-        method: 'POST',
+      await api(editingQuestion ? `/api/staff/academic/questions/${editingQuestion.id}` : '/api/staff/academic/questions', {
+        method: editingQuestion ? 'PATCH' : 'POST',
         body: JSON.stringify({
           subjectId: questionForm.subjectId,
           prompt: questionForm.prompt.trim(),
@@ -367,7 +368,8 @@ export default function AdminCbtPage() {
           explanation: questionForm.explanation.trim()
         })
       });
-      notify('Question added to Question Bank in draft status.', 'success');
+      notify(editingQuestion ? 'Question changes saved.' : 'Question added to Question Bank in draft status.', 'success');
+      setEditingQuestion(null);
       setIsCreatingQuestion(false);
       setQuestionForm({
         subjectId: '',
@@ -1111,13 +1113,35 @@ export default function AdminCbtPage() {
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1.5">
                             <button
                               disabled={savingAction}
-                              onClick={() => handleToggleQuestionStatus(q)}
+                              onClick={() => {
+                                setEditingQuestion(q);
+                                setQuestionForm({
+                                  subjectId: q.subject_id,
+                                  prompt: q.prompt,
+                                  optionA: q.options?.A || '',
+                                  optionB: q.options?.B || '',
+                                  optionC: q.options?.C || '',
+                                  optionD: q.options?.D || '',
+                                  correctOption: q.correct_option || 'A',
+                                  explanation: q.explanation || ''
+                                });
+                                setIsCreatingQuestion(true);
+                              }}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#111A43] hover:bg-slate-50 transition disabled:opacity-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              disabled={savingAction}
+                              onClick={() => handleToggleQuestionStatus(q)
                               className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
                             >
                               {q.status === 'published' ? 'Move to Draft' : 'Approve & Publish'}
                             </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1923,10 +1947,10 @@ export default function AdminCbtPage() {
             className="max-h-[90dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-base font-bold text-[#111A43]">Add Question to Bank</h2>
+              <h2 className="text-base font-bold text-[#111A43]">{editingQuestion ? 'Edit Question' : 'Add Question to Bank'}</h2>
               <button
                 type="button"
-                onClick={() => setIsCreatingQuestion(false)}
+                onClick={() => { setIsCreatingQuestion(false); setEditingQuestion(null); }}
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X size={18} />
