@@ -278,8 +278,8 @@ router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
    const questions=raw.map((q,index)=>{
     const optionSource=q.option||q.options||q.choices||{};
     const entries=Array.isArray(optionSource)?optionSource.map((v,i)=>[String.fromCharCode(97+i),v]):Object.entries(optionSource);
-    const options=Object.fromEntries(entries.map(([k,v])=>[String(k).toUpperCase().replace(/^OPTION\\s*/,'').replace(/[()]/g,''),typeof v==='object'?(v.text||v.value||''):String(v)]));
-    const answer=String(q.answer||q.correctAnswer||q.correct_answer||q.correct_option||'').toLowerCase().replace(/[()]/g,'').replace(/^option\\s*/,'');
+    const options=Object.fromEntries(entries.map(([k,v])=>[String(k).toUpperCase().replace(/^OPTION[_\\s-]*/i,'').replace(/[()]/g,''),typeof v==='object'?(v.text||v.value||''):String(v)]));
+    const answer=String(q.answer||q.correctAnswer||q.correct_answer||q.correct_option||'').toLowerCase().replace(/[()]/g,'').replace(/^OPTION[_\\s-]*/i,'');
     return {providerId:String(q.id??q.question_id??index),prompt:String(q.question||q.prompt||q.text||''),options,correctOption:answer.toUpperCase(),explanation:String(q.solution||q.explanation||q.answer_explanation||''),solutionSteps:String(q.solution_steps||q.worked_solution||q.solution||''),imageUrl:q.image||q.imageUrl||null,examType:exam.toUpperCase(),examYear:Number(q.examyear||q.year||year),sourceProvider:source==='aloc'?'ALOC Station':'SdashAPI'};
    }).filter(q=>q.prompt&&['A','B','C','D'].every(k=>q.options[k])&&['A','B','C','D'].includes(q.correctOption));
    return res.json({provider:source,questions,totalReceived:raw.length,importable:questions.length,skipped:raw.length-questions.length,note:'Provider results are preview-only until imported. Imported records are saved as drafts.'});
