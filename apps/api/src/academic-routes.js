@@ -357,7 +357,13 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
   reviewNotes:String(q.reviewNotes||'').slice(0,1000),subjectId
  })).filter(q=>q.prompt.length>=10&&Object.values(q.options).every(v=>v.trim().length>0)):[];
  if(isDocx&&docxHasDrawing&&docxSkippedImages)for(const question of questions)question.reviewNotes=[question.reviewNotes,'Some embedded DOCX images were not sent for visual inspection; verify diagrams in the original document.'].filter(Boolean).join(' ');
- res.json({questions,extracted:questions.length,requiresReview:true,source:isPdf?'PDF':'DOCX'});
+ const warnings=[];
+ if(isDocx&&docxImages.length)warnings.push(docxImages.length+' embedded image(s) were supplied for visual extraction.');
+ if(isDocx&&docxSkippedImages)warnings.push(docxSkippedImages+' embedded image(s) were skipped because they exceeded supported format or size limits. Check the original document before importing.');
+ if(isDocx&&docxHasDrawing&&!docxImages.length&&!docxSkippedImages)warnings.push('The DOCX contains drawing content but no supported embedded image was available. Check any diagram-dependent question against the original.');
+ const truncated=Array.isArray(parsed.questions)&&parsed.questions.length>300;
+ if(truncated)warnings.push('Only the first 300 extracted questions are shown. Split the source document to process the remaining questions.');
+ res.json({questions,extracted:questions.length,requiresReview:true,source:isPdf?'PDF':'DOCX',warnings,truncated});
 }));
 router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
  const provider=String(req.query.provider||'auto').toLowerCase();
