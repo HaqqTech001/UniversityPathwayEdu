@@ -195,7 +195,8 @@ router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  let query=db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,explanation,question_type,topic,subtopic,difficulty,exam_type,exam_year,solution_steps,source_name,source_reference,source_license,status,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
  if(subjectId)query=query.eq('subject_id',subjectId);
  if(status)query=query.eq('status',status);
- if(search)query=query.ilike('prompt',`%${search.replace(/[%_]/g,'\\router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
+ if(search)query=query.ilike('prompt',`%${search.replace(/[%_]/g,'')}%`);
+router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const subjectId=req.query.subjectId;
  if(subjectId&&!uuid(subjectId))return res.status(400).json({error:'Invalid subject ID.'});
  let query=db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,explanation,status,created_at').order('created_at',{ascending:false}).limit(100);
