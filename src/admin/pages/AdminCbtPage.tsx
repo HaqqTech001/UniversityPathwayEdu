@@ -136,8 +136,8 @@ const parseQuestionCsv = (input: string) => {
     if (ch === '"' && quoted && input[i + 1] === '"') { cell += '"'; i++; }
     else if (ch === '"') quoted = !quoted;
     else if (ch === ',' && !quoted) { row.push(cell.trim()); cell = ''; }
-    else if ((ch === '\\n' || ch === '\\r') && !quoted) {
-      if (ch === '\\r' && input[i + 1] === '\\n') i++;
+    else if ((ch === '\n' || ch === '\r') && !quoted) {
+      if (ch === '\r' && input[i + 1] === '\n') i++;
       row.push(cell.trim()); cell = '';
       if (row.some(value => value !== '')) rows.push(row);
       row = [];
@@ -146,7 +146,7 @@ const parseQuestionCsv = (input: string) => {
   row.push(cell.trim());
   if (row.some(value => value !== '')) rows.push(row);
   if (rows.length < 2) throw new Error('Paste a CSV header followed by at least one question row.');
-  const headers = rows[0].map(value => value.toLowerCase().replace(/[\\s_-]+/g, ''));
+  const headers = rows[0].map(value => value.toLowerCase().replace(/[\s_-]+/g, ''));
   return rows.slice(1).map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
 };
 \nconst SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
