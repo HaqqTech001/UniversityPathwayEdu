@@ -486,6 +486,7 @@ export default function AdminCbtPage() {
     const ready = pdfCandidates.filter(q => ['A','B','C','D'].includes(q.correctOption));
     if (!ready.length) { notify('Confirm the correct answer for at least one question before importing.', 'error'); return; }
     if (ready.length !== pdfCandidates.length) { notify('Some questions still need an answer confirmed. Resolve them or remove them before importing.', 'error'); return; }
+    if (ready.some(q => String(q.reviewNotes || '').trim())) { notify('Resolve or explicitly clear every review note after checking the original document.', 'error'); return; }
     setSavingAction(true);
     try {
       const result = await api('/api/staff/academic/questions/bulk', {
@@ -2374,7 +2375,7 @@ export default function AdminCbtPage() {
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div><h3 className="text-sm font-bold text-[#111A43]">Review extracted questions ({pdfCandidates.length})</h3><p className="text-[11px] text-slate-500">Check every prompt, option, answer and diagram against the original paper. Clear each review note only after resolving it. Unconfirmed answers cannot be imported.</p></div>
-                  <button type="button" onClick={importReviewedPdfQuestions} disabled={savingAction || pdfCandidates.some(q => !['A','B','C','D'].includes(q.correctOption))} className="rounded-lg bg-[#C62839] px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{savingAction ? 'Importing…' : 'Import reviewed drafts'}</button>
+                  <button type="button" onClick={importReviewedPdfQuestions} disabled={savingAction || pdfCandidates.some(q => !['A','B','C','D'].includes(q.correctOption) || String(q.reviewNotes || '').trim())} className="rounded-lg bg-[#C62839] px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{savingAction ? 'Importing…' : 'Import reviewed drafts'}</button>
                 </div>
                 {pdfCandidates.map((q, index) => (
                   <section key={index} className="space-y-2 rounded-xl border border-slate-200 p-3">
