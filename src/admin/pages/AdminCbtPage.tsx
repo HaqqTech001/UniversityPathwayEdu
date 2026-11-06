@@ -714,7 +714,7 @@ export default function AdminCbtPage() {
           </button>
 
           <button
-            onClick={() => setIsCreatingQuestion(true)}
+            onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '' }); setIsCreatingQuestion(true); }}
             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
           >
             <Plus size={14} />
