@@ -6,6 +6,7 @@ const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const uuid=v=>typeof v==='string'&&/^[0-9a-f-]{36}$/i.test(v);
 const code=v=>typeof v==='string'&&/^[A-Z0-9_-]{2,32}$/.test(v);
+const isIjmbProgramme=p=>/IJMB/i.test((p?.name||'')+' '+(p?.code||''));
 const name=v=>typeof v==='string'&&v.trim().length>=2&&v.trim().length<=160;
 const validDescription=v=>typeof v==='string'&&v.trim().length>=5&&v.length<=2000;
 const grant=(...roles)=>(req,res,next)=>roles.includes(req.staff.role)?next():res.status(403).json({error:'Academic permission denied.'});
@@ -20,10 +21,9 @@ router.get('/catalogue',grant('super_admin','admin','teacher','cbt_manager','adm
  res.json({programmes:programmes.data||[],subjects:subjects.data||[]});
 }));
 router.post('/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
- const {code:programmeCode,name:programmeName,description,active=true}=req.body||{};
- if(!code(programmeCode)||!name(programmeName)||programmeName.trim().length<3||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid programme code or name.'});
- const {data,error}=await db.from('upec_academic_programmes').insert({code:programmeCode,name:programmeName.trim(),description:description.trim(),active}).select('id,code,name,active').single();
- if(error?.code==='23505')return res.status(409).json({error:'Programme code already exists.'});
+ const {name:programmeName,description,active=true}=req.body||{};
+ if(!name(programmeName)||programmeName.trim().length<3||!validDescription(description)||typeof active!=='boolean')return res.status(400).json({error:'Invalid programme name or description.'});
+ const {data,error}=await db.from('upec_academic_programmes').insert({name:programmeName.trim(),description:description.trim(),active}).select('id,code,name,active').single();
  if(error)throw error;
  res.status(201).json({programme:data});
 }));
@@ -33,7 +33,7 @@ router.post('/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
  const {data:programme,error:programmeError}=await db.from('upec_academic_programmes').select('name,code').eq('id',programmeId).maybeSingle();
  if(programmeError)throw programmeError;
  if(!programme)return res.status(404).json({error:'Programme not found.'});
- const isIjmb=/IJMB/i.test(programme.name+' '+programme.code);
+ const isIjmb=isIjmbProgramme(programme);
  if(isIjmb&&!code(subjectCode))return res.status(400).json({error:'IJMB subjects require a valid course code.'});
  const normalizedCode=isIjmb?subjectCode:null;
  const {data,error}=await db.from('upec_academic_subjects').insert({programme_id:programmeId,code:normalizedCode,name:subjectName.trim(),description:description.trim(),active}).select('id,programme_id,code,name,active').single();
@@ -48,10 +48,21 @@ for(const [resource,table] of Object.entries({programmes:'upec_academic_programm
   if(!uuid(req.params.id))return res.status(400).json({error:'Invalid record ID.'});
   const input=req.body||{},changes={};
   if(Object.hasOwn(input,'name')){if(!name(input.name))return res.status(400).json({error:'Invalid name.'});changes.name=input.name.trim();}
-  if(Object.hasOwn(input,'code')){if(input.code!==null&&!code(input.code))return res.status(400).json({error:'Invalid code.'});changes.code=input.code;}
+  if(resource==='subjects'&&Object.hasOwn(input,'code')){if(input.code!==null&&!code(input.code))return res.status(400).json({error:'Invalid course code.'});changes.code=input.code;}
   if(Object.hasOwn(input,'description')){if(!validDescription(input.description))return res.status(400).json({error:'Description must contain 5–2000 characters.'});changes.description=input.description.trim();}
   if(Object.hasOwn(input,'active')){if(typeof input.active!=='boolean')return res.status(400).json({error:'Invalid active status.'});changes.active=input.active;}
   if(resource==='subjects'&&Object.hasOwn(input,'programmeId')){if(!uuid(input.programmeId))return res.status(400).json({error:'Invalid programme.'});changes.programme_id=input.programmeId;}
+  if(resource==='subjects'&&(Object.hasOwn(input,'programmeId')||Object.hasOwn(input,'code'))){
+   const {data:currentSubject,error:currentError}=await db.from('upec_academic_subjects').select('programme_id,code').eq('id',req.params.id).maybeSingle();
+   if(currentError)throw currentError;
+   if(!currentSubject)return res.status(404).json({error:'Subject not found.'});
+   const programmeId=changes.programme_id||currentSubject.programme_id;
+   const {data:programme,error:programmeError}=await db.from('upec_academic_programmes').select('name,code').eq('id',programmeId).maybeSingle();
+   if(programmeError)throw programmeError;
+   if(!programme)return res.status(404).json({error:'Programme not found.'});
+   if(isIjmbProgramme(programme)&&!code(changes.code??currentSubject.code))return res.status(400).json({error:'IJMB subjects require a valid course code.'});
+   if(!isIjmbProgramme(programme))changes.code=null;
+  }
   if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
   const {data,error}=await db.from(table).update(changes).eq('id',req.params.id).select('*').maybeSingle();
   if(error?.code==='23505')return res.status(409).json({error:'Record code already exists.'});
