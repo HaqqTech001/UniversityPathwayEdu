@@ -36,14 +36,14 @@ export default function InstitutionalAssessments(){
  useEffect(()=>{if(!expires||result||!attempt)return;const tick=()=>setSeconds(Math.max(0,Math.ceil((Date.parse(expires)-Date.now())/1000)));tick();const timer=window.setInterval(tick,1000);return()=>window.clearInterval(timer);},[expires,result,attempt]);
 
  useEffect(()=>{
-  if(!attempt||!hydrated.current||!expires||result||seconds<=0)return;
+  if(!attempt||!hydrated.current||!expires||result)return;
   setSaveState('saving');
   const timer=window.setTimeout(async()=>{
    try{const response=await upecAuthApi.saveAssessmentAnswers(token(),attempt,answers);setSaveState('saved');setLastSaved(response.savedAt);}
    catch(e){setSaveState('unsaved');setError(e instanceof Error?e.message:'Answers could not be saved. Keep this page open and retry.');}
   },650);
   return()=>window.clearTimeout(timer);
- },[answers,attempt,expires,result,seconds]);
+ },[answers,attempt,expires,result]);
 
  useEffect(()=>{
   if(!attempt||!expires||seconds!==0||result)return;
