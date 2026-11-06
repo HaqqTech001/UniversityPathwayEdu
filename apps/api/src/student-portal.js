@@ -103,12 +103,53 @@ router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  const result=data?.[0];
  res.json({result:{attemptId:result.attempt_id,score:result.correct_count,totalQuestions:result.question_count,submittedAt:result.submitted_time}});
 }));
+const correctionWindow = async assessment => {
+ const now=Date.now();
+ const ended=assessment.status==='closed'||(assessment.closes_at&&Date.parse(assessment.closes_at)<=now);
+ if(!ended)return {available:false,reason:'The examination is still open.'};
+ const {data:active,error}=await db.from('upec_assessment_attempts').select('id').eq('assessment_id',assessment.id).is('submitted_at',null).gt('expires_at',new Date(now).toISOString()).limit(1);
+ if(error)throw error;
+ if(active?.length)return {available:false,reason:'Other candidates are still completing this examination.'};
+ const mode=assessment.correction_release_mode||'after_close';
+ const available=mode==='after_close'||
+  (mode==='scheduled'&&assessment.corrections_release_at&&Date.parse(assessment.corrections_release_at)<=now)||
+  (mode==='manual'&&Boolean(assessment.corrections_released_at));
+ return {available:Boolean(available),reason:available?'Corrections are available.':mode==='scheduled'?'Corrections are scheduled for a later time.':'Corrections have not been released by the academic team.',releaseMode:mode,releaseAt:assessment.corrections_release_at||null};
+};
+router.get('/assessments/attempts/:id/corrections',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
+ const {data:attempt,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,answers,score,total_questions,submitted_at').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(error)throw error;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ if(!attempt.submitted_at)return res.status(409).json({error:'Corrections are available only after submission.'});
+ const {data:exam,error:examError}=await db.from('upec_assessments').select('id,title,status,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').eq('id',attempt.assessment_id).maybeSingle();
+ if(examError)throw examError;if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ const availability=await correctionWindow(exam);
+ if(!availability.available)return res.status(403).json({available:false,...availability});
+ const {data:links,error:linksError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',exam.id).order('position');
+ if(linksError)throw linksError;
+ const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options,correct_option,explanation').in('id',(links||[]).map(x=>x.question_id));
+ if(questionError)throw questionError;
+ const byId=new Map((questions||[]).map(q=>[q.id,q]));
+ const answers=attempt.answers&&typeof attempt.answers==='object'&&!Array.isArray(attempt.answers)?attempt.answers:{};
+ res.json({available:true,title:exam.title,score:attempt.score,totalQuestions:attempt.total_questions,submittedAt:attempt.submitted_at,questions:(links||[]).map(link=>{const q=byId.get(link.question_id);if(!q)return null;const selected=answers[q.id]||null;return {id:q.id,prompt:q.prompt,options:q.options,selectedAnswer:selected,correctAnswer:q.correct_option,isCorrect:selected===q.correct_option,explanation:q.explanation||''};}).filter(Boolean)});
+}));
 router.get('/assessment-results',wrap(async(req,res)=>{
  const {error:expiryError}=await db.rpc('upec_finalize_expired_attempts',{p_student:req.actor.sub});
  if(expiryError)throw expiryError;
  const {data,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,submitted_at,score,total_questions').eq('student_account_id',req.actor.sub).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
- res.json({results:data||[]});
+ const ids=[...new Set((data||[]).map(row=>row.assessment_id))];
+ const {data:assessments,error:assessmentError}=ids.length?await db.from('upec_assessments').select('id,title,status,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').in('id',ids):{data:[],error:null};
+ if(assessmentError)throw assessmentError;
+ const examById=new Map((assessments||[]).map(exam=>[exam.id,exam]));
+ const results=[];
+ for(const row of data||[]){
+  const exam=examById.get(row.assessment_id);
+  const availability=exam?await correctionWindow(exam):{available:false,reason:'Assessment unavailable.'};
+  results.push({...row,title:exam?.title||'Institutional assessment',correctionsAvailable:availability.available,correctionsMessage:availability.reason});
+ }
+ res.json({results});
 }));
 router.get('/learning/resources',wrap(async(req,res)=>{
  const subjectId=req.query.subjectId;
