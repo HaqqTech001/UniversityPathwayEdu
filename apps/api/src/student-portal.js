@@ -70,7 +70,27 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
  const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options').in('id',(links||[]).map(l=>l.question_id));
  if(questionError)throw questionError;
  const byId=new Map((questions||[]).map(q=>[q.id,q]));
- res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at},questions:(links||[]).map(l=>byId.get(l.question_id)).filter(Boolean)});
+ const savedAnswers=attempt.answers&&typeof attempt.answers==='object'&&!Array.isArray(attempt.answers)?attempt.answers:{};
+ res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at,answers:savedAnswers},questions:(links||[]).map(l=>byId.get(l.question_id)).filter(Boolean)});
+}));
+router.put('/assessments/attempts/:id/answers',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
+ const answers=req.body?.answers;
+ if(!answers||typeof answers!=='object'||Array.isArray(answers)||Object.keys(answers).length>100||!Object.values(answers).every(value=>['A','B','C','D'].includes(value)))return res.status(400).json({error:'Invalid saved answers.'});
+ const now=new Date().toISOString();
+ const {data:attempt,error:attemptError}=await db.from('upec_assessment_attempts').select('id,assessment_id,expires_at,submitted_at').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(attemptError)throw attemptError;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ if(attempt.submitted_at)return res.status(409).json({error:'This examination has already been submitted.'});
+ if(Date.parse(attempt.expires_at)<=Date.now())return res.status(409).json({error:'The examination time has expired.'});
+ const {data:links,error:linksError}=await db.from('upec_assessment_questions').select('question_id').eq('assessment_id',attempt.assessment_id).limit(100);
+ if(linksError)throw linksError;
+ const allowed=new Set((links||[]).map(link=>link.question_id));
+ if(Object.keys(answers).some(questionId=>!allowed.has(questionId)))return res.status(400).json({error:'An answer does not belong to this examination.'});
+ const {data,error}=await db.from('upec_assessment_attempts').update({answers}).eq('id',attempt.id).eq('student_account_id',req.actor.sub).is('submitted_at',null).gt('expires_at',now).select('id').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'The examination is no longer accepting answers.'});
+ res.json({saved:true,savedAt:now});
 }));
 router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
