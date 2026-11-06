@@ -1376,6 +1376,12 @@ export default function CbtExamWizard() {
                 <p className="text-xs sm:text-sm font-bold text-[#0b1a42] leading-relaxed">
                   {q.prompt}
                 </p>
+                {(q.topic || q.examType || q.examYear || q.sourceProvider) && <div className="mt-2 flex flex-wrap gap-1.5">
+                  {q.topic && <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{q.topic}</span>}
+                  {q.examType && <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">{q.examType}</span>}
+                  {q.examYear && <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">{q.examYear}</span>}
+                  {q.sourceProvider && <span className="rounded-full bg-slate-50 px-2 py-1 text-[10px] text-slate-500">{q.sourceProvider}</span>}
+                </div>}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-xs">
                   <div className="p-2.5 rounded-xl bg-white border border-slate-200">
