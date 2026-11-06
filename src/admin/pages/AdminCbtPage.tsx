@@ -2378,7 +2378,7 @@ export default function AdminCbtPage() {
                 </div>
                 {pdfCandidates.map((q, index) => (
                   <section key={index} className="space-y-2 rounded-xl border border-slate-200 p-3">
-                    <div className="flex items-center justify-between"><span className="text-xs font-bold text-[#111A43]">Question {index + 1}</span><span className="text-[10px] text-amber-700">{q.reviewNotes || 'Verify against source'}</span></div>
+                    <div className="flex items-start justify-between gap-2"><div><span className="text-xs font-bold text-[#111A43]">Question {index + 1}</span><span className="ml-2 text-[10px] text-amber-700">{q.reviewNotes || 'Verify against source'}</span></div><button type="button" onClick={() => setPdfCandidates(current => current.filter((_, i) => i !== index))} className="shrink-0 text-[10px] font-semibold text-rose-600 hover:underline">Remove</button></div>
                     <textarea value={q.prompt} onChange={e => updatePdfCandidate(index, 'prompt', e.target.value)} rows={3} className="w-full rounded-lg border border-slate-200 p-2 text-xs" aria-label={'Question '+(index+1)+' prompt'}/>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {(['A','B','C','D'] as const).map(letter => <label key={letter} className="text-[10px] font-semibold text-slate-600">{letter}<input value={q.options[letter]} onChange={e => updatePdfCandidate(index, 'options', {...q.options,[letter]:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>)}
