@@ -475,7 +475,14 @@ export default function AdminCbtPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new ApiError(data.error || 'Document extraction failed.', response.status);
       setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: '' })));
-      notify('Extracted ' + (data.extracted || 0) + ' question candidates. Review every answer before importing.', 'success');
+      if (Array.isArray(data.warnings) && data.warnings.length) {
+        notify(data.warnings.join(' '), 'info');
+      }
+      if (data.truncated) {
+        notify('The extraction reached its 300-question review limit. Split the document to extract the remaining questions.', 'info');
+      } else {
+        notify('Extracted ' + (data.extracted || 0) + ' question candidates. Review every answer before importing.', 'success');
+      }
     } catch (err: any) {
       notify(err.message || 'Could not extract questions from this document.', 'error');
     } finally { setPdfExtracting(false); }
