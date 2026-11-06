@@ -428,7 +428,7 @@ export default function AdminAcademicPage() {
                   setPlanModal(true);
                 } else beginEdit();
               }} className="inline-flex items-center gap-1.5 rounded-xl bg-[#c62839] px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#a51b2b]">
-                <Plus size={14} /><span>{currentArea === 'Timetable' ? 'Create' : currentArea === 'Classes' ? 'Add Class' : currentArea === 'Programmes' ? 'Add Programme' : currentArea === 'Subjects' ? 'Add Subject' : 'Add Assignment'}</span>
+                <Plus size={14} /><span>{currentArea === 'Timetable' ? 'Create' : currentArea === 'Classes' ? 'Add Class' : currentArea === 'Programmes' ? 'Add Programme' : currentArea === 'Subjects' ? 'Add Subject' : currentArea === 'Attendance' ? 'Add Attendance' : 'Add Assignment'}</span>
               </button>
           </div>
         </div>
