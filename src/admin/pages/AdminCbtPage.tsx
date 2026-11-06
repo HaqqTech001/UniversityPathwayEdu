@@ -457,10 +457,10 @@ export default function AdminCbtPage() {
 
   const extractPdfQuestions = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pdfFile) { notify('Choose a PDF question paper first.', 'error'); return; }
+    if (!pdfFile) { notify('Choose a PDF or DOCX question paper first.', 'error'); return; }
     const subjectId = pdfSubjectId || (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : '');
     if (!subjectId) { notify('Choose the subject these questions belong to.', 'error'); return; }
-    if (pdfFile.size > 12 * 1024 * 1024) { notify('PDF must be 12 MB or smaller.', 'error'); return; }
+    if (pdfFile.size > 12 * 1024 * 1024) { notify('Document must be 12 MB or smaller.', 'error'); return; }
     setPdfExtracting(true);
     setPdfCandidates([]);
     try {
@@ -473,11 +473,11 @@ export default function AdminCbtPage() {
         body: pdfFile
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new ApiError(data.error || 'PDF extraction failed.', response.status);
+      if (!response.ok) throw new ApiError(data.error || 'Document extraction failed.', response.status);
       setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: 'Uploaded source document' })));
       notify('Extracted ' + (data.extracted || 0) + ' question candidates. Review every answer before importing.', 'success');
     } catch (err: any) {
-      notify(err.message || 'Could not extract questions from this PDF.', 'error');
+      notify(err.message || 'Could not extract questions from this document.', 'error');
     } finally { setPdfExtracting(false); }
   };
 
@@ -491,11 +491,11 @@ export default function AdminCbtPage() {
       const result = await api('/api/staff/academic/questions/bulk', {
         method: 'POST',
         body: JSON.stringify({ questions: ready.map(q => ({
-          subjectId, prompt: q.prompt, options: q.options, correctOption: q.correctOption,
+          subjectId, prompt: q.diagramDescription ? q.prompt + '\n\nDiagram: ' + q.diagramDescription : q.prompt, options: q.options, correctOption: q.correctOption,
           explanation: q.explanation, solutionSteps: q.solutionSteps, topic: q.topic,
           subtopic: q.subtopic, difficulty: q.difficulty || 'medium', examType: q.examType || pdfExamType,
           examYear: q.examYear || (pdfExamYear ? Number(pdfExamYear) : null), questionType: 'single_choice',
-          sourceName: q.sourceName || pdfFile?.name || 'PDF upload', sourceReference: q.sourceReference || pdfFile?.name || '',
+          sourceName: q.sourceName || pdfFile?.name || 'Document upload', sourceReference: q.sourceReference || pdfFile?.name || '',
           sourceLicense: q.sourceLicense || 'Uploaded source document'
         })) })
       });
@@ -2388,6 +2388,7 @@ export default function AdminCbtPage() {
                       <label className="text-[10px] font-semibold text-slate-600">Topic<input value={q.topic || ''} onChange={e=>updatePdfCandidate(index,'topic',e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
                       <label className="text-[10px] font-semibold text-slate-600">Difficulty<select value={q.difficulty || 'medium'} onChange={e=>updatePdfCandidate(index,'difficulty',e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
                     </div>
+                    {q.diagramDescription && <label className="block text-[10px] font-semibold text-slate-600">Diagram / figure description<textarea value={q.diagramDescription} onChange={e=>updatePdfCandidate(index,'diagramDescription',e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>}
                     <label className="block text-[10px] font-semibold text-slate-600">Explanation<textarea value={q.explanation || ''} onChange={e=>updatePdfCandidate(index,'explanation',e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
                     <label className="block text-[10px] font-semibold text-slate-600">Worked solution<textarea value={q.solutionSteps || ''} onChange={e=>updatePdfCandidate(index,'solutionSteps',e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs font-normal"/></label>
                   </section>
