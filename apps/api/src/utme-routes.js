@@ -11,6 +11,7 @@ const sdashSubjectAliases={'use-of-english':'english','literature-in-english':'e
 const timeoutMs=10000;
 const YEAR_MIN=1990;
 const YEAR_MAX=2030;
+const exams={utme:{aloc:'jamb',sdash:'utme'},jamb:{aloc:'jamb',sdash:'utme'},waec:{aloc:'waec',sdash:'wassce'},wassce:{aloc:'waec',sdash:'wassce'},neco:{aloc:'neco',sdash:'neco'},'post-utme':{aloc:'post_utme',sdash:'post-utme'}};
 
 async function fetchJson(url,headers){
  const controller=new AbortController();
@@ -55,16 +56,17 @@ const normalizeSdashQuestion=q=>({
 });
 const normalizeAlocQuestion=q=>({...q,id:String(q.id),sourceProvider:'ALOC Station'});
 
-async function fetchQuestions(provider,subject,year,limit,cursor){
+async function fetchQuestions(provider,subject,year,limit,cursor,reqExam){
  if(provider==='aloc'){
-  const result=await requestAloc('/questions?subject='+encodeURIComponent(subject)+'&examType=jamb&year='+year+'&limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''));
+  const exam=reqExam.aloc;
+  const result=await requestAloc('/questions?subject='+encodeURIComponent(subject)+'&examType='+encodeURIComponent(exam)+'&year='+year+'&limit='+Math.min(15,limit)+(cursor?'&cursor='+encodeURIComponent(cursor):''));
   if(result.unconfigured)return result;
   return {provider:'ALOC Station',questions:asArray(result.data).map(normalizeAlocQuestion),pagination:result.pagination||null};
  }
  if(provider==='sdashapi'){
   if(cursor)return {unsupportedCursor:true};
   const sdashSubject=sdashSubjectAliases[subject]||subject;
-  const result=await requestSdash('/q?subject='+encodeURIComponent(sdashSubject)+'&type=utme&year='+year+'&limit='+Math.min(50,limit));
+  const result=await requestSdash('/q?subject='+encodeURIComponent(sdashSubject)+'&type='+encodeURIComponent(reqExam.sdash)+'&year='+year+'&limit='+Math.min(50,limit));
   if(result.unconfigured)return result;
   return {provider:'SdashAPI',questions:asArray(result.data).map(normalizeSdashQuestion),pagination:null};
  }
@@ -112,9 +114,11 @@ router.get('/utme/questions',async(req,res)=>{
  const cursor=typeof req.query.cursor==='string'?req.query.cursor:'';
  const limit=req.query.limit===undefined?10:Number(req.query.limit);
  const requestedProvider=String(req.query.provider||'auto').toLowerCase();
+ const examKey=String(req.query.exam||'utme').toLowerCase();
+ const reqExam=exams[examKey];
  if(!Number.isInteger(limit)||limit<1||limit>50)return res.status(400).json({error:'Question page size must be between 1 and 50.'});
  if(cursor.length>512)return res.status(400).json({error:'Invalid pagination cursor.'});
- if(!subjects.has(subject)||!Number.isInteger(year)||year<YEAR_MIN||year>YEAR_MAX)return res.status(400).json({error:'Choose a valid subject and examination year.'});
+ if(!subjects.has(subject)||!Number.isInteger(year)||year<YEAR_MIN||year>YEAR_MAX||!reqExam)return res.status(400).json({error:'Choose a valid examination, subject and year.'});
  if(!['auto','aloc','sdashapi'].includes(requestedProvider))return res.status(400).json({error:'Choose ALOC Station or SdashAPI.'});
  const status=providerStatus();
  const order=requestedProvider==='auto'
@@ -124,10 +128,10 @@ router.get('/utme/questions',async(req,res)=>{
  for(const provider of order){
   if(!status[provider].configured)continue;
   try{
-   const result=await fetchQuestions(provider,subject,year,limit,cursor);
+   const result=await fetchQuestions(provider,subject,year,limit,cursor,reqExam);
    if(result.unconfigured||result.unsupportedCursor)continue;
    if(!result.questions.length){lastError=new Error('No questions returned by '+result.provider);continue;}
-   return res.json({provider:result.provider,mode:'practice',source:'third-party',officialJambApi:false,questions:result.questions,pagination:result.pagination,requestedYear:year,solutionsEnabled:true});
+   return res.json({provider:result.provider,mode:'practice',source:'third-party',officialJambApi:false,questions:result.questions,pagination:result.pagination,requestedYear:year,requestedExam:examKey,solutionsEnabled:provider==='sdashapi'});
   }catch(error){lastError=error;}
  }
  if(!status.aloc.configured&&!status.sdashapi.configured)return res.status(503).json({error:'Configure ALOC_API_KEY or SDASH_API_TOKEN in the API environment.'});
