@@ -1400,7 +1400,7 @@ export default function CbtExamWizard() {
                   <span>{q.explanation}</span>
                 </div>
                 {q.solutionSteps && q.solutionSteps !== q.explanation && <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-relaxed text-slate-700"><strong className="mb-1 block text-[11px] text-blue-900">Worked solution</strong><span className="whitespace-pre-wrap">{q.solutionSteps}</span></div>}
-                {q.imageUrl && <a href={q.imageUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-blue-700 underline">View question diagram</a>}
+                {q.imageUrl && <a href={q.imageUrl} target="_blank" rel="noreferrer" className="mt-3 block max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white"><img src={q.imageUrl} alt="Question diagram" loading="lazy" className="max-h-80 w-full object-contain" /><span className="block px-3 py-2 text-[11px] font-semibold text-blue-700">Open diagram in full size</span></a>}
               </article>
             );
           })}
