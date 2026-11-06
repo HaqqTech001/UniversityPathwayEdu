@@ -190,21 +190,28 @@ const extractDocxPlainText=buffer=>{
  for(let i=buffer.length-22;i>=end;i--)if(buffer.readUInt32LE(i)===0x06054b50){eocd=i;break;}
  if(eocd<0)throw new Error('Invalid DOCX archive.');
  const count=buffer.readUInt16LE(eocd+10),centralOffset=buffer.readUInt32LE(eocd+16);
- let offset=centralOffset,xml='';
+ let offset=centralOffset,xml='',images=[],skippedImages=0,totalImageBytes=0;
  for(let i=0;i<count;i++){
-  if(buffer.readUInt32LE(offset)!==0x02014b50)throw new Error('Invalid DOCX directory.');
-  const method=buffer.readUInt16LE(offset+10),compressedSize=buffer.readUInt32LE(offset+20);
+  if(offset+46>buffer.length||buffer.readUInt32LE(offset)!==0x02014b50)throw new Error('Invalid DOCX directory.');
+  const method=buffer.readUInt16LE(offset+10),compressedSize=buffer.readUInt32LE(offset+20),uncompressedSize=buffer.readUInt32LE(offset+24);
   const nameLength=buffer.readUInt16LE(offset+28),extraLength=buffer.readUInt16LE(offset+30),commentLength=buffer.readUInt16LE(offset+32);
   const localOffset=buffer.readUInt32LE(offset+42);
   const fileName=buffer.toString('utf8',offset+46,offset+46+nameLength);
-  if(fileName==='word/document.xml'){
-   if(buffer.readUInt32LE(localOffset)!==0x04034b50)throw new Error('Invalid DOCX document entry.');
+  if(fileName==='word/document.xml'||/^word\/media\/[^/]+\.(png|jpe?g|webp)$/i.test(fileName)){
+   if(localOffset+30>buffer.length||buffer.readUInt32LE(localOffset)!==0x04034b50)throw new Error('Invalid DOCX archive entry.');
    const localName=buffer.readUInt16LE(localOffset+26),localExtra=buffer.readUInt16LE(localOffset+28);
-   const start=localOffset+30+localName+localExtra;
-   const compressed=buffer.subarray(start,start+compressedSize);
-   const data=method===0?compressed:method===8?inflateRawSync(compressed):null;
+   const dataStart=localOffset+30+localName+localExtra;
+   if(dataStart+compressedSize>buffer.length)throw new Error('Incomplete DOCX archive entry.');
+   const compressed=buffer.subarray(dataStart,dataStart+compressedSize);
+   const data=method===0?compressed:method===8?inflateRawSync(compressed,{maxOutputLength:Math.min(Math.max(uncompressedSize,1),3*1024*1024)}):null;
    if(!data)throw new Error('This DOCX compression format is not supported.');
-   xml=data.toString('utf8');break;
+   if(fileName==='word/document.xml')xml=data.toString('utf8');
+   else{
+    const ext=fileName.split('.').pop().toLowerCase();
+    const mimeType=ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg';
+    if(data.length!==uncompressedSize||data.length>3*1024*1024||images.length>=8||totalImageBytes+data.length>6*1024*1024)skippedImages++;
+    else{images.push({mimeType,data:data.toString('base64')});totalImageBytes+=data.length;}
+   }
   }
   offset+=46+nameLength+extraLength+commentLength;
  }
@@ -213,7 +220,7 @@ const extractDocxPlainText=buffer=>{
   [...match[1].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(t=>t[1])
    .join('').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").trim()
  ).filter(Boolean);
- return {text:paragraphs.join('\n'),hasDrawing:/<w:drawing\b|<w:pict\b/.test(xml)};
+ return {text:paragraphs.join('\n'),hasDrawing:/<w:drawing\b|<w:pict\b/.test(xml),images,skippedImages};
 };
 const questionRoles=['super_admin','admin','teacher','cbt_manager'];
 router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
@@ -309,9 +316,9 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
  const isDocx=mime==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'&&Buffer.isBuffer(req.body)&&req.body.subarray(0,2).toString()==='PK';
  if(!isPdf&&!isDocx)return res.status(400).json({error:'Upload a valid PDF or DOCX document.'});
  if(req.body.length>12*1024*1024)return res.status(413).json({error:'Document must be 12 MB or smaller.'});
- let docxText='',docxHasDrawing=false;
+ let docxText='',docxHasDrawing=false,docxImages=[],docxSkippedImages=0;
  if(isDocx){
-  try{const extracted=extractDocxPlainText(req.body);docxText=extracted.text;docxHasDrawing=extracted.hasDrawing;}
+  try{const extracted=extractDocxPlainText(req.body);docxText=extracted.text;docxHasDrawing=extracted.hasDrawing;docxImages=extracted.images;docxSkippedImages=extracted.skippedImages;}
   catch(error){return res.status(400).json({error:error.message||'Could not read this DOCX document.'});}
   if(docxText.length<40)return res.status(400).json({error:'No readable question text was found in this DOCX file.'});
   if(docxText.length>180000)return res.status(413).json({error:'DOCX text is too long. Split it into smaller documents.'});
@@ -330,7 +337,7 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
  try{
   response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key),{
    method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({contents:[{parts:isPdf?[{text:prompt},{inlineData:{mimeType:'application/pdf',data:req.body.toString('base64')}}]:[{text:prompt+'\n\nExtracted DOCX document text:\n'+docxText+(docxHasDrawing?'\n\nNOTE: This DOCX contains embedded drawing/image content that was not converted to pixels. Flag questions that appear to depend on missing visual material in reviewNotes.':'')}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1}})
+   body:JSON.stringify({contents:[{parts:isPdf?[{text:prompt},{inlineData:{mimeType:'application/pdf',data:req.body.toString('base64')}}]:[{text:prompt+'\n\nExtracted DOCX document text:\n'+docxText+(docxHasDrawing?'\n\nThe DOCX contains embedded drawings. Supported embedded images are attached after this text; flag any question whose figure is still unclear.':'')+(docxSkippedImages?'\n\nWARNING: '+docxSkippedImages+' embedded image(s) could not be attached because of format or size limits. Flag questions that may depend on them.':'')},...docxImages.map(image=>({inlineData:{mimeType:image.mimeType,data:image.data}}))]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1}})
   });
  }catch(error){clearTimeout(timer);return res.status(502).json({error:error.name==='AbortError'?'Document extraction timed out. Try a smaller document.':'Could not reach the document extraction service.'});}
  clearTimeout(timer);
@@ -349,7 +356,7 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
   examType:String(q.examType||examType).slice(0,40),examYear:Number(q.examYear||examYear)||null,
   reviewNotes:String(q.reviewNotes||'').slice(0,1000),subjectId
  })).filter(q=>q.prompt.length>=10&&Object.values(q.options).every(v=>v.trim().length>0)):[];
- if(isDocx&&docxHasDrawing)for(const question of questions)question.reviewNotes=[question.reviewNotes,'Source DOCX contains embedded visual content; verify diagrams in the original document.'].filter(Boolean).join(' ');
+ if(isDocx&&docxHasDrawing&&docxSkippedImages)for(const question of questions)question.reviewNotes=[question.reviewNotes,'Some embedded DOCX images were not sent for visual inspection; verify diagrams in the original document.'].filter(Boolean).join(' ');
  res.json({questions,extracted:questions.length,requiresReview:true,source:isPdf?'PDF':'DOCX'});
 }));
 router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
