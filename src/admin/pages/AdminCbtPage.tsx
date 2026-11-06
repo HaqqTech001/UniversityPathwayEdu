@@ -54,6 +54,13 @@ type Question = {
   options?: { A: string; B: string; C: string; D: string };
   correct_option?: 'A' | 'B' | 'C' | 'D';
   explanation?: string;
+  solution_steps?: string;
+  topic?: string;
+  subtopic?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  exam_type?: string;
+  exam_year?: number | null;
+  question_type?: string;
   status: 'draft' | 'published';
   created_at: string;
 };
@@ -200,7 +207,8 @@ export default function AdminCbtPage() {
     optionC: '',
     optionD: '',
     correctOption: 'A' as 'A' | 'B' | 'C' | 'D',
-    explanation: ''
+    explanation: '',
+    solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice'
   });
 
   const [isCreatingExam, setIsCreatingExam] = useState(false);
@@ -400,7 +408,10 @@ export default function AdminCbtPage() {
             D: questionForm.optionD.trim()
           },
           correctOption: questionForm.correctOption,
-          explanation: questionForm.explanation.trim()
+          explanation: questionForm.explanation.trim(),
+          solutionSteps: questionForm.solutionSteps.trim(), topic: questionForm.topic.trim(), subtopic: questionForm.subtopic.trim(),
+          difficulty: questionForm.difficulty, examType: questionForm.examType.trim(), examYear: questionForm.examYear || null,
+          questionType: questionForm.questionType
         })
       });
       notify(editingQuestion ? 'Question changes saved.' : 'Question added to Question Bank in draft status.', 'success');
@@ -414,7 +425,7 @@ export default function AdminCbtPage() {
         optionC: '',
         optionD: '',
         correctOption: 'A',
-        explanation: ''
+        explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice'
       });
       void fetchQuestions();
     } catch (err: any) {
@@ -847,7 +858,7 @@ export default function AdminCbtPage() {
           </button>
 
           <button
-            onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '' }); setIsCreatingQuestion(true); }}
+            onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice' }); setIsCreatingQuestion(true); }}
             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
           >
             <Plus size={14} />
@@ -1259,7 +1270,8 @@ export default function AdminCbtPage() {
                                   optionC: q.options?.C || '',
                                   optionD: q.options?.D || '',
                                   correctOption: q.correct_option || 'A',
-                                  explanation: q.explanation || ''
+                                  explanation: q.explanation || '', solutionSteps: q.solution_steps || '', topic: q.topic || '', subtopic: q.subtopic || '',
+                                  difficulty: q.difficulty || 'medium', examType: q.exam_type || '', examYear: q.exam_year ? String(q.exam_year) : '', questionType: q.question_type || 'single_choice'
                                 });
                                 setIsCreatingQuestion(true);
                               }}
@@ -2162,6 +2174,37 @@ export default function AdminCbtPage() {
                 />
               </label>
             </div>
+
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label className="block text-xs font-semibold text-slate-700">Topic
+                <input value={questionForm.topic} onChange={e => setQuestionForm(v => ({ ...v, topic: e.target.value }))} placeholder="e.g. Algebra" className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Subtopic
+                <input value={questionForm.subtopic} onChange={e => setQuestionForm(v => ({ ...v, subtopic: e.target.value }))} placeholder="e.g. Linear equations" className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Question type
+                <select value={questionForm.questionType} onChange={e => setQuestionForm(v => ({ ...v, questionType: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                  <option value="single_choice">Single choice</option><option value="multiple_select">Multiple select</option><option value="true_false">True / False</option><option value="short_answer">Short answer</option><option value="numeric">Numeric</option>
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Difficulty
+                <select value={questionForm.difficulty} onChange={e => setQuestionForm(v => ({ ...v, difficulty: e.target.value as 'easy' | 'medium' | 'hard' }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                  <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Exam type
+                <select value={questionForm.examType} onChange={e => setQuestionForm(v => ({ ...v, examType: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
+                  <option value="">Not specified</option><option value="JAMB">JAMB / UTME</option><option value="WAEC">WAEC</option><option value="NECO">NECO</option><option value="IJMB">IJMB</option><option value="POST-UTME">Post-UTME</option>
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">Exam year
+                <input type="number" min="1950" max="2100" value={questionForm.examYear} onChange={e => setQuestionForm(v => ({ ...v, examYear: e.target.value }))} placeholder="e.g. 2024" className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+              </label>
+            </div>
+            <label className="block text-xs font-semibold text-slate-700">Worked solution steps
+              <textarea rows={4} value={questionForm.solutionSteps} onChange={e => setQuestionForm(v => ({ ...v, solutionSteps: e.target.value }))} placeholder="Show the full method, calculations and reasoning step by step..." className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
+            </label>
 
             <div className="pt-2">
               <button
