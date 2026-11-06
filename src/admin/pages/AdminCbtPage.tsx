@@ -42,6 +42,9 @@ type Exam = {
   opens_at?: string | null;
   closes_at?: string | null;
   restricted?: boolean;
+  correction_release_mode?: 'after_close' | 'scheduled' | 'manual';
+  corrections_release_at?: string | null;
+  corrections_released_at?: string | null;
 };
 
 type Question = {
@@ -174,6 +177,9 @@ export default function AdminCbtPage() {
 
   const [isSchedulingExam, setIsSchedulingExam] = useState<Exam | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ opensAt: '', closesAt: '' });
+  const [correctionPolicyExam, setCorrectionPolicyExam] = useState<Exam | null>(null);
+  const [correctionMode, setCorrectionMode] = useState<'after_close' | 'scheduled' | 'manual'>('after_close');
+  const [correctionReleaseAt, setCorrectionReleaseAt] = useState('');
 
   const [isEligibilityModal, setIsEligibilityModal] = useState<Exam | null>(null);
   const [restrictedMode, setRestrictedMode] = useState(false);
@@ -469,6 +475,37 @@ export default function AdminCbtPage() {
       void fetchAssessments();
     } catch (err: any) {
       notify(err.message || 'Failed to schedule assessment.', 'error');
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  const handleSaveCorrectionPolicy = async () => {
+    if (!correctionPolicyExam) return;
+    setSavingAction(true);
+    try {
+      await api(`/api/staff/academic/assessments/${correctionPolicyExam.id}/correction-policy`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mode: correctionMode, releaseAt: correctionMode === 'scheduled' ? new Date(correctionReleaseAt).toISOString() : null })
+      });
+      notify('Correction release policy saved.', 'success');
+      setCorrectionPolicyExam(null);
+      void fetchAssessments();
+    } catch (err: any) {
+      notify(err.message || 'Unable to save correction policy.', 'error');
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  const handleReleaseCorrections = async (exam: Exam) => {
+    setSavingAction(true);
+    try {
+      await api(`/api/staff/academic/assessments/${exam.id}/corrections/release`, { method: 'POST', body: JSON.stringify({}) });
+      notify('Corrections released to candidates.', 'success');
+      void fetchAssessments();
+    } catch (err: any) {
+      notify(err.message || 'Corrections could not be released.', 'error');
     } finally {
       setSavingAction(false);
     }
@@ -1262,6 +1299,16 @@ export default function AdminCbtPage() {
                                 <>
                                   <button
                                     onClick={() => {
+                                      setCorrectionPolicyExam(exam);
+                                      setCorrectionMode(exam.correction_release_mode || 'after_close');
+                                      setCorrectionReleaseAt(exam.corrections_release_at ? exam.corrections_release_at.slice(0, 16) : '');
+                                    }}
+                                    className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#111A43] hover:bg-slate-50"
+                                  >
+                                    Corrections
+                                  </button>
+                                  <button
+                                    onClick={() => {
                                       setIsSchedulingExam(exam);
                                       setScheduleForm({
                                         opensAt: exam.opens_at ? exam.opens_at.slice(0, 16) : '',
@@ -1286,6 +1333,10 @@ export default function AdminCbtPage() {
                                     Publish
                                   </button>
                                 </>
+                              )}
+
+                              {exam.status === 'closed' && exam.correction_release_mode === 'manual' && !exam.corrections_released_at && (
+                                <button disabled={savingAction} onClick={() => handleReleaseCorrections(exam)} className="rounded bg-[#C62839] px-2 py-1 text-[11px] font-bold text-white hover:bg-[#a82230] disabled:opacity-50">Release corrections</button>
                               )}
 
                               {exam.status === 'published' && (
@@ -2210,6 +2261,30 @@ export default function AdminCbtPage() {
               {savingAction ? 'Saving...' : 'Save Candidate Eligibility'}
             </button>
           </div>
+        </div>
+      )}
+
+      {correctionPolicyExam && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-3">
+          <form onSubmit={e => { e.preventDefault(); void handleSaveCorrectionPolicy(); }} className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h2 className="text-base font-bold text-[#111A43]">Correction release policy</h2>
+              <button type="button" onClick={() => setCorrectionPolicyExam(null)} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+            </div>
+            <p className="text-xs text-slate-500">{correctionPolicyExam.title}</p>
+            <label className="block text-xs font-semibold text-slate-700">When should candidates see corrections?
+              <select value={correctionMode} onChange={e => setCorrectionMode(e.target.value as any)} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm">
+                <option value="after_close">Automatically after the examination closes</option>
+                <option value="scheduled">At a scheduled date and time after closing</option>
+                <option value="manual">Only when an administrator releases them</option>
+              </select>
+            </label>
+            {correctionMode === 'scheduled' && <label className="block text-xs font-semibold text-slate-700">Correction release date and time
+              <input required type="datetime-local" value={correctionReleaseAt} onChange={e => setCorrectionReleaseAt(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm" />
+            </label>}
+            <p className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">Correct answers and explanations stay hidden during the examination. Even after the closing time, release waits until no candidate has an active attempt.</p>
+            <button type="submit" disabled={savingAction || (correctionMode === 'scheduled' && !correctionReleaseAt)} className="w-full rounded-lg bg-[#111A43] p-2.5 text-sm font-bold text-white disabled:opacity-50">{savingAction ? 'Saving…' : 'Save correction policy'}</button>
+          </form>
         </div>
       )}
 
