@@ -2184,8 +2184,8 @@ export default function AdminCbtPage() {
                 <input value={questionForm.subtopic} onChange={e => setQuestionForm(v => ({ ...v, subtopic: e.target.value }))} placeholder="e.g. Linear equations" className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
               </label>
               <label className="block text-xs font-semibold text-slate-700">Question type
-                <select value={questionForm.questionType} onChange={e => setQuestionForm(v => ({ ...v, questionType: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs">
-                  <option value="single_choice">Single choice</option><option value="multiple_select">Multiple select</option><option value="true_false">True / False</option><option value="short_answer">Short answer</option><option value="numeric">Numeric</option>
+                <select value="single_choice" disabled className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
+                  <option value="single_choice">Single-answer MCQ</option>
                 </select>
               </label>
               <label className="block text-xs font-semibold text-slate-700">Difficulty
