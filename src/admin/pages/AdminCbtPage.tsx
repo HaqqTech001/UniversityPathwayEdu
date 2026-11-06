@@ -474,7 +474,7 @@ export default function AdminCbtPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new ApiError(data.error || 'Document extraction failed.', response.status);
-      setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: 'Uploaded source document' })));
+      setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: '' })));
       notify('Extracted ' + (data.extracted || 0) + ' question candidates. Review every answer before importing.', 'success');
     } catch (err: any) {
       notify(err.message || 'Could not extract questions from this document.', 'error');
@@ -496,7 +496,7 @@ export default function AdminCbtPage() {
           subtopic: q.subtopic, difficulty: q.difficulty || 'medium', examType: q.examType || pdfExamType,
           examYear: q.examYear || (pdfExamYear ? Number(pdfExamYear) : null), questionType: 'single_choice',
           sourceName: q.sourceName || pdfFile?.name || 'Document upload', sourceReference: q.sourceReference || pdfFile?.name || '',
-          sourceLicense: q.sourceLicense || 'Uploaded source document'
+          sourceLicense: q.sourceLicense || ''
         })) })
       });
       notify('Imported ' + result.imported + ' reviewed questions as drafts. ' + (result.rejected?.length || 0) + ' were rejected.', result.rejected?.length ? 'info' : 'success');
