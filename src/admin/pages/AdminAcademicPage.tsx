@@ -233,11 +233,11 @@ export default function AdminAcademicPage() {
         currentArea === 'Programmes' || currentArea === 'Subjects'
           ? {
               name: form.name.trim(),
-              code:
-                currentArea === 'Subjects' &&
-                !/IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || '')
-                  ? null
-                  : form.code.trim().toUpperCase(),
+              ...(currentArea === 'Subjects' ? {
+                code: /IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || '')
+                  ? form.code.trim().toUpperCase()
+                  : null,
+              } : {}),
               description: form.description.trim(),
               active: form.active,
               ...(currentArea === 'Subjects' ? { programmeId: form.programmeId } : {}),
@@ -435,7 +435,7 @@ export default function AdminAcademicPage() {
       )}
 
       {!currentArea && (
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-[#111A43] text-white flex items-center justify-center shrink-0 shadow-xs">
             <GraduationCap size={22} />
@@ -485,7 +485,7 @@ export default function AdminAcademicPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3 col-span-2 lg:col-span-1">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
             <FileText size={22} />
           </div>
@@ -513,6 +513,10 @@ export default function AdminAcademicPage() {
           ========================================================================= */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          <div className="flex items-center gap-3 pt-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Academic workspaces</span>
+            <span className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {sections.map(({ name, icon: Icon, description }) => (
               <button
@@ -1151,9 +1155,8 @@ export default function AdminAcademicPage() {
                   />
                 </div>
 
-                {(currentArea === 'Programmes' ||
-                  (currentArea === 'Subjects' &&
-                    /IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || ''))) && (
+                {currentArea === 'Subjects' &&
+                  /IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || '') && (
                   <div>
                     <label className="block text-xs font-bold text-[#111A43] mb-1">Code</label>
                     <input
