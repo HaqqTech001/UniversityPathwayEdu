@@ -209,11 +209,11 @@ const extractDocxPlainText=buffer=>{
   offset+=46+nameLength+extraLength+commentLength;
  }
  if(!xml)throw new Error('The DOCX document body could not be read.');
- const paragraphs=[...xml.matchAll(/<w:p(?:\\s[^>]*)?>([\\s\\S]*?)<\\/w:p>/g)].map(match=>
-  [...match[1].matchAll(/<w:t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/w:t>/g)].map(t=>t[1])
+ const paragraphs=[...xml.matchAll(/<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g)].map(match=>
+  [...match[1].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map(t=>t[1])
    .join('').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").trim()
  ).filter(Boolean);
- return {text:paragraphs.join('\\n'),hasDrawing:/<w:drawing\\b|<w:pict\\b/.test(xml)};
+ return {text:paragraphs.join('\n'),hasDrawing:/<w:drawing\b|<w:pict\b/.test(xml)};
 };
 const questionRoles=['super_admin','admin','teacher','cbt_manager'];
 router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
@@ -324,7 +324,7 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
   topic:{type:'STRING'},subtopic:{type:'STRING'},difficulty:{type:'STRING',enum:['easy','medium','hard']},
   examType:{type:'STRING'},examYear:{type:'STRING'},reviewNotes:{type:'STRING'}
  },required:['prompt','optionA','optionB','optionC','optionD','correctOption','explanation','solutionSteps','topic','subtopic','difficulty','examType','examYear','reviewNotes']}}},required:['questions']};
- const prompt='Extract every objective multiple-choice question from this examination PDF. Preserve mathematical notation, units, symbols, tables and wording. Extract the four options exactly. Identify the correct option only when the document provides an answer key or the answer is unambiguous from a fully worked solution; otherwise use UNKNOWN and explain the uncertainty in reviewNotes. Do not invent missing options, answers, years or explanations. If an answer key appears elsewhere in the document, match it carefully by question number. Provide a concise explanation and worked solution steps only when supported by the source or directly solvable; label any calculated solution in reviewNotes. Ignore headers, page numbers and instructions that are not questions. Split compound question numbers into separate records. For unreadable or incomplete questions, include them only if the prompt and all four options are recoverable and describe the issue in reviewNotes. Exam type hint: '+(examType||'not supplied')+'. Exam year hint: '+(Number.isInteger(examYear)&&examYear>=1950&&examYear<=2100?examYear:'not supplied')+'. Return an empty questions array if no valid objective questions are present.';
+ const prompt='Extract every objective multiple-choice question from this examination document. Preserve mathematical notation, units, symbols, tables and wording. Extract the four options exactly. Identify the correct option only when the document provides an answer key or the answer is unambiguous from a fully worked solution; otherwise use UNKNOWN and explain the uncertainty in reviewNotes. Do not invent missing options, answers, years or explanations. If an answer key appears elsewhere in the document, match it carefully by question number. Provide a concise explanation and worked solution steps only when supported by the source or directly solvable; label any calculated solution in reviewNotes. Ignore headers, page numbers and instructions that are not questions. Split compound question numbers into separate records. For unreadable or incomplete questions, include them only if the prompt and all four options are recoverable and describe the issue in reviewNotes. Exam type hint: '+(examType||'not supplied')+'. Exam year hint: '+(Number.isInteger(examYear)&&examYear>=1950&&examYear<=2100?examYear:'not supplied')+'. Return an empty questions array if no valid objective questions are present.';
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
  let response;
  try{
