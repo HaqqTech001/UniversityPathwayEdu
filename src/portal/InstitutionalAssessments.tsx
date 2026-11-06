@@ -95,7 +95,7 @@ export default function InstitutionalAssessments(){
  return <section className="mt-5 space-y-5" aria-labelledby="institutional-tests">
   <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
    <div><h3 id="institutional-tests" className="text-lg font-bold tracking-tight text-[#111a43]">Institutional assessments</h3><p className="mt-1 text-sm text-slate-500">Examinations assigned and managed by your academic team.</p></div>
-   {!attempt&&!result&&<button type="button" onClick={()=>{setLoading(true);refreshHistory().catch(e=>setError(e.message)).finally(()=>setLoading(false));}} className="self-start rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">Refresh</button>}
+   {!attempt&&!result&&!correctionReview&&<button type="button" onClick={()=>{setLoading(true);refreshHistory().catch(e=>setError(e.message)).finally(()=>setLoading(false));}} className="self-start rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">Refresh</button>}
   </header>
 
   {error&&<div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><AlertCircle size={17} className="mt-0.5 shrink-0"/><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={()=>setError('')} className="ml-auto"><X size={16}/></button></div>}
@@ -112,7 +112,7 @@ export default function InstitutionalAssessments(){
    <button type="button" onClick={leaveAttempt} className="mt-4 rounded-lg bg-[#111a43] px-4 py-2.5 text-sm font-semibold text-white">Back to assessments</button>
   </div>}
 
-  {!attempt&&!result&&<div className="space-y-6">
+  {!attempt&&!result&&!correctionReview&&<div className="space-y-6">
    <div className="space-y-3">
     <div className="flex items-center justify-between"><h4 className="text-sm font-bold text-[#111a43]">Available examinations</h4><span className="text-xs text-slate-400">{exams.length} available</span></div>
     {loading?<div className="rounded-xl border border-slate-200 p-5 text-sm text-slate-500">Loading available assessments…</div>:exams.length===0?<div className="rounded-xl border border-dashed border-slate-300 p-6 text-center"><p className="text-sm font-semibold text-slate-700">No examinations available</p><p className="mt-1 text-xs text-slate-500">When your academic team publishes an assessment for you, it will appear here.</p></div>:<div className="grid gap-3 md:grid-cols-2">{exams.map(exam=><article key={exam.id} className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300">
