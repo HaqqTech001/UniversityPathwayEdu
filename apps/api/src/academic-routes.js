@@ -338,7 +338,7 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
  if(!response.ok){console.error('Gemini document extraction failed:',response.status,payload?.error?.message||'');return res.status(502).json({error:'Document extraction service could not process this document.'});}
  const raw=(payload.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('');
  let parsed;
- try{parsed=JSON.parse(raw);}catch{return res.status(502).json({error:'The extraction service returned an unreadable response. Please retry the PDF.'});}
+ try{parsed=JSON.parse(raw);}catch{return res.status(502).json({error:'The extraction service returned an unreadable response. Please retry the document.'});}
  const questions=Array.isArray(parsed.questions)?parsed.questions.slice(0,300).map((q,index)=>({
   rowNumber:index+1,prompt:String(q.prompt||'').slice(0,5000),
   options:{A:String(q.optionA||'').slice(0,1000),B:String(q.optionB||'').slice(0,1000),C:String(q.optionC||'').slice(0,1000),D:String(q.optionD||'').slice(0,1000)},
@@ -349,7 +349,8 @@ router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:[
   examType:String(q.examType||examType).slice(0,40),examYear:Number(q.examYear||examYear)||null,
   reviewNotes:String(q.reviewNotes||'').slice(0,1000),subjectId
  })).filter(q=>q.prompt.length>=10&&Object.values(q.options).every(v=>v.trim().length>0)):[];
- if(isDocx&&docxHasDrawing)for(const question of questions)question.reviewNotes=[question.reviewNotes,'Source DOCX contains embedded visual content; verify diagrams in the original document.'].filter(Boolean).join(' ');\n res.json({questions,extracted:questions.length,requiresReview:true,source:isPdf?'PDF':'DOCX'});
+ if(isDocx&&docxHasDrawing)for(const question of questions)question.reviewNotes=[question.reviewNotes,'Source DOCX contains embedded visual content; verify diagrams in the original document.'].filter(Boolean).join(' ');
+ res.json({questions,extracted:questions.length,requiresReview:true,source:isPdf?'PDF':'DOCX'});
 }));
 router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
  const provider=String(req.query.provider||'auto').toLowerCase();
