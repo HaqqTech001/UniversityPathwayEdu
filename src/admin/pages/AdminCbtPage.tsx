@@ -150,11 +150,19 @@ const parseQuestionCsv = (input: string) => {
       row = [];
     } else cell += ch;
   }
+  if (quoted) throw new Error('The CSV contains an unclosed quotation mark.');
   row.push(cell.trim());
   if (row.some(value => value !== '')) rows.push(row);
-  if (rows.length < 2) throw new Error('Paste a CSV header followed by at least one question row.');
+  if (rows.length < 2) throw new Error('Choose a CSV with a header and at least one question.');
   const headers = rows[0].map(value => value.toLowerCase().replace(/[\s_-]+/g, ''));
-  return rows.slice(1).map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
+  const required = ['prompt','optiona','optionb','optionc','optiond','correctoption'];
+  const missing = required.filter(header => !headers.includes(header));
+  if (missing.length) throw new Error('Missing required CSV columns: ' + missing.join(', '));
+  if (new Set(headers).size !== headers.length) throw new Error('The CSV contains duplicate column headings.');
+  return rows.slice(1).map((values, index) => {
+    if (values.length !== headers.length) throw new Error('CSV row ' + (index + 2) + ' has ' + values.length + ' values; expected ' + headers.length + '.');
+    return Object.fromEntries(headers.map((header, column) => [header, values[column] || '']));
+  });
 };
 
 const SETTINGS_STORAGE_KEY = 'upec_cbt_station_settings';
@@ -2233,6 +2241,11 @@ export default function AdminCbtPage() {
             <div className="rounded-lg bg-slate-50 p-3 text-[11px] text-slate-600">
               Required headers: <b>prompt, optionA, optionB, optionC, optionD, correctOption</b>. Optional: subjectId, explanation, questionType, topic, subtopic, difficulty, examType, examYear, solutionSteps, sourceName, sourceReference, sourceLicense. If subjectId is omitted, select a subject filter before importing.
             </div>
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-600 hover:border-[#111A43]">
+              <span><strong className="block text-[#111A43]">Choose a CSV file</strong><span className="text-[10px] text-slate-500">Upload a prepared question spreadsheet exported as .csv, or paste below.</span></span>
+              <span className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold">Browse file</span>
+              <input type="file" accept=".csv,text/csv" className="sr-only" onChange={async e => { const file=e.target.files?.[0]; if(!file)return; if(file.size>2*1024*1024){notify('CSV file must be 2 MB or smaller.','error');e.target.value='';return;} try { const content=await file.text(); parseQuestionCsv(content); setBulkCsv(content); notify(file.name+' loaded and validated.','success'); } catch(err:any) { notify(err.message||'Could not read CSV file.','error'); } e.target.value=''; }} />
+            </label>
             <textarea required rows={12} value={bulkCsv} onChange={e => setBulkCsv(e.target.value)} placeholder={'prompt,optionA,optionB,optionC,optionD,correctOption,explanation,topic,difficulty,examType,examYear,solutionSteps\\n"Find x if 2x + 4 = 10","2","3","4","5","B","Subtract 4, then divide by 2","Linear equations","easy","JAMB",2024,"2x=6; x=3"} className="w-full rounded-lg border border-slate-200 p-3 font-mono text-xs" />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setIsBulkImportOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600">Cancel</button>
