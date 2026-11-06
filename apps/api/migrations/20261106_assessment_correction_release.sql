@@ -15,7 +15,7 @@ alter table public.upec_assessments
  drop constraint if exists upec_assessment_correction_schedule_check;
 alter table public.upec_assessments
  add constraint upec_assessment_correction_schedule_check
- check (
-  (correction_release_mode='scheduled' and corrections_release_at is not null)
-  or (correction_release_mode<>'scheduled')
- );
+ check ((correction_release_mode='scheduled' and corrections_release_at is not null) or correction_release_mode<>'scheduled');
+
+create index if not exists upec_assessment_correction_release_idx
+ on public.upec_assessments(status,correction_release_mode,corrections_release_at);
