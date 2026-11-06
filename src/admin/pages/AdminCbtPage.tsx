@@ -1281,7 +1281,7 @@ export default function AdminCbtPage() {
                             </button>
                             <button
                               disabled={savingAction}
-                              onClick={() => handleToggleQuestionStatus(q)
+                              onClick={() => handleToggleQuestionStatus(q)}
                               className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
                             >
                               {q.status === 'published' ? 'Move to Draft' : 'Approve & Publish'}
