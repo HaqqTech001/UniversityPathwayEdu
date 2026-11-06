@@ -106,7 +106,7 @@ router.get('/utme/subjects/:subject/years',async(req,res)=>{
 router.get('/utme/format',(_req,res)=>res.json({exam:'UTME',subjectsPerExam:4,compulsorySubject:'Use of English',englishQuestions:60,otherSubjectQuestions:40,totalQuestions:180,durationMinutes:120,options:['A','B','C','D'],scoringMaximum:400,source:'UTME simulation configuration; verify against latest JAMB guidance',simulation:true}));
 router.get('/utme/provider-status',(_req,res)=>{
  const providers=providerStatus();
- res.json({provider:providers.aloc.configured?'ALOC Station':providers.sdashapi.configured?'SdashAPI':null,configured:providers.aloc.configured||providers.sdashapi.configured,providers,source:'third-party',officialJambApi:false,solutionsEnabled:true});
+ res.json({provider:providers.aloc.configured?'ALOC Station':providers.sdashapi.configured?'SdashAPI':null,configured:providers.aloc.configured||providers.sdashapi.configured,providers,source:'third-party',officialJambApi:false,answersAvailable:providers.aloc.configured||providers.sdashapi.configured,workedSolutionsAvailable:providers.sdashapi.configured});
 });
 router.get('/utme/questions',async(req,res)=>{
  const subject=String(req.query.subject||'').toLowerCase();
