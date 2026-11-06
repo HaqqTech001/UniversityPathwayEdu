@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {Router} from 'express';
+import express, {Router} from 'express';
 import {supabaseAdmin as db} from './db.js';
 
 const router=Router();
