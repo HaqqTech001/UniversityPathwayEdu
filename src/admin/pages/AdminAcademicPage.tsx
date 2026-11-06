@@ -36,6 +36,9 @@ type AcademicRecord = {
   details: Record<string, string>;
 };
 
+const isIjmbProgramme = (programme?: { name?: string; code?: string } | null) =>
+  /IJMB/i.test(`${programme?.name || ''} ${programme?.code || ''}`);
+
 const sections = [
   { name: 'Programmes' as const, icon: GraduationCap, description: 'Academic pathways, degrees, and certificate programmes' },
   { name: 'Subjects' as const, icon: BookOpen, description: 'Curriculum courses, modules, and subject offerings' },
@@ -234,7 +237,7 @@ export default function AdminAcademicPage() {
           ? {
               name: form.name.trim(),
               ...(currentArea === 'Subjects' ? {
-                code: /IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || '')
+                code: isIjmbProgramme(catalogue.programmes.find((p) => p.id === form.programmeId))
                   ? form.code.trim().toUpperCase()
                   : null,
               } : {}),
@@ -1156,7 +1159,7 @@ export default function AdminAcademicPage() {
                 </div>
 
                 {currentArea === 'Subjects' &&
-                  /IJMB/i.test(catalogue.programmes.find((p) => p.id === form.programmeId)?.name || '') && (
+                  isIjmbProgramme(catalogue.programmes.find((p) => p.id === form.programmeId)) && (
                   <div>
                     <label className="block text-xs font-bold text-[#111A43] mb-1">Code</label>
                     <input
