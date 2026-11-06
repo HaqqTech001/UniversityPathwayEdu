@@ -467,7 +467,7 @@ export default function AdminCbtPage() {
     setProviderSelected([]);
     try {
       const params = new URLSearchParams({
-        provider: providerName, exam: providerExam, subject: providerSubject.trim().toLowerCase().replace(/\\s+/g, '-'),
+        provider: providerName, exam: providerExam, subject: providerSubject.trim().toLowerCase().replace(/\s+/g, '-'),
         year: providerYear, limit: '30'
       });
       const result = await api(`/api/staff/academic/provider-questions?${params.toString()}`);
