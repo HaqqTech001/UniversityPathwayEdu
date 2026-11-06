@@ -213,7 +213,7 @@ router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),
  res.json({question:data});
 }));
 router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
- let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at').order('created_at',{ascending:false}).limit(100);
+ let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at,opens_at,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').order('created_at',{ascending:false}).limit(100);
  if(req.staff.role==='teacher')query=query.eq('created_by',req.actor.sub);
  const {data,error}=await query;if(error)throw error;res.json({assessments:data||[]});
 }));
@@ -255,6 +255,32 @@ router.patch('/assessments/:id/schedule',grant('super_admin','admin','cbt_manage
  if(error)throw error;
  if(!data)return res.status(409).json({error:'Only draft assessments can be scheduled.'});
  res.json({assessment:data});
+}));
+router.patch('/assessments/:id/correction-policy',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {mode,releaseAt}=req.body||{};
+ if(!['after_close','scheduled','manual'].includes(mode))return res.status(400).json({error:'Choose a valid correction release mode.'});
+ const releaseTime=mode==='scheduled'&&typeof releaseAt==='string'&&Number.isFinite(Date.parse(releaseAt))?new Date(releaseAt).toISOString():null;
+ if(mode==='scheduled'&&!releaseTime)return res.status(400).json({error:'A valid correction release date and time are required.'});
+ const {data:exam,error:lookupError}=await db.from('upec_assessments').select('id,status').eq('id',req.params.id).maybeSingle();
+ if(lookupError)throw lookupError;if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ if(exam.status!=='draft')return res.status(409).json({error:'Set the correction release policy before publishing the examination.'});
+ const {data,error}=await db.from('upec_assessments').update({correction_release_mode:mode,corrections_release_at:releaseTime,corrections_released_at:null,corrections_released_by:null}).eq('id',exam.id).eq('status','draft').select('id,correction_release_mode,corrections_release_at').maybeSingle();
+ if(error)throw error;if(!data)return res.status(409).json({error:'Assessment changed. Refresh and try again.'});
+ res.json({policy:data});
+}));
+router.post('/assessments/:id/corrections/release',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
+ const {data:exam,error}=await db.from('upec_assessments').select('id,status,closes_at,correction_release_mode').eq('id',req.params.id).maybeSingle();
+ if(error)throw error;if(!exam)return res.status(404).json({error:'Assessment not found.'});
+ if(exam.correction_release_mode!=='manual')return res.status(409).json({error:'This examination is not configured for manual correction release.'});
+ if(!(exam.status==='closed'||(exam.closes_at&&Date.parse(exam.closes_at)<=Date.now())))return res.status(409).json({error:'Close the examination before releasing corrections.'});
+ const {data:active,error:activeError}=await db.from('upec_assessment_attempts').select('id').eq('assessment_id',exam.id).is('submitted_at',null).gt('expires_at',new Date().toISOString()).limit(1);
+ if(activeError)throw activeError;if(active?.length)return res.status(409).json({error:'Candidates are still completing this examination. Corrections remain locked.'});
+ const releasedAt=new Date().toISOString();
+ const {data:updated,error:updateError}=await db.from('upec_assessments').update({corrections_released_at:releasedAt,corrections_released_by:req.actor.sub}).eq('id',exam.id).eq('correction_release_mode','manual').select('id,corrections_released_at').maybeSingle();
+ if(updateError)throw updateError;if(!updated)return res.status(409).json({error:'Correction release policy changed. Refresh and try again.'});
+ res.json({released:true,releasedAt:updated.corrections_released_at});
 }));
 router.put('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  const {restricted,studentIds}=req.body||{};
