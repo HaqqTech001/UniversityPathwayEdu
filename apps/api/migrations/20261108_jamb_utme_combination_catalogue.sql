@@ -28,11 +28,7 @@ create table if not exists public.upec_jamb_utme_combinations (
  constraint upec_jamb_utme_three_subjects_check
    check(cardinality(required_subjects)+alternative_subject_count=3),
  constraint upec_jamb_utme_alternative_count_check
-   check((alternative_subject_count=0 and cardinality(alternative_subjects)=0) or (alternative_subject_count>0 and cardinality(alternative_subjects)>=alternative_subject_count)),
- constraint upec_jamb_utme_required_unique_check
-   check(cardinality(required_subjects)=cardinality(array(select distinct unnest(required_subjects)))),
- constraint upec_jamb_utme_alternative_unique_check
-   check(cardinality(alternative_subjects)=cardinality(array(select distinct unnest(alternative_subjects))))
+   check((alternative_subject_count=0 and cardinality(alternative_subjects)=0) or (alternative_subject_count>0 and cardinality(alternative_subjects)>=alternative_subject_count))
 );
 create unique index if not exists upec_jamb_utme_combo_unique_idx
  on public.upec_jamb_utme_combinations(exam_year,lower(institution_name),lower(programme_name));
