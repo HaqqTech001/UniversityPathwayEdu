@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-  "dev": "node --env-file=.env src/index.js",
-  "start": "node --env-file-if-exists=.env src/index.js"
-},
+    "dev": "node --env-file=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "test": "node --test"
+  },
   "dependencies": {
     "express": "^4.21.2",
     "dotenv": "^17.2.3",
