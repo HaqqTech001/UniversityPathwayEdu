@@ -61,6 +61,9 @@ type Question = {
   exam_type?: string;
   exam_year?: number | null;
   question_type?: string;
+  source_name?: string;
+  source_reference?: string;
+  source_license?: string;
   status: 'draft' | 'published';
   created_at: string;
 };
@@ -428,7 +431,8 @@ export default function AdminCbtPage() {
           explanation: questionForm.explanation.trim(),
           solutionSteps: questionForm.solutionSteps.trim(), topic: questionForm.topic.trim(), subtopic: questionForm.subtopic.trim(),
           difficulty: questionForm.difficulty, examType: questionForm.examType.trim(), examYear: questionForm.examYear || null,
-          questionType: questionForm.questionType
+          questionType: questionForm.questionType,
+          sourceName: questionForm.sourceName.trim(), sourceReference: questionForm.sourceReference.trim(), sourceLicense: questionForm.sourceLicense.trim()
         })
       });
       notify(editingQuestion ? 'Question changes saved.' : 'Question added to Question Bank in draft status.', 'success');
@@ -949,7 +953,7 @@ export default function AdminCbtPage() {
           </button>
 
           <button
-            onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice' }); setIsCreatingQuestion(true); }}
+            onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice', sourceName: '', sourceReference: '', sourceLicense: '' }); setIsCreatingQuestion(true); }}
             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
           >
             <Plus size={14} />
@@ -1303,6 +1307,7 @@ export default function AdminCbtPage() {
                     <th className="py-2.5 px-3">Question Prompt</th>
                     <th className="py-2.5 px-3">Correct Key</th>
                     <th className="py-2.5 px-3">Approval Status</th>
+                    <th className="py-2.5 px-3">Source</th>
                     <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -1347,6 +1352,9 @@ export default function AdminCbtPage() {
                               {q.status}
                             </span>
                           </td>
+                          <td className="py-2.5 px-3 text-[11px] text-slate-600">
+                            {q.source_name ? <div className="max-w-[190px]"><p className="truncate font-semibold text-slate-700" title={q.source_name}>{q.source_name}</p>{q.source_reference && <p className="truncate text-slate-400" title={q.source_reference}>{q.source_reference}</p>}{q.source_license && <span className="mt-1 inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500" title={q.source_license}>Permission noted</span>}</div> : <span className="text-slate-400">Not recorded</span>}
+                          </td>
                           <td className="py-2.5 px-3 text-right whitespace-nowrap">
                             <div className="inline-flex items-center gap-1.5">
                             <button
@@ -1362,7 +1370,7 @@ export default function AdminCbtPage() {
                                   optionD: q.options?.D || '',
                                   correctOption: q.correct_option || 'A',
                                   explanation: q.explanation || '', solutionSteps: q.solution_steps || '', topic: q.topic || '', subtopic: q.subtopic || '',
-                                  difficulty: q.difficulty || 'medium', examType: q.exam_type || '', examYear: q.exam_year ? String(q.exam_year) : '', questionType: q.question_type || 'single_choice'
+                                  difficulty: q.difficulty || 'medium', examType: q.exam_type || '', examYear: q.exam_year ? String(q.exam_year) : '', questionType: q.question_type || 'single_choice', sourceName: q.source_name || '', sourceReference: q.source_reference || '', sourceLicense: q.source_license || ''
                                 });
                                 setIsCreatingQuestion(true);
                               }}
@@ -2296,6 +2304,21 @@ export default function AdminCbtPage() {
             <label className="block text-xs font-semibold text-slate-700">Worked solution steps
               <textarea rows={4} value={questionForm.solutionSteps} onChange={e => setQuestionForm(v => ({ ...v, solutionSteps: e.target.value }))} placeholder="Show the full method, calculations and reasoning step by step..." className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs" />
             </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <h3 className="text-xs font-bold text-[#111A43]">Source &amp; provenance</h3>
+              <p className="mt-0.5 text-[10px] text-slate-500">Keep the original source traceable when reviewing or correcting this question.</p>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-slate-700">Source / publisher
+                  <input maxLength={200} value={questionForm.sourceName} onChange={e => setQuestionForm(v => ({ ...v, sourceName: e.target.value }))} placeholder="e.g. Original school paper" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+                </label>
+                <label className="block text-xs font-semibold text-slate-700">Paper reference / pages
+                  <input maxLength={500} value={questionForm.sourceReference} onChange={e => setQuestionForm(v => ({ ...v, sourceReference: e.target.value }))} placeholder="e.g. 2024 Physics, question 12, page 4" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+                </label>
+                <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">Permission / licence note
+                  <input maxLength={160} value={questionForm.sourceLicense} onChange={e => setQuestionForm(v => ({ ...v, sourceLicense: e.target.value }))} placeholder="e.g. Original material / permission granted / licence reference" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+                </label>
+              </div>
+            </div>
 
             <div className="pt-2">
               <button
