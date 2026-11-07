@@ -68,6 +68,16 @@ type Question = {
   created_at: string;
 };
 
+const getQuestionReview = (question: Question) => {
+  const issues: string[] = [];
+  if (!question.prompt || question.prompt.trim().length < 10) issues.push('Question prompt is missing or too short');
+  if (!['A','B','C','D'].every(key => typeof question.options?.[key as 'A'|'B'|'C'|'D'] === 'string' && question.options[key as 'A'|'B'|'C'|'D'].trim())) issues.push('All four answer options are required');
+  if (!['A','B','C','D'].includes(question.correct_option || '')) issues.push('Correct answer is not confirmed');
+  if (!question.topic?.trim()) issues.push('Topic is missing');
+  if (!question.explanation?.trim() && !question.solution_steps?.trim()) issues.push('Add an explanation or worked solution');
+  return { ready: issues.length === 0, issues };
+};
+
 type Subject = {
   id: string;
   name: string;
@@ -608,6 +618,11 @@ export default function AdminCbtPage() {
   // Toggle Question Status
   const handleToggleQuestionStatus = async (q: Question) => {
     const nextStatus = q.status === 'published' ? 'draft' : 'published';
+    const review = getQuestionReview(q);
+    if (nextStatus === 'published' && !review.ready) {
+      notify('This question is not ready to publish: ' + review.issues.join('; ') + '.', 'error');
+      return;
+    }
     setSavingAction(true);
     try {
       await api(`/api/staff/academic/questions/${q.id}/status`, {
@@ -816,7 +831,10 @@ export default function AdminCbtPage() {
       const searchable = [q.prompt,q.topic,q.subtopic,q.exam_type,q.exam_year,q.source_name,q.source_reference].filter(value => value !== null && value !== undefined).join(' ').toLowerCase();
       const matchesSearch = searchable.includes(term);
       const matchesSubject = selectedSubjectFilter === 'all' || q.subject_id === selectedSubjectFilter;
-      const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
+      const review = getQuestionReview(q);
+      const matchesStatus = statusFilter === 'all' || q.status === statusFilter ||
+        (statusFilter === 'ready' && review.ready) ||
+        (statusFilter === 'needs_review' && !review.ready);
       return matchesSearch && matchesSubject && matchesStatus;
     });
   }, [questionsState.data, searchQuery, selectedSubjectFilter, statusFilter]);
@@ -1263,6 +1281,8 @@ export default function AdminCbtPage() {
                   <option value="all">All Statuses</option>
                   <option value="published">Published</option>
                   <option value="draft">Draft</option>
+                  <option value="ready">Ready to publish</option>
+                  <option value="needs_review">Needs review</option>
                 </select>
               </div>
 
@@ -1353,6 +1373,10 @@ export default function AdminCbtPage() {
                             >
                               {q.status}
                             </span>
+                            <p className={`mt-1 text-[10px] font-semibold ${getQuestionReview(q).ready ? 'text-emerald-700' : 'text-amber-700'}`}>
+                              {getQuestionReview(q).ready ? 'Ready to publish' : 'Needs review'}
+                            </p>
+                            {!getQuestionReview(q).ready && <p className="mt-0.5 max-w-[180px] text-[9px] leading-3 text-slate-400" title={getQuestionReview(q).issues.join('; ')}>{getQuestionReview(q).issues[0]}</p>}
                           </td>
                           <td className="py-2.5 px-3 text-[11px] text-slate-600">
                             {q.source_name ? <div className="max-w-[190px]"><p className="truncate font-semibold text-slate-700" title={q.source_name}>{q.source_name}</p>{q.source_reference && <p className="truncate text-slate-400" title={q.source_reference}>{q.source_reference}</p>}{q.source_license && <span className="mt-1 inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500" title={q.source_license}>Permission noted</span>}</div> : <span className="text-slate-400">Not recorded</span>}
