@@ -756,4 +756,72 @@ router.post('/subject-combinations',grant('super_admin','admin'),wrap(async(req,
  const {data,error}=await db.from('upec_subject_combinations').insert({programme_id:programmeId,name:combinationName.trim(),subject_codes:subjectCodes}).select('id,name').single();
  if(error?.code==='23505')return res.status(409).json({error:'Combination name already exists for this programme.'});if(error)throw error;res.status(201).json({combination:data});
 }));
+const necoFields=new Set(['general','science','humanities','technology','business','trade']);
+const necoCategories=new Set(['cross_cutting','science_mathematics','technology','humanities','business_studies','trade_entrepreneurship']);
+const necoSelections=new Set(['cross_cutting_compulsory','departmental_core','departmental_optional','outside_field_elective']);
+const necoYear=v=>Number.isInteger(v)&&v>=2027&&v<=2100;
+const necoSubjectPayload=input=>{
+ const v=input||{};
+ return {
+  catalogue_year:v.catalogueYear??2027,
+  subject_code:typeof v.subjectCode==='string'?v.subjectCode.trim().toUpperCase():'',
+  subject_name:typeof v.subjectName==='string'?v.subjectName.trim():'',
+  subject_category:v.subjectCategory,
+  field_of_study:v.fieldOfStudy,
+  selection_type:v.selectionType,
+  source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'NECO SSCE Internal 2027',
+  source_verified:v.sourceVerified===true,
+  active:v.active!==false
+ };
+};
+router.get('/neco/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const year=Number(req.query.year||2027);
+ if(!necoYear(year))return res.status(400).json({error:'Choose a valid NECO catalogue year.'});
+ let query=db.from('upec_neco_subject_catalogue').select('id,catalogue_year,subject_code,subject_name,subject_category,field_of_study,selection_type,source_reference,source_verified,active').eq('catalogue_year',year).order('subject_name').limit(1000);
+ if(req.query.field&&necoFields.has(String(req.query.field)))query=query.eq('field_of_study',String(req.query.field));
+ if(req.query.selectionType&&necoSelections.has(String(req.query.selectionType)))query=query.eq('selection_type',String(req.query.selectionType));
+ if(req.query.active==='true'||req.query.active==='false')query=query.eq('active',req.query.active==='true');
+ const {data,error}=await query;
+ if(error)throw error;
+ res.json({year,subjects:data||[]});
+}));
+router.post('/neco/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const subject=necoSubjectPayload(req.body);
+ if(!necoYear(subject.catalogue_year)||!code(subject.subject_code)||!name(subject.subject_name)||!necoCategories.has(subject.subject_category)||!necoFields.has(subject.field_of_study)||!necoSelections.has(subject.selection_type)||!subject.source_reference||subject.source_reference.length>300)return res.status(400).json({error:'Invalid NECO subject details or classification.'});
+ if(subject.selection_type==='cross_cutting_compulsory'&&subject.field_of_study!=='general')return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field.'});
+ const {data,error}=await db.from('upec_neco_subject_catalogue').insert(subject).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
+ if(error)throw error;
+ res.status(201).json({subject:data});
+}));
+router.patch('/neco/subjects/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid subject ID.'});
+ const input=req.body||{},changes={};
+ const mapping={catalogueYear:'catalogue_year',subjectCode:'subject_code',subjectName:'subject_name',subjectCategory:'subject_category',fieldOfStudy:'field_of_study',selectionType:'selection_type',sourceReference:'source_reference',sourceVerified:'source_verified',active:'active'};
+ for(const [key,column] of Object.entries(mapping)){
+  if(!Object.hasOwn(input,key))continue;
+  const value=input[key];
+  if(key==='catalogueYear'){if(!necoYear(value))return res.status(400).json({error:'Invalid catalogue year.'});changes[column]=value;}
+  else if(key==='subjectCode'){if(!code(value))return res.status(400).json({error:'Invalid subject code.'});changes[column]=value.trim().toUpperCase();}
+  else if(key==='subjectName'){if(!name(value))return res.status(400).json({error:'Invalid subject name.'});changes[column]=value.trim();}
+  else if(key==='subjectCategory'){if(!necoCategories.has(value))return res.status(400).json({error:'Invalid subject category.'});changes[column]=value;}
+  else if(key==='fieldOfStudy'){if(!necoFields.has(value))return res.status(400).json({error:'Invalid field of study.'});changes[column]=value;}
+  else if(key==='selectionType'){if(!necoSelections.has(value))return res.status(400).json({error:'Invalid subject selection type.'});changes[column]=value;}
+  else if(key==='sourceReference'){if(typeof value!=='string'||!value.trim()||value.length>300)return res.status(400).json({error:'Invalid source reference.'});changes[column]=value.trim();}
+  else if(typeof value!=='boolean')return res.status(400).json({error:'Invalid boolean field.'});
+  else changes[column]=value;
+ }
+ if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
+ const {data:existing,error:readError}=await db.from('upec_neco_subject_catalogue').select('field_of_study,selection_type').eq('id',req.params.id).maybeSingle();
+ if(readError)throw readError;
+ if(!existing)return res.status(404).json({error:'NECO subject not found.'});
+ const field=changes.field_of_study??existing.field_of_study;
+ const selection=changes.selection_type??existing.selection_type;
+ if(selection==='cross_cutting_compulsory'&&field!=='general')return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field.'});
+ const {data,error}=await db.from('upec_neco_subject_catalogue').update(changes).eq('id',req.params.id).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
+ if(error)throw error;
+ res.json({subject:data});
+}));
+
 export default router;
