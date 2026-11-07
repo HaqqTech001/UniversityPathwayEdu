@@ -30,7 +30,7 @@ create table if not exists public.upec_exam_subject_catalogue (
  constraint upec_exam_subject_code_check check(subject_code is null or subject_code ~ '^[A-Z0-9_-]{2,32}$'),
  constraint upec_exam_subject_source_check check(length(trim(source_reference)) between 3 and 300),
  constraint upec_exam_subject_institution_check check(exam_type <> 'post_utme' or length(trim(coalesce(institution_name,''))) >= 2),
- constraint upec_exam_subject_ijmb_code_check check(exam_type <> 'ijmb' or subject_code is not null)
+ constraint upec_exam_subject_code_exam_check check((exam_type = 'ijmb' and subject_code is not null) or (exam_type <> 'ijmb' and subject_code is null))
 );
 create unique index if not exists upec_exam_subject_unique_idx on public.upec_exam_subject_catalogue(exam_type,exam_year,subject_id,coalesce(institution_name,''),coalesce(programme_name,''));
 create index if not exists upec_exam_subject_lookup_idx on public.upec_exam_subject_catalogue(exam_type,exam_year,field_of_study,selection_type,active);
