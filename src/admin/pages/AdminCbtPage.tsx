@@ -68,6 +68,30 @@ type Question = {
   created_at: string;
 };
 
+const getAuditFieldLabel = (key: string) => ({
+  prompt: 'Question prompt', options: 'Answer options', correct_option: 'Correct answer',
+  explanation: 'Explanation', solution_steps: 'Worked solution', topic: 'Topic',
+  subtopic: 'Subtopic', difficulty: 'Difficulty', exam_type: 'Exam type',
+  exam_year: 'Exam year', source_name: 'Source', source_reference: 'Source reference',
+  source_license: 'Permission / licence', status: 'Publication status',
+  subject_id: 'Subject', question_type: 'Question type'
+}[key] || key.replace(/_/g, ' ').replace(/^./, value => value.toUpperCase()));
+
+const formatAuditValue = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+};
+
+const getAuditChanges = (entry: any) => {
+  const before = entry.before_data || {};
+  const after = entry.after_data || {};
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+    .filter(key => !['id', 'created_at', 'updated_at', 'author_account_id'].includes(key));
+  return keys.filter(key => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null))
+    .map(key => ({ key, label: getAuditFieldLabel(key), before: formatAuditValue(before[key]), after: formatAuditValue(after[key]) }));
+};
+
 const getQuestionReview = (question: Question) => {
   const issues: string[] = [];
   if (!question.prompt || question.prompt.trim().length < 10) issues.push('Question prompt is missing or too short');
@@ -2854,9 +2878,22 @@ export default function AdminCbtPage() {
                       </div>
                       <time className="text-[10px] text-slate-400">{entry.created_at ? new Date(entry.created_at).toLocaleString() : 'Time unavailable'}</time>
                     </div>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {entry.before_data && <div className="rounded-lg bg-rose-50/70 p-2"><p className="text-[10px] font-bold uppercase text-rose-700">Before</p><p className="mt-1 line-clamp-4 whitespace-pre-wrap text-xs text-slate-700">{entry.before_data.prompt || entry.before_data.status || 'Previous version recorded'}</p></div>}
-                      {entry.after_data && <div className="rounded-lg bg-emerald-50/70 p-2"><p className="text-[10px] font-bold uppercase text-emerald-700">After</p><p className="mt-1 line-clamp-4 whitespace-pre-wrap text-xs text-slate-700">{entry.after_data.prompt || entry.after_data.status || 'Updated version recorded'}</p></div>}
+                    <div className="mt-3 space-y-2">
+                      {getAuditChanges(entry).length ? getAuditChanges(entry).map(change => (
+                        <div key={change.key} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">{change.label}</p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="min-w-0 rounded-md bg-rose-50/80 p-2">
+                              <p className="text-[9px] font-bold uppercase text-rose-700">Before</p>
+                              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-700">{change.before}</pre>
+                            </div>
+                            <div className="min-w-0 rounded-md bg-emerald-50/80 p-2">
+                              <p className="text-[9px] font-bold uppercase text-emerald-700">After</p>
+                              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-700">{change.after}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      )) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">This activity has no field-level snapshot. New edits will show their individual changes here.</p>}
                     </div>
                   </article>
                 ))}
