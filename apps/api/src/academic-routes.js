@@ -417,9 +417,25 @@ router.get('/provider-questions',grant(...questionRoles),wrap(async(req,res)=>{
 router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  const id=req.params.id,status=req.body?.status;
  if(!uuid(id)||!['draft','published'].includes(status))return res.status(400).json({error:'Invalid question or status.'});
- const {data,error}=await db.from('upec_teacher_questions').update({status,updated_at:new Date().toISOString()}).eq('id',id).select('id,status,prompt').maybeSingle();
+ const {data:current,error:lookupError}=await db.from('upec_teacher_questions').select('id,subject_id,author_account_id,prompt,options,correct_option,topic,explanation,solution_steps,status').eq('id',id).maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!current)return res.status(404).json({error:'Question not found.'});
+ if(req.staff.role==='teacher'&&current.author_account_id!==req.actor.sub)return res.status(404).json({error:'Question not found or you cannot review it.'});
+ if(status==='published'){
+  const options=current.options||{};
+  const issues=[];
+  if(typeof current.prompt!=='string'||current.prompt.trim().length<10)issues.push('question prompt');
+  if(!['A','B','C','D'].every(key=>typeof options[key]==='string'&&options[key].trim()))issues.push('all four answer options');
+  if(!['A','B','C','D'].includes(current.correct_option))issues.push('confirmed correct answer');
+  if(typeof current.topic!=='string'||!current.topic.trim())issues.push('topic');
+  if(!(typeof current.explanation==='string'&&current.explanation.trim())&&!(typeof current.solution_steps==='string'&&current.solution_steps.trim()))issues.push('explanation or worked solution');
+  if(issues.length)return res.status(409).json({error:'Question is not ready to publish. Complete: '+issues.join(', ')+'.'});
+ }
+ let update=db.from('upec_teacher_questions').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('status',current.status);
+ if(req.staff.role==='teacher')update=update.eq('author_account_id',req.actor.sub);
+ const {data,error}=await update.select('id,status,prompt,subject_id,topic,explanation,solution_steps,source_name,source_reference,source_license,updated_at').maybeSingle();
  if(error)throw error;
- if(!data)return res.status(404).json({error:'Question not found.'});
+ if(!data)return res.status(409).json({error:'Question changed during review. Refresh and try again.'});
  res.json({question:data});
 }));
 router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
