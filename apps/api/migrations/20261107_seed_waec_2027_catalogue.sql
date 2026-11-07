@@ -1,0 +1,29 @@
+-- WAEC's published 2026/2027 entry regulations: English and Mathematics,
+-- plus six or seven additional subjects. Subject entries below are drawn
+-- from the published WAEC Nigeria subject categories/list.
+with subjects(canonical_name,subject_family) as (values
+ ('English Language','language'),('General Mathematics','mathematics'),
+ ('Biology','science'),('Chemistry','science'),('Physics','science'),('Agricultural Science','science'),('Further Mathematics','mathematics'),('Physical Education','general'),('Health Education','general'),('Foods & Nutrition','general'),('Geography','humanities'),('Technical Drawing','technology'),
+ ('Nigerian History','humanities'),('Government','humanities'),('Christian Religious Studies','humanities'),('Islamic Studies','humanities'),('Hausa Language','language'),('Igbo Language','language'),('Yoruba Language','language'),('French','language'),('Arabic','language'),('Visual Art','humanities'),('Music','humanities'),('Literature-in-English','humanities'),('Home Management','general'),('Catering Craft','vocational'),
+ ('Accounting','business'),('Commerce','business'),('Marketing','business'),('Economics','business'),
+ ('Fashion Design and Garment Making','vocational'),('Livestock Farming','vocational'),('Beauty and Cosmetology','vocational'),('Computer Hardware and GSM Repairs','technology'),('Solar Photovoltaic Installation and Maintenance','technology'),('Horticulture and Crop Production','vocational')
+)
+insert into public.upec_subject_library(canonical_name,subject_family)
+select canonical_name,subject_family from subjects
+on conflict(normalized_name) do update set subject_family=excluded.subject_family,updated_at=now();
+with subjects(canonical_name,field_of_study,subject_category,selection_type) as (values
+ ('English Language','general','language','compulsory'),('General Mathematics','general','mathematics','compulsory'),
+ ('Biology','science','science','departmental_optional'),('Chemistry','science','science','departmental_optional'),('Physics','science','science','departmental_optional'),('Agricultural Science','science','science','departmental_optional'),('Further Mathematics','science','mathematics','departmental_optional'),('Physical Education','science','general','departmental_optional'),('Health Education','science','general','departmental_optional'),('Foods & Nutrition','science','general','departmental_optional'),('Geography','science','humanities','departmental_optional'),('Technical Drawing','science','technology','departmental_optional'),
+ ('Nigerian History','arts','humanities','departmental_optional'),('Government','arts','humanities','departmental_optional'),('Christian Religious Studies','arts','humanities','departmental_optional'),('Islamic Studies','arts','humanities','departmental_optional'),('Hausa Language','arts','language','departmental_optional'),('Igbo Language','arts','language','departmental_optional'),('Yoruba Language','arts','language','departmental_optional'),('French','arts','language','departmental_optional'),('Arabic','arts','language','departmental_optional'),('Visual Art','arts','humanities','departmental_optional'),('Music','arts','humanities','departmental_optional'),('Literature-in-English','arts','humanities','departmental_optional'),('Home Management','arts','general','departmental_optional'),('Catering Craft','arts','vocational','departmental_optional'),
+ ('Accounting','commercial','business_studies','departmental_optional'),('Commerce','commercial','business_studies','departmental_optional'),('Marketing','commercial','business_studies','departmental_optional'),('Economics','commercial','business_studies','departmental_optional'),
+ ('Fashion Design and Garment Making','trade','vocational','departmental_optional'),('Livestock Farming','trade','vocational','departmental_optional'),('Beauty and Cosmetology','trade','vocational','departmental_optional'),('Computer Hardware and GSM Repairs','trade','technology','departmental_optional'),('Solar Photovoltaic Installation and Maintenance','trade','technology','departmental_optional'),('Horticulture and Crop Production','trade','vocational','departmental_optional')
+)
+insert into public.upec_exam_subject_catalogue(exam_type,exam_year,subject_id,field_of_study,subject_category,selection_type,source_reference,source_verified,active)
+select 'waec_wassce',2027,l.id,s.field_of_study,s.subject_category,s.selection_type,'WAEC Nigeria — WASSCE entry regulations: https://waecnigeria.org/node/102',true,true
+from subjects s join public.upec_subject_library l on l.normalized_name=lower(regexp_replace(trim(s.canonical_name),'[[:space:]]+',' ','g'))
+where not exists(select 1 from public.upec_exam_subject_catalogue x where x.exam_type='waec_wassce' and x.exam_year=2027 and x.subject_id=l.id and x.institution_name is null and x.programme_name is null);
+insert into public.upec_exam_selection_rules(exam_type,exam_year,field_of_study,minimum_subjects,maximum_subjects,rule_definition,source_reference,source_verified,active)
+select 'waec_wassce',2027,'general',8,9,
+'{"mandatory_subjects":["English Language","General Mathematics"],"additional_subjects_min":6,"additional_subjects_max":7,"subjects_not_examined_until_2028":["Citizenship and Heritage Studies Education","Digital Technologies"],"selection_scope":"Choose six or seven additional subjects from applicable WAEC subject categories."}'::jsonb,
+'WAEC Nigeria — WASSCE entry regulations: https://waecnigeria.org/node/102',true,true
+where not exists(select 1 from public.upec_exam_selection_rules where exam_type='waec_wassce' and exam_year=2027 and field_of_study='general' and institution_name is null and programme_name is null);
