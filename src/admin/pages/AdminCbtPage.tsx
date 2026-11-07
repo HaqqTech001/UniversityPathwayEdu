@@ -2874,7 +2874,8 @@ export default function AdminCbtPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="rounded-md bg-[#111A43]/5 px-2 py-1 text-[10px] font-bold uppercase text-[#111A43]">{String(entry.action || 'updated').replace('_', ' ')}</span>
-                        <span className="text-[10px] font-semibold text-slate-500">{entry.actor_role || 'Staff'}</span>
+                        <span className="text-[10px] font-semibold text-slate-600">{entry.actor_name || 'Staff account'}</span>
+                        <span className="text-[9px] text-slate-400">{entry.actor_role || 'Staff'}</span>
                       </div>
                       <time className="text-[10px] text-slate-400">{entry.created_at ? new Date(entry.created_at).toLocaleString() : 'Time unavailable'}</time>
                     </div>
