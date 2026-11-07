@@ -37,6 +37,8 @@ Mounted under the academic router:
 - `POST /academic/jamb/combinations` — admin creates a provisional rule; API enforces English Language and three additional subject slots and always saves it unverified.
 - `PATCH /academic/jamb/combinations/:id` — admin updates an existing rule without changing its verification status.
 
+The admin form accepts three required subject slots or a combination of required subjects and alternative-subject choices. New entries are always provisional.
+
 The combination list is available to academic staff roles; writes are admin/super-admin only. The IJMB subject-code constraint remains limited to IJMB.
 
 ## Migrations
