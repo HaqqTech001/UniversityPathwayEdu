@@ -474,7 +474,7 @@ router.get('/questions/:id/history',grant(...questionRoles),wrap(async(req,res)=
  const actorIds=[...new Set((data||[]).map(row=>row.actor_account_id).filter(Boolean))];
  let actorNames={};
  if(actorIds.length){
-  const {data:accounts,error:accountError}=await db.from('upec_staff_accounts').select('id,full_name').in('id',actorIds);
+  const {data:accounts,error:accountError}=await db.from('local_accounts').select('id,full_name').in('id',actorIds);
   if(accountError)console.error('Question audit actor lookup failed:',accountError.message);
   else actorNames=Object.fromEntries((accounts||[]).map(account=>[account.id,account.full_name]));
  }
