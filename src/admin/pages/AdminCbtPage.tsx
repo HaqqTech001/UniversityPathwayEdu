@@ -2917,7 +2917,7 @@ export default function AdminCbtPage() {
                         </div>
                       )) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">This activity has no field-level snapshot. New edits will show their individual changes here.</p>}
                     </div>
-                    {entry.after_data?.prompt && entry.action !== 'restored' && (
+                    {entry.after_data?.prompt && entry.after_data?.options && ['A','B','C','D'].every(key => typeof entry.after_data.options[key] === 'string') && ['A','B','C','D'].includes(entry.after_data.correct_option) && entry.action !== 'restored' && (
                       <div className="mt-3 flex justify-end">
                         <button type="button" disabled={questionHistoryLoading} onClick={() => void handleRestoreQuestionVersion(entry)} className="rounded-lg border border-[#111A43]/20 px-3 py-1.5 text-[11px] font-semibold text-[#111A43] hover:bg-[#111A43]/5 disabled:opacity-50">
                           Restore this version
