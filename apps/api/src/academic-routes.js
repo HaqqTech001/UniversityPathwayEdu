@@ -471,7 +471,14 @@ router.get('/questions/:id/history',grant(...questionRoles),wrap(async(req,res)=
   .select('id,question_id,actor_account_id,actor_role,action,before_data,after_data,created_at')
   .eq('question_id',id).order('created_at',{ascending:false}).limit(100);
  if(error)throw error;
- res.json({history:data||[]});
+ const actorIds=[...new Set((data||[]).map(row=>row.actor_account_id).filter(Boolean))];
+ let actorNames={};
+ if(actorIds.length){
+  const {data:accounts,error:accountError}=await db.from('upec_staff_accounts').select('id,full_name').in('id',actorIds);
+  if(accountError)console.error('Question audit actor lookup failed:',accountError.message);
+  else actorNames=Object.fromEntries((accounts||[]).map(account=>[account.id,account.full_name]));
+ }
+ res.json({history:(data||[]).map(row=>({...row,actor_name:row.actor_account_id?(actorNames[row.actor_account_id]||'Staff account'): 'System / unavailable'}))});
 }));
 router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
  let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at,opens_at,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').order('created_at',{ascending:false}).limit(100);
