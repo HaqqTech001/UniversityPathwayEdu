@@ -247,12 +247,22 @@ router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
  !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
  !['A','B','C','D'].includes(correctOption)||typeof explanation!=='string'||explanation.length>5000)
   return res.status(400).json({error:'Check the question, options, answer and subject.'});
- const updates={subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),updated_at:new Date().toISOString()};
  const metadataFields={questionType:'question_type',topic:'topic',subtopic:'subtopic',difficulty:'difficulty',examType:'exam_type',examYear:'exam_year',solutionSteps:'solution_steps',sourceName:'source_name',sourceReference:'source_reference',sourceLicense:'source_license'};
+ const limits={topic:160,subtopic:160,examType:40,solutionSteps:12000,sourceName:160,sourceReference:500,sourceLicense:160};
+ for(const input of Object.keys(metadataFields)){
+  if(!Object.prototype.hasOwnProperty.call(req.body||{},input))continue;
+  const value=req.body[input];
+  if(input==='examYear'){
+   if(value!==null&&value!==''&&(!Number.isInteger(Number(value))||Number(value)<1950||Number(value)>2100))return res.status(400).json({error:'Exam year must be between 1950 and 2100.'});
+  }else if(input==='difficulty'&&!['easy','medium','hard'].includes(value))return res.status(400).json({error:'Difficulty must be easy, medium or hard.'});
+  else if(input==='questionType'&&value!=='single_choice')return res.status(400).json({error:'Only single-answer MCQs are currently supported.'});
+  else if(input!=='examYear'&&(typeof value!=='string'||value.length>(limits[input]||160)))return res.status(400).json({error:'Invalid '+input+' value or field length.'});
+ }
+ const updates={subject_id:subjectId,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),updated_at:new Date().toISOString()};
  for(const [input,column] of Object.entries(metadataFields))if(Object.prototype.hasOwnProperty.call(req.body||{},input))updates[column]=input==='examYear'?(req.body[input]?Number(req.body[input]):null):req.body[input];
  let query=db.from('upec_teacher_questions').update(updates).eq('id',id);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
- const {data,error}=await query.select('id,subject_id,prompt,options,correct_option,explanation,status').maybeSingle();
+ const {data,error}=await query.select('id,subject_id,prompt,options,correct_option,explanation,question_type,topic,subtopic,difficulty,exam_type,exam_year,solution_steps,source_name,source_reference,source_license,status,updated_at').maybeSingle();
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
  if(error)throw error;
  if(!data)return res.status(404).json({error:'Question not found or you cannot edit it.'});
