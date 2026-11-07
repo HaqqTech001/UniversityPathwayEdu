@@ -201,6 +201,8 @@ export default function AdminCbtPage() {
   const [pdfSubjectId, setPdfSubjectId] = useState('');
   const [pdfExamType, setPdfExamType] = useState('JAMB');
   const [pdfExamYear, setPdfExamYear] = useState('');
+  const [pdfSourceReference, setPdfSourceReference] = useState('');
+  const [pdfSourceLicense, setPdfSourceLicense] = useState('');
   const [pdfCandidates, setPdfCandidates] = useState<any[]>([]);
   const [pdfExtracting, setPdfExtracting] = useState(false);
   const [isProviderImportOpen, setIsProviderImportOpen] = useState(false);
@@ -474,7 +476,7 @@ export default function AdminCbtPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new ApiError(data.error || 'Document extraction failed.', response.status);
-      setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfFile.name, sourceLicense: '' })));
+      setPdfCandidates((data.questions || []).map((q: any) => ({ ...q, sourceName: pdfFile.name, sourceReference: pdfSourceReference.trim() || pdfFile.name, sourceLicense: pdfSourceLicense.trim() })));
       if (Array.isArray(data.warnings) && data.warnings.length) {
         notify(data.warnings.join(' '), 'info');
       }
@@ -2372,6 +2374,14 @@ export default function AdminCbtPage() {
                   <input type="number" min="1950" max="2100" value={pdfExamYear} onChange={e => setPdfExamYear(e.target.value)} placeholder="e.g. 2024" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs"/>
                 </label>
               </div>
+              <label className="text-xs font-semibold text-slate-700 sm:col-span-2">
+                Source reference (optional: paper code, publisher, page range)
+                <input value={pdfSourceReference} onChange={e => setPdfSourceReference(e.target.value)} maxLength={500} placeholder="e.g. 2024 JAMB Physics, pages 3–8" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+              </label>
+              <label className="text-xs font-semibold text-slate-700 sm:col-span-2">
+                Source permission / licence note
+                <input value={pdfSourceLicense} onChange={e => setPdfSourceLicense(e.target.value)} maxLength={160} placeholder="e.g. Original material / permission granted / licence reference" className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-normal"/>
+              </label>
               <div className="flex items-end sm:col-span-2 lg:col-span-4">
                 <button type="submit" disabled={pdfExtracting || !pdfFile} className="rounded-lg bg-[#111A43] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
                   {pdfExtracting ? 'Extracting document…' : 'Extract question candidates'}
