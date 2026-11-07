@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {jambCombinationPayload,validateJambCombination} from '../src/jamb-catalogue.js';
+
+const valid={
+ examYear:2027,institutionName:'University A',programmeName:'Computer Science',
+ englishLanguageRequired:true,requiredSubjects:['Mathematics','Physics','Chemistry'],
+ alternativeSubjects:[],alternativeSubjectCount:0,
+ sourceReference:'https://eligibility.jamb.gov.ng/',additionalNotes:''
+};
+
+test('accepts an institution and course-specific combination with English plus three subjects',()=>{
+ const row=jambCombinationPayload(valid);
+ assert.equal(validateJambCombination(row),true);
+ assert.equal(row.english_language_required,true);
+ assert.equal(row.source_verified,false);
+});
+
+test('rejects combinations that omit compulsory English Language',()=>{
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,englishLanguageRequired:false})),false);
+});
+
+test('rejects fewer or more than three remaining subject slots',()=>{
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics']})),false);
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics','Chemistry','Biology']})),false);
+});
+
+test('supports alternative-subject slots while keeping three remaining selections',()=>{
+ const row=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:['Chemistry','Biology'],alternativeSubjectCount:1});
+ assert.equal(validateJambCombination(row),true);
+});
+
+test('rejects duplicate subjects and missing institution/course/source',()=>{
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,requiredSubjects:['Mathematics','mathematics','Chemistry']})),false);
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,institutionName:''})),false);
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,programmeName:''})),false);
+ assert.equal(validateJambCombination(jambCombinationPayload({...valid,sourceReference:''})),false);
+});
+
+test('new combinations are always provisional regardless of client verification input',()=>{
+ assert.equal(jambCombinationPayload({...valid,sourceVerified:true}).source_verified,false);
+});
