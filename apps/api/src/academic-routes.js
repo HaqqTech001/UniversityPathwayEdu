@@ -760,7 +760,7 @@ router.post('/subject-combinations',grant('super_admin','admin'),wrap(async(req,
 const examTypes=new Set(['jamb_utme','waec_wassce','neco_ssce','ijmb','post_utme']);
 const examFields=new Set(['general','science','arts','commercial','trade','institution_specific']);
 const examCategories=new Set(['language','mathematics','science','humanities','business_studies','technology','vocational','general']);
-const examSelections=new Set(['compulsory','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific']);
+const examSelections=new Set(['compulsory','required_choice','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific']);
 const examYear=v=>Number.isInteger(v)&&v>=2026&&v<=2100;
 const examSubjectPayload=v=>({
  exam_type:v.examType,exam_year:v.examYear,subject_code:typeof v.subjectCode==='string'&&v.subjectCode.trim()?v.subjectCode.trim().toUpperCase():null,
