@@ -756,73 +756,59 @@ router.post('/subject-combinations',grant('super_admin','admin'),wrap(async(req,
  const {data,error}=await db.from('upec_subject_combinations').insert({programme_id:programmeId,name:combinationName.trim(),subject_codes:subjectCodes}).select('id,name').single();
  if(error?.code==='23505')return res.status(409).json({error:'Combination name already exists for this programme.'});if(error)throw error;res.status(201).json({combination:data});
 }));
-const necoFields=new Set(['general','science','humanities','technology','business','trade']);
-const necoCategories=new Set(['cross_cutting','science_mathematics','technology','humanities','business_studies','trade_entrepreneurship']);
-const necoSelections=new Set(['cross_cutting_compulsory','departmental_core','departmental_optional','outside_field_elective']);
-const necoYear=v=>Number.isInteger(v)&&v>=2027&&v<=2100;
-const necoSubjectPayload=input=>{
- const v=input||{};
- return {
-  catalogue_year:v.catalogueYear??2027,
-  subject_code:typeof v.subjectCode==='string'?v.subjectCode.trim().toUpperCase():'',
-  subject_name:typeof v.subjectName==='string'?v.subjectName.trim():'',
-  subject_category:v.subjectCategory,
-  field_of_study:v.fieldOfStudy,
-  selection_type:v.selectionType,
-  source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'NECO SSCE Internal 2027',
-  source_verified:v.sourceVerified===true,
-  active:v.active!==false
- };
-};
-router.get('/neco/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+
+const examTypes=new Set(['jamb_utme','waec_wassce','neco_ssce','ijmb','post_utme']);
+const examFields=new Set(['general','science','arts','commercial','trade','institution_specific']);
+const examCategories=new Set(['language','mathematics','science','humanities','business_studies','technology','vocational','general']);
+const examSelections=new Set(['compulsory','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific']);
+const examYear=v=>Number.isInteger(v)&&v>=2026&&v<=2100;
+const examSubjectPayload=v=>({
+ exam_type:v.examType,exam_year:v.examYear,subject_code:typeof v.subjectCode==='string'&&v.subjectCode.trim()?v.subjectCode.trim().toUpperCase():null,
+ field_of_study:v.fieldOfStudy,subject_category:v.subjectCategory,selection_type:v.selectionType,
+ institution_name:typeof v.institutionName==='string'&&v.institutionName.trim()?v.institutionName.trim():null,
+ programme_name:typeof v.programmeName==='string'&&v.programmeName.trim()?v.programmeName.trim():null,
+ source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',source_verified:v.sourceVerified===true,active:v.active!==false
+});
+const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type!=='ijmb'||!!s.subject_code);
+router.get('/exams/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const examType=String(req.query.examType||'');
  const year=Number(req.query.year||2027);
- if(!necoYear(year))return res.status(400).json({error:'Choose a valid NECO catalogue year.'});
- let query=db.from('upec_neco_subject_catalogue').select('id,catalogue_year,subject_code,subject_name,subject_category,field_of_study,selection_type,source_reference,source_verified,active').eq('catalogue_year',year).order('subject_name').limit(1000);
- if(req.query.field&&necoFields.has(String(req.query.field)))query=query.eq('field_of_study',String(req.query.field));
- if(req.query.selectionType&&necoSelections.has(String(req.query.selectionType)))query=query.eq('selection_type',String(req.query.selectionType));
+ if(!examTypes.has(examType)||!examYear(year))return res.status(400).json({error:'Choose a valid examination and catalogue year.'});
+ let query=db.from('upec_exam_subject_catalogue').select('id,exam_type,exam_year,subject_id,subject_code,field_of_study,subject_category,selection_type,institution_name,programme_name,source_reference,source_verified,active,upec_subject_library(canonical_name)').eq('exam_type',examType).eq('exam_year',year).order('field_of_study').limit(1500);
+ for(const [key,column,allowed] of [['field','field_of_study',examFields],['selectionType','selection_type',examSelections]])if(req.query[key]&&allowed.has(String(req.query[key])))query=query.eq(column,String(req.query[key]));
  if(req.query.active==='true'||req.query.active==='false')query=query.eq('active',req.query.active==='true');
- const {data,error}=await query;
- if(error)throw error;
- res.json({year,subjects:data||[]});
+ const {data,error}=await query;if(error)throw error;
+ res.json({examType,year,subjects:(data||[]).map(({upec_subject_library,...row})=>({...row,subject_name:upec_subject_library?.canonical_name||''}))});
 }));
-router.post('/neco/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
- const subject=necoSubjectPayload(req.body);
- if(!necoYear(subject.catalogue_year)||!/^[A-Z0-9_-]{2,16}$/.test(subject.subject_code)||!name(subject.subject_name)||!necoCategories.has(subject.subject_category)||!necoFields.has(subject.field_of_study)||!necoSelections.has(subject.selection_type)||!subject.source_reference||subject.source_reference.length>300)return res.status(400).json({error:'Invalid NECO subject details or classification.'});
- if(subject.selection_type==='cross_cutting_compulsory'&&(subject.field_of_study!=='general'||subject.subject_category!=='cross_cutting'))return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field and cross-cutting category.'});
- const {data,error}=await db.from('upec_neco_subject_catalogue').insert(subject).select('*').single();
- if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
+router.post('/exams/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const v=req.body||{},subjectName=typeof v.subjectName==='string'?v.subjectName.trim():'';
+ const subject=examSubjectPayload(v);subject.subject_name=subjectName;
+ if(!validateExamSubject(subject))return res.status(400).json({error:'Invalid exam subject details, classification, year, code, or source.'});
+ let {data:library,error}=await db.from('upec_subject_library').select('id').ilike('canonical_name',subjectName).maybeSingle();
  if(error)throw error;
- res.status(201).json({subject:data});
+ if(!library){const created=await db.from('upec_subject_library').insert({canonical_name:subjectName,subject_family:subject.subject_category==='business_studies'?'business':subject.subject_category==='science'?'science':subject.subject_category==='humanities'?'humanities':subject.subject_category==='technology'?'technology':subject.subject_category==='vocational'?'vocational':subject.subject_category==='language'?'language':subject.subject_category==='mathematics'?'mathematics':'general'}).select('id').single();if(created.error?.code==='23505'){const retry=await db.from('upec_subject_library').select('id').ilike('canonical_name',subjectName).single();if(retry.error)throw retry.error;library=retry.data;}else if(created.error)throw created.error;else library=created.data;}
+ const {subject_name,...row}=subject;const {data,error:insertError}=await db.from('upec_exam_subject_catalogue').insert({...row,subject_id:library.id}).select('*').single();
+ if(insertError?.code==='23505')return res.status(409).json({error:'This subject is already listed for that examination, year, institution and programme.'});
+ if(insertError)throw insertError;res.status(201).json({subject:{...data,subject_name}});
 }));
-router.patch('/neco/subjects/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+router.patch('/exams/subjects/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid subject ID.'});
- const input=req.body||{},changes={};
- const mapping={catalogueYear:'catalogue_year',subjectCode:'subject_code',subjectName:'subject_name',subjectCategory:'subject_category',fieldOfStudy:'field_of_study',selectionType:'selection_type',sourceReference:'source_reference',sourceVerified:'source_verified',active:'active'};
- for(const [key,column] of Object.entries(mapping)){
-  if(!Object.hasOwn(input,key))continue;
-  const value=input[key];
-  if(key==='catalogueYear'){if(!necoYear(value))return res.status(400).json({error:'Invalid catalogue year.'});changes[column]=value;}
-  else if(key==='subjectCode'){if(typeof value!=='string'||!/^[A-Z0-9_-]{2,16}$/i.test(value.trim()))return res.status(400).json({error:'Invalid subject code.'});changes[column]=value.trim().toUpperCase();}
-  else if(key==='subjectName'){if(!name(value))return res.status(400).json({error:'Invalid subject name.'});changes[column]=value.trim();}
-  else if(key==='subjectCategory'){if(!necoCategories.has(value))return res.status(400).json({error:'Invalid subject category.'});changes[column]=value;}
-  else if(key==='fieldOfStudy'){if(!necoFields.has(value))return res.status(400).json({error:'Invalid field of study.'});changes[column]=value;}
-  else if(key==='selectionType'){if(!necoSelections.has(value))return res.status(400).json({error:'Invalid subject selection type.'});changes[column]=value;}
-  else if(key==='sourceReference'){if(typeof value!=='string'||!value.trim()||value.length>300)return res.status(400).json({error:'Invalid source reference.'});changes[column]=value.trim();}
-  else if(typeof value!=='boolean')return res.status(400).json({error:'Invalid boolean field.'});
-  else changes[column]=value;
- }
- if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
- const {data:existing,error:readError}=await db.from('upec_neco_subject_catalogue').select('field_of_study,selection_type,subject_category').eq('id',req.params.id).maybeSingle();
- if(readError)throw readError;
- if(!existing)return res.status(404).json({error:'NECO subject not found.'});
- const field=changes.field_of_study??existing.field_of_study;
- const selection=changes.selection_type??existing.selection_type;
- const category=changes.subject_category??existing.subject_category;
- if(selection==='cross_cutting_compulsory'&&(field!=='general'||category!=='cross_cutting'))return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field and cross-cutting category.'});
- const {data,error}=await db.from('upec_neco_subject_catalogue').update(changes).eq('id',req.params.id).select('*').single();
- if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
- if(error)throw error;
- res.json({subject:data});
+ const {data:existing,error:readError}=await db.from('upec_exam_subject_catalogue').select('*,upec_subject_library(canonical_name)').eq('id',req.params.id).maybeSingle();if(readError)throw readError;if(!existing)return res.status(404).json({error:'Exam subject not found.'});
+ const v=req.body||{},next={...existing,exam_type:v.examType??existing.exam_type,exam_year:v.examYear??existing.exam_year,subject_code:v.subjectCode===undefined?existing.subject_code:(v.subjectCode?.trim().toUpperCase()||null),field_of_study:v.fieldOfStudy??existing.field_of_study,subject_category:v.subjectCategory??existing.subject_category,selection_type:v.selectionType??existing.selection_type,institution_name:v.institutionName??existing.institution_name,programme_name:v.programmeName??existing.programme_name,source_reference:v.sourceReference??existing.source_reference,source_verified:v.sourceVerified??existing.source_verified,active:v.active??existing.active,subject_name:v.subjectName??existing.upec_subject_library?.canonical_name};
+ if(!validateExamSubject(next)||typeof next.source_verified!=='boolean'||typeof next.active!=='boolean')return res.status(400).json({error:'Invalid exam subject update.'});
+ if(next.subject_name!==existing.upec_subject_library?.canonical_name){const {error}=await db.from('upec_subject_library').update({canonical_name:next.subject_name,updated_at:new Date().toISOString()}).eq('id',existing.subject_id);if(error)throw error;}
+ const changes={exam_type:next.exam_type,exam_year:next.exam_year,subject_code:next.subject_code,field_of_study:next.field_of_study,subject_category:next.subject_category,selection_type:next.selection_type,institution_name:next.institution_name,programme_name:next.programme_name,source_reference:next.source_reference,source_verified:next.source_verified,active:next.active,updated_at:new Date().toISOString()};
+ const {data,error}=await db.from('upec_exam_subject_catalogue').update(changes).eq('id',req.params.id).select('*').single();if(error?.code==='23505')return res.status(409).json({error:'This subject already exists in that catalogue.'});if(error)throw error;res.json({subject:{...data,subject_name:next.subject_name}});
 }));
+router.get('/exams/rules',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const examType=String(req.query.examType||''),year=Number(req.query.year||2027);if(!examTypes.has(examType)||!examYear(year))return res.status(400).json({error:'Choose a valid examination and year.'});
+ const {data,error}=await db.from('upec_exam_selection_rules').select('*').eq('exam_type',examType).eq('exam_year',year).order('field_of_study').limit(500);if(error)throw error;res.json({rules:data||[]});
+}));
+router.post('/exams/rules',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const v=req.body||{};const row={exam_type:v.examType,exam_year:v.examYear,field_of_study:v.fieldOfStudy,institution_name:v.institutionName||null,programme_name:v.programmeName||null,minimum_subjects:v.minimumSubjects??null,maximum_subjects:v.maximumSubjects??null,rule_definition:v.ruleDefinition||{},source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',source_verified:v.sourceVerified===true,active:v.active!==false};
+ if(!examTypes.has(row.exam_type)||!examYear(row.exam_year)||!examFields.has(row.field_of_study)||!row.source_reference||row.source_reference.length>300||!row.rule_definition||typeof row.rule_definition!=='object'||Array.isArray(row.rule_definition)||(row.minimum_subjects!==null&&(!Number.isInteger(row.minimum_subjects)||row.minimum_subjects<1||row.minimum_subjects>20))||(row.maximum_subjects!==null&&(!Number.isInteger(row.maximum_subjects)||row.maximum_subjects<1||row.maximum_subjects>20))||(row.minimum_subjects!==null&&row.maximum_subjects!==null&&row.minimum_subjects>row.maximum_subjects))return res.status(400).json({error:'Invalid examination selection rule.'});
+ const {data,error}=await db.from('upec_exam_selection_rules').insert(row).select('*').single();if(error)throw error;res.status(201).json({rule:data});
+}));
+
 
 export default router;
