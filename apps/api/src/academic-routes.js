@@ -760,7 +760,7 @@ router.post('/subject-combinations',grant('super_admin','admin'),wrap(async(req,
 const examTypes=new Set(['jamb_utme','waec_wassce','neco_ssce','ijmb','post_utme']);
 const examFields=new Set(['general','science','arts','commercial','trade','institution_specific']);
 const examCategories=new Set(['language','mathematics','science','humanities','business_studies','technology','vocational','general']);
-const examSelections=new Set(['compulsory','required_choice','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific']);
+const examSelections=new Set(['compulsory','required_choice','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific','catalogue_option']);
 const examYear=v=>Number.isInteger(v)&&v>=2026&&v<=2100;
 const examSubjectPayload=v=>({
  exam_type:v.examType,exam_year:v.examYear,subject_code:typeof v.subjectCode==='string'&&v.subjectCode.trim()?v.subjectCode.trim().toUpperCase():null,
@@ -770,6 +770,51 @@ const examSubjectPayload=v=>({
  source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',source_verified:v.sourceVerified===true,active:v.active!==false
 });
 const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type==='ijmb'?!!s.subject_code:s.subject_code===null);
+
+const jambTextList=value=>Array.isArray(value)&&value.every(x=>typeof x==='string'&&x.trim().length>=2&&x.trim().length<=100)&&new Set(value.map(x=>x.trim().toLowerCase())).size===value.length;
+const jambCombinationPayload=v=>({
+ exam_year:v.examYear,institution_name:typeof v.institutionName==='string'?v.institutionName.trim():'',
+ institution_code:typeof v.institutionCode==='string'&&v.institutionCode.trim()?v.institutionCode.trim().toUpperCase():null,
+ programme_name:typeof v.programmeName==='string'?v.programmeName.trim():'',
+ programme_code:typeof v.programmeCode==='string'&&v.programmeCode.trim()?v.programmeCode.trim().toUpperCase():null,
+ english_language_required:v.englishLanguageRequired!==false,
+ required_subjects:Array.isArray(v.requiredSubjects)?v.requiredSubjects.map(x=>String(x).trim()):[],
+ alternative_subjects:Array.isArray(v.alternativeSubjects)?v.alternativeSubjects.map(x=>String(x).trim()):[],
+ alternative_subject_count:v.alternativeSubjectCount??0,
+ subject_group_rules:Array.isArray(v.subjectGroupRules)?v.subjectGroupRules:[],
+ additional_notes:typeof v.additionalNotes==='string'?v.additionalNotes.trim():'',
+ source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',
+ source_verified:false,active:v.active!==false
+});
+const validateJambCombination=v=>examYear(v.exam_year)&&name(v.institution_name)&&v.institution_name.length<=180&&name(v.programme_name)&&v.programme_name.length<=180&&v.english_language_required===true&&jambTextList(v.required_subjects)&&jambTextList(v.alternative_subjects)&&Number.isInteger(v.alternative_subject_count)&&v.alternative_subject_count>=0&&v.alternative_subject_count<=3&&v.required_subjects.length+v.alternative_subject_count===3&&(v.alternative_subject_count===0?v.alternative_subjects.length===0:v.alternative_subjects.length>=v.alternative_subject_count)&&Array.isArray(v.subject_group_rules)&&v.subject_group_rules.every(g=>g&&typeof g==='object'&&!Array.isArray(g)&&typeof g.name==='string'&&Array.isArray(g.subjects)&&jambTextList(g.subjects)&&Number.isInteger(g.choose)&&g.choose>=1&&g.choose<=g.subjects.length)&&v.additional_notes.length<=2000&&v.source_reference.length>=8&&v.source_reference.length<=500&&typeof v.active==='boolean';
+router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
+ let query=db.from('upec_jamb_utme_combinations').select('*').eq('exam_year',year).order('institution_name').order('programme_name').limit(2000);
+ if(req.query.institution)query=query.ilike('institution_name','%'+String(req.query.institution).slice(0,180)+'%');
+ if(req.query.programme)query=query.ilike('programme_name','%'+String(req.query.programme).slice(0,180)+'%');
+ if(req.query.verified==='true'||req.query.verified==='false')query=query.eq('source_verified',req.query.verified==='true');
+ if(req.query.active==='true'||req.query.active==='false')query=query.eq('active',req.query.active==='true');
+ const {data,error}=await query;if(error)throw error;res.json({year,combinations:data||[]});
+}));
+router.post('/jamb/combinations',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const row=jambCombinationPayload(req.body||{});
+ if(!validateJambCombination(row))return res.status(400).json({error:'A JAMB combination requires English Language and exactly three remaining subjects, valid alternatives, institution, course, year and source.'});
+ const {data,error}=await db.from('upec_jamb_utme_combinations').insert(row).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
+ if(error)throw error;res.status(201).json({combination:data});
+}));
+router.patch('/jamb/combinations/:id',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid combination ID.'});
+ const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
+ if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
+ const v=req.body||{},payload={examYear:v.examYear??existing.exam_year,institutionName:v.institutionName??existing.institution_name,institutionCode:v.institutionCode??existing.institution_code,programmeName:v.programmeName??existing.programme_name,programmeCode:v.programmeCode??existing.programme_code,englishLanguageRequired:true,requiredSubjects:v.requiredSubjects??existing.required_subjects,alternativeSubjects:v.alternativeSubjects??existing.alternative_subjects,alternativeSubjectCount:v.alternativeSubjectCount??existing.alternative_subject_count,subjectGroupRules:v.subjectGroupRules??existing.subject_group_rules,additionalNotes:v.additionalNotes??existing.additional_notes,sourceReference:v.sourceReference??existing.source_reference,active:v.active??existing.active};
+ const row=jambCombinationPayload(payload);if(!validateJambCombination(row))return res.status(400).json({error:'Invalid JAMB combination update.'});
+ // Verification is deliberately a separate, source-review action.
+ row.source_verified=existing.source_verified;
+ const {data,error}=await db.from('upec_jamb_utme_combinations').update(row).eq('id',req.params.id).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
+ if(error)throw error;res.json({combination:data});
+}));
 router.get('/exams/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const examType=String(req.query.examType||'');
  const year=Number(req.query.year||2027);
