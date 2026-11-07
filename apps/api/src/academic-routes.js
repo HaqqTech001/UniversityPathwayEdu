@@ -787,8 +787,8 @@ router.get('/neco/subjects',grant('super_admin','admin','teacher','cbt_manager',
 }));
 router.post('/neco/subjects',grant('super_admin','admin'),wrap(async(req,res)=>{
  const subject=necoSubjectPayload(req.body);
- if(!necoYear(subject.catalogue_year)||!code(subject.subject_code)||!name(subject.subject_name)||!necoCategories.has(subject.subject_category)||!necoFields.has(subject.field_of_study)||!necoSelections.has(subject.selection_type)||!subject.source_reference||subject.source_reference.length>300)return res.status(400).json({error:'Invalid NECO subject details or classification.'});
- if(subject.selection_type==='cross_cutting_compulsory'&&subject.field_of_study!=='general')return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field.'});
+ if(!necoYear(subject.catalogue_year)||!/^[A-Z0-9_-]{2,16}$/.test(subject.subject_code)||!name(subject.subject_name)||!necoCategories.has(subject.subject_category)||!necoFields.has(subject.field_of_study)||!necoSelections.has(subject.selection_type)||!subject.source_reference||subject.source_reference.length>300)return res.status(400).json({error:'Invalid NECO subject details or classification.'});
+ if(subject.selection_type==='cross_cutting_compulsory'&&(subject.field_of_study!=='general'||subject.subject_category!=='cross_cutting'))return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field and cross-cutting category.'});
  const {data,error}=await db.from('upec_neco_subject_catalogue').insert(subject).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
  if(error)throw error;
@@ -802,7 +802,7 @@ router.patch('/neco/subjects/:id',grant('super_admin','admin'),wrap(async(req,re
   if(!Object.hasOwn(input,key))continue;
   const value=input[key];
   if(key==='catalogueYear'){if(!necoYear(value))return res.status(400).json({error:'Invalid catalogue year.'});changes[column]=value;}
-  else if(key==='subjectCode'){if(!code(value))return res.status(400).json({error:'Invalid subject code.'});changes[column]=value.trim().toUpperCase();}
+  else if(key==='subjectCode'){if(typeof value!=='string'||!/^[A-Z0-9_-]{2,16}$/i.test(value.trim()))return res.status(400).json({error:'Invalid subject code.'});changes[column]=value.trim().toUpperCase();}
   else if(key==='subjectName'){if(!name(value))return res.status(400).json({error:'Invalid subject name.'});changes[column]=value.trim();}
   else if(key==='subjectCategory'){if(!necoCategories.has(value))return res.status(400).json({error:'Invalid subject category.'});changes[column]=value;}
   else if(key==='fieldOfStudy'){if(!necoFields.has(value))return res.status(400).json({error:'Invalid field of study.'});changes[column]=value;}
@@ -817,7 +817,8 @@ router.patch('/neco/subjects/:id',grant('super_admin','admin'),wrap(async(req,re
  if(!existing)return res.status(404).json({error:'NECO subject not found.'});
  const field=changes.field_of_study??existing.field_of_study;
  const selection=changes.selection_type??existing.selection_type;
- if(selection==='cross_cutting_compulsory'&&field!=='general')return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field.'});
+ const category=changes.subject_category??(await db.from('upec_neco_subject_catalogue').select('subject_category').eq('id',req.params.id).maybeSingle()).data?.subject_category;
+ if(selection==='cross_cutting_compulsory'&&(field!=='general'||category!=='cross_cutting'))return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field and cross-cutting category.'});
  const {data,error}=await db.from('upec_neco_subject_catalogue').update(changes).eq('id',req.params.id).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
  if(error)throw error;
