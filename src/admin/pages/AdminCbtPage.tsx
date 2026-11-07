@@ -813,7 +813,8 @@ export default function AdminCbtPage() {
   const filteredQuestions = useMemo(() => {
     const term = searchQuery.toLowerCase().trim();
     return questionsState.data.filter(q => {
-      const matchesSearch = q.prompt.toLowerCase().includes(term);
+      const searchable = [q.prompt,q.topic,q.subtopic,q.exam_type,q.exam_year,q.source_name,q.source_reference].filter(value => value !== null && value !== undefined).join(' ').toLowerCase();
+      const matchesSearch = searchable.includes(term);
       const matchesSubject = selectedSubjectFilter === 'all' || q.subject_id === selectedSubjectFilter;
       const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
       return matchesSearch && matchesSubject && matchesStatus;
