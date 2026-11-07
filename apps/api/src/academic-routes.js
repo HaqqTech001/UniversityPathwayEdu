@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import express, {Router} from 'express';
 import {inflateRawSync} from 'node:zlib';
 import {supabaseAdmin as db} from './db.js';
+import {jambCombinationPayload,validateJambCombination} from './jamb-catalogue.js';
 
 const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -771,22 +772,6 @@ const examSubjectPayload=v=>({
 });
 const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type==='ijmb'?!!s.subject_code:s.subject_code===null);
 
-const jambTextList=value=>Array.isArray(value)&&value.every(x=>typeof x==='string'&&x.trim().length>=2&&x.trim().length<=100)&&new Set(value.map(x=>x.trim().toLowerCase())).size===value.length;
-const jambCombinationPayload=v=>({
- exam_year:v.examYear,institution_name:typeof v.institutionName==='string'?v.institutionName.trim():'',
- institution_code:typeof v.institutionCode==='string'&&v.institutionCode.trim()?v.institutionCode.trim().toUpperCase():null,
- programme_name:typeof v.programmeName==='string'?v.programmeName.trim():'',
- programme_code:typeof v.programmeCode==='string'&&v.programmeCode.trim()?v.programmeCode.trim().toUpperCase():null,
- english_language_required:v.englishLanguageRequired!==false,
- required_subjects:Array.isArray(v.requiredSubjects)?v.requiredSubjects.map(x=>String(x).trim()):[],
- alternative_subjects:Array.isArray(v.alternativeSubjects)?v.alternativeSubjects.map(x=>String(x).trim()):[],
- alternative_subject_count:v.alternativeSubjectCount??0,
- subject_group_rules:Array.isArray(v.subjectGroupRules)?v.subjectGroupRules:[],
- additional_notes:typeof v.additionalNotes==='string'?v.additionalNotes.trim():'',
- source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',
- source_verified:false,active:v.active!==false
-});
-const validateJambCombination=v=>examYear(v.exam_year)&&name(v.institution_name)&&v.institution_name.length<=180&&name(v.programme_name)&&v.programme_name.length<=180&&v.english_language_required===true&&jambTextList(v.required_subjects)&&jambTextList(v.alternative_subjects)&&Number.isInteger(v.alternative_subject_count)&&v.alternative_subject_count>=0&&v.alternative_subject_count<=3&&v.required_subjects.length+v.alternative_subject_count===3&&(v.alternative_subject_count===0?v.alternative_subjects.length===0:v.alternative_subjects.length>=v.alternative_subject_count)&&Array.isArray(v.subject_group_rules)&&v.subject_group_rules.every(g=>g&&typeof g==='object'&&!Array.isArray(g)&&typeof g.name==='string'&&Array.isArray(g.subjects)&&jambTextList(g.subjects)&&Number.isInteger(g.choose)&&g.choose>=1&&g.choose<=g.subjects.length)&&v.additional_notes.length<=2000&&v.source_reference.length>=8&&v.source_reference.length<=500&&typeof v.active==='boolean';
 router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
  let query=db.from('upec_jamb_utme_combinations').select('*').eq('exam_year',year).order('institution_name').order('programme_name').limit(2000);
