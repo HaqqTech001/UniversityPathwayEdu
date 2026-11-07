@@ -229,6 +229,10 @@ export default function AdminCbtPage() {
   const [providerLoading, setProviderLoading] = useState(false);
 
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [questionHistoryTarget, setQuestionHistoryTarget] = useState<Question | null>(null);
+  const [questionHistory, setQuestionHistory] = useState<any[]>([]);
+  const [questionHistoryLoading, setQuestionHistoryLoading] = useState(false);
+  const [questionHistoryError, setQuestionHistoryError] = useState('');
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
     prompt: '',
@@ -616,6 +620,21 @@ export default function AdminCbtPage() {
   };
 
   // Toggle Question Status
+  const handleViewQuestionHistory = async (q: Question) => {
+    setQuestionHistoryTarget(q);
+    setQuestionHistory([]);
+    setQuestionHistoryError('');
+    setQuestionHistoryLoading(true);
+    try {
+      const response = await api('/api/staff/academic/questions/' + encodeURIComponent(q.id) + '/history');
+      setQuestionHistory(Array.isArray(response.history) ? response.history : []);
+    } catch (error: any) {
+      setQuestionHistoryError(error?.message || 'Could not load question history.');
+    } finally {
+      setQuestionHistoryLoading(false);
+    }
+  };
+
   const handleToggleQuestionStatus = async (q: Question) => {
     const nextStatus = q.status === 'published' ? 'draft' : 'published';
     const review = getQuestionReview(q);
@@ -1403,6 +1422,13 @@ export default function AdminCbtPage() {
                               className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#111A43] hover:bg-slate-50 transition disabled:opacity-50"
                             >
                               Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleViewQuestionHistory(q)}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                            >
+                              History
                             </button>
                             <button
                               disabled={savingAction}
@@ -2802,6 +2828,40 @@ export default function AdminCbtPage() {
             <p className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">Correct answers and explanations stay hidden during the examination. Even after the closing time, release waits until no candidate has an active attempt.</p>
             <button type="submit" disabled={savingAction || (correctionMode === 'scheduled' && !correctionReleaseAt)} className="w-full rounded-lg bg-[#111A43] p-2.5 text-sm font-bold text-white disabled:opacity-50">{savingAction ? 'Saving…' : 'Save correction policy'}</button>
           </form>
+        </div>
+      )}
+
+      {questionHistoryTarget && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-3" onClick={() => setQuestionHistoryTarget(null)}>
+          <section role="dialog" aria-modal="true" aria-label="Question change history" className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-[#111A43]">Question history</h2>
+                <p className="mt-1 truncate text-xs text-slate-500">{questionHistoryTarget.prompt}</p>
+              </div>
+              <button type="button" onClick={() => setQuestionHistoryTarget(null)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">Close</button>
+            </header>
+            <div className="max-h-[65vh] space-y-3 overflow-y-auto p-4">
+              {questionHistoryLoading ? <p className="py-8 text-center text-sm text-slate-500">Loading audit history…</p>
+                : questionHistoryError ? <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{questionHistoryError}</p>
+                : questionHistory.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">No recorded changes yet. New edits and review actions will appear here.</p>
+                : questionHistory.map((entry, index) => (
+                  <article key={entry.id || index} className="rounded-xl border border-slate-200 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-[#111A43]/5 px-2 py-1 text-[10px] font-bold uppercase text-[#111A43]">{String(entry.action || 'updated').replace('_', ' ')}</span>
+                        <span className="text-[10px] font-semibold text-slate-500">{entry.actor_role || 'Staff'}</span>
+                      </div>
+                      <time className="text-[10px] text-slate-400">{entry.created_at ? new Date(entry.created_at).toLocaleString() : 'Time unavailable'}</time>
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {entry.before_data && <div className="rounded-lg bg-rose-50/70 p-2"><p className="text-[10px] font-bold uppercase text-rose-700">Before</p><p className="mt-1 line-clamp-4 whitespace-pre-wrap text-xs text-slate-700">{entry.before_data.prompt || entry.before_data.status || 'Previous version recorded'}</p></div>}
+                      {entry.after_data && <div className="rounded-lg bg-emerald-50/70 p-2"><p className="text-[10px] font-bold uppercase text-emerald-700">After</p><p className="mt-1 line-clamp-4 whitespace-pre-wrap text-xs text-slate-700">{entry.after_data.prompt || entry.after_data.status || 'Updated version recorded'}</p></div>}
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
         </div>
       )}
 
