@@ -11,6 +11,18 @@ const isIjmbProgramme=p=>/IJMB/i.test((p?.name||'')+' '+(p?.code||''));
 const name=v=>typeof v==='string'&&v.trim().length>=2&&v.trim().length<=160;
 const validDescription=v=>typeof v==='string'&&v.trim().length>=5&&v.length<=2000;
 const grant=(...roles)=>(req,res,next)=>roles.includes(req.staff.role)?next():res.status(403).json({error:'Academic permission denied.'});
+const auditQuestion=async({questionId,req,action,beforeData=null,afterData=null})=>{
+ const {error}=await db.from('upec_question_audit_log').insert({
+  question_id:questionId,
+  actor_account_id:uuid(req.actor?.sub)?req.actor.sub:null,
+  actor_role:req.staff?.role||'',
+  action,
+  before_data:beforeData,
+  after_data:afterData
+ });
+ if(error){console.error('Question audit write failed:',error.message);return false;}
+ return true;
+};
 
 router.get('/catalogue',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const [programmes,subjects]=await Promise.all([
@@ -240,7 +252,10 @@ router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  if(error)throw error;
  res.json({questions:data||[],total:count||0,limit,offset});
 }));
-router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
+router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{ const {data:before,error:beforeError}=await db.from('upec_teacher_questions').select('*').eq('id',id).maybeSingle();
+ if(beforeError)throw beforeError;
+ if(!before||(req.staff.role==='teacher'&&before.author_account_id!==req.actor.sub))return res.status(404).json({error:'Question not found or you cannot edit it.'});
+
  const id=req.params.id;
  const {subjectId,prompt,options,correctOption,explanation=''}=req.body||{};
  if(!uuid(id)||!uuid(subjectId)||typeof prompt!=='string'||prompt.trim().length<10||prompt.length>5000||
@@ -266,7 +281,8 @@ router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
  if(error)throw error;
  if(!data)return res.status(404).json({error:'Question not found or you cannot edit it.'});
- res.json({question:data});
+ const auditRecorded=await auditQuestion({questionId:id,req,action:'updated',beforeData:before,afterData:data});
+ res.json({question:data,auditRecorded});
 }));
 router.post('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,prompt,options,correctOption,explanation=''}=req.body||{};
@@ -276,7 +292,8 @@ router.post('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_teacher_questions').insert({subject_id:subjectId,author_account_id:req.actor.sub,prompt:prompt.trim(),options,correct_option:correctOption,explanation:explanation.trim(),question_type:req.body.questionType||'single_choice',topic:req.body.topic||'',subtopic:req.body.subtopic||'',difficulty:req.body.difficulty||'medium',exam_type:req.body.examType||'',exam_year:req.body.examYear||null,solution_steps:req.body.solutionSteps||'',source_name:req.body.sourceName||'',source_reference:req.body.sourceReference||'',source_license:req.body.sourceLicense||'',status:'draft'}).select('id,subject_id,prompt,status').single();
  if(error?.code==='23503')return res.status(404).json({error:'Subject not found.'});
  if(error)throw error;
- res.status(201).json({question:data});
+ const auditRecorded=await auditQuestion({questionId:data.id,req,action:'created',afterData:data});
+ res.status(201).json({question:data,auditRecorded});
 }));
 router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
  const rows=req.body?.questions;
@@ -436,7 +453,22 @@ router.patch('/questions/:id/status',grant('super_admin','admin','cbt_manager'),
  const {data,error}=await update.select('id,status,prompt,subject_id,topic,explanation,solution_steps,source_name,source_reference,source_license,updated_at').maybeSingle();
  if(error)throw error;
  if(!data)return res.status(409).json({error:'Question changed during review. Refresh and try again.'});
- res.json({question:data});
+ const auditRecorded=await auditQuestion({questionId:id,req,action:status==='published'?'published':'unpublished',beforeData:{status:current.status},afterData:data});
+ res.json({question:data,auditRecorded});
+}));
+router.get('/questions/:id/history',grant(...questionRoles),wrap(async(req,res)=>{
+ const id=req.params.id;
+ if(!uuid(id))return res.status(400).json({error:'Invalid question ID.'});
+ let questionQuery=db.from('upec_teacher_questions').select('id,author_account_id').eq('id',id);
+ if(req.staff.role==='teacher')questionQuery=questionQuery.eq('author_account_id',req.actor.sub);
+ const {data:question,error:questionError}=await questionQuery.maybeSingle();
+ if(questionError)throw questionError;
+ if(!question)return res.status(404).json({error:'Question not found.'});
+ const {data,error}=await db.from('upec_question_audit_log')
+  .select('id,question_id,actor_account_id,actor_role,action,before_data,after_data,created_at')
+  .eq('question_id',id).order('created_at',{ascending:false}).limit(100);
+ if(error)throw error;
+ res.json({history:data||[]});
 }));
 router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
  let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at,opens_at,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').order('created_at',{ascending:false}).limit(100);
