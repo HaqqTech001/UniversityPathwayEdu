@@ -252,11 +252,13 @@ router.get('/questions',grant(...questionRoles),wrap(async(req,res)=>{
  if(error)throw error;
  res.json({questions:data||[],total:count||0,limit,offset});
 }));
-router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{ const {data:before,error:beforeError}=await db.from('upec_teacher_questions').select('*').eq('id',id).maybeSingle();
+router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
+ const id=req.params.id;
+ if(!uuid(id))return res.status(400).json({error:'Invalid question ID.'});
+ const {data:before,error:beforeError}=await db.from('upec_teacher_questions').select('*').eq('id',id).maybeSingle();
  if(beforeError)throw beforeError;
  if(!before||(req.staff.role==='teacher'&&before.author_account_id!==req.actor.sub))return res.status(404).json({error:'Question not found or you cannot edit it.'});
 
- const id=req.params.id;
  const {subjectId,prompt,options,correctOption,explanation=''}=req.body||{};
  if(!uuid(id)||!uuid(subjectId)||typeof prompt!=='string'||prompt.trim().length<10||prompt.length>5000||
  !options||typeof options!=='object'||Array.isArray(options)||!['A','B','C','D'].every(k=>typeof options[k]==='string'&&options[k].trim().length>0&&options[k].length<=1000)||
@@ -479,6 +481,36 @@ router.get('/questions/:id/history',grant(...questionRoles),wrap(async(req,res)=
   else actorNames=Object.fromEntries((accounts||[]).map(account=>[account.id,account.full_name]));
  }
  res.json({history:(data||[]).map(row=>({...row,actor_name:row.actor_account_id?(actorNames[row.actor_account_id]||'Staff account'): 'System / unavailable'}))});
+})); 
+router.post('/questions/:id/history/:historyId/restore',grant(...questionRoles),wrap(async(req,res)=>{
+ const id=req.params.id,historyId=req.params.historyId;
+ if(!uuid(id)||!uuid(historyId))return res.status(400).json({error:'Invalid question or history ID.'});
+ let currentQuery=db.from('upec_teacher_questions').select('*').eq('id',id);
+ if(req.staff.role==='teacher')currentQuery=currentQuery.eq('author_account_id',req.actor.sub);
+ const {data:current,error:currentError}=await currentQuery.maybeSingle();
+ if(currentError)throw currentError;
+ if(!current)return res.status(404).json({error:'Question not found.'});
+ const {data:version,error:versionError}=await db.from('upec_question_audit_log')
+  .select('id,question_id,after_data').eq('id',historyId).eq('question_id',id).maybeSingle();
+ if(versionError)throw versionError;
+ const snapshot=version?.after_data;
+ if(!snapshot||typeof snapshot.prompt!=='string'||!snapshot.options||typeof snapshot.options!=='object'||
+  !['A','B','C','D'].every(key=>typeof snapshot.options[key]==='string')||
+  !['A','B','C','D'].includes(snapshot.correct_option))
+  return res.status(409).json({error:'This history entry does not contain a restorable question version.'});
+ const fields=['subject_id','prompt','options','correct_option','explanation','question_type','topic','subtopic','difficulty','exam_type','exam_year','solution_steps','source_name','source_reference','source_license'];
+ const restored={};
+ for(const field of fields)if(Object.prototype.hasOwnProperty.call(snapshot,field))restored[field]=snapshot[field];
+ restored.status='draft';
+ restored.updated_at=new Date().toISOString();
+ let update=db.from('upec_teacher_questions').update(restored).eq('id',id).eq('updated_at',current.updated_at);
+ if(req.staff.role==='teacher')update=update.eq('author_account_id',req.actor.sub);
+ const {data,error}=await update.select('*').maybeSingle();
+ if(error?.code==='23503')return res.status(409).json({error:'The saved version references a subject that is no longer available.'});
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Question changed during restoration. Refresh the history and try again.'});
+ const auditRecorded=await auditQuestion({questionId:id,req,action:'restored',beforeData:current,afterData:data});
+ res.json({question:data,auditRecorded,message:'Previous content restored as a draft. Review it before publishing.'});
 }));
 router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
  let query=db.from('upec_assessments').select('id,subject_id,title,duration_minutes,status,created_by,created_at,opens_at,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').order('created_at',{ascending:false}).limit(100);
