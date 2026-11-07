@@ -812,12 +812,12 @@ router.patch('/neco/subjects/:id',grant('super_admin','admin'),wrap(async(req,re
   else changes[column]=value;
  }
  if(!Object.keys(changes).length)return res.status(400).json({error:'No changes provided.'});
- const {data:existing,error:readError}=await db.from('upec_neco_subject_catalogue').select('field_of_study,selection_type').eq('id',req.params.id).maybeSingle();
+ const {data:existing,error:readError}=await db.from('upec_neco_subject_catalogue').select('field_of_study,selection_type,subject_category').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;
  if(!existing)return res.status(404).json({error:'NECO subject not found.'});
  const field=changes.field_of_study??existing.field_of_study;
  const selection=changes.selection_type??existing.selection_type;
- const category=changes.subject_category??(await db.from('upec_neco_subject_catalogue').select('subject_category').eq('id',req.params.id).maybeSingle()).data?.subject_category;
+ const category=changes.subject_category??existing.subject_category;
  if(selection==='cross_cutting_compulsory'&&(field!=='general'||category!=='cross_cutting'))return res.status(400).json({error:'Cross-cutting compulsory subjects must use the general field and cross-cutting category.'});
  const {data,error}=await db.from('upec_neco_subject_catalogue').update(changes).eq('id',req.params.id).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'This subject code or name already exists for the selected NECO year.'});
