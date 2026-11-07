@@ -659,6 +659,27 @@ export default function AdminCbtPage() {
     }
   };
 
+  const handleRestoreQuestionVersion = async (entry: any) => {
+    if (!questionHistoryTarget || !entry?.id) return;
+    const confirmed = window.confirm('Restore this saved version? The current content will be preserved in history, and the restored question will return to draft for review.');
+    if (!confirmed) return;
+    setQuestionHistoryLoading(true);
+    setQuestionHistoryError('');
+    try {
+      await api('/api/staff/academic/questions/' + encodeURIComponent(questionHistoryTarget.id) + '/history/' + encodeURIComponent(entry.id) + '/restore', {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      notify('Previous version restored as a draft. Review it before publishing.', 'success');
+      await loadQuestions();
+      await handleViewQuestionHistory(questionHistoryTarget);
+    } catch (error: any) {
+      setQuestionHistoryError(error?.message || 'Could not restore this version.');
+    } finally {
+      setQuestionHistoryLoading(false);
+    }
+  };
+
   const handleToggleQuestionStatus = async (q: Question) => {
     const nextStatus = q.status === 'published' ? 'draft' : 'published';
     const review = getQuestionReview(q);
@@ -2896,6 +2917,13 @@ export default function AdminCbtPage() {
                         </div>
                       )) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">This activity has no field-level snapshot. New edits will show their individual changes here.</p>}
                     </div>
+                    {entry.after_data?.prompt && entry.action !== 'restored' && (
+                      <div className="mt-3 flex justify-end">
+                        <button type="button" disabled={questionHistoryLoading} onClick={() => void handleRestoreQuestionVersion(entry)} className="rounded-lg border border-[#111A43]/20 px-3 py-1.5 text-[11px] font-semibold text-[#111A43] hover:bg-[#111A43]/5 disabled:opacity-50">
+                          Restore this version
+                        </button>
+                      </div>
+                    )}
                   </article>
                 ))}
             </div>
