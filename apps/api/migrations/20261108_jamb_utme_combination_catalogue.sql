@@ -3,6 +3,7 @@
 -- No course combinations are seeded until checked against the applicable official IBASS record.
 alter table public.upec_exam_subject_catalogue
   drop constraint if exists upec_exam_subject_catalogue_selection_type_check;
+alter table public.upec_exam_subject_catalogue drop constraint if exists upec_exam_subject_selection_type_check;
 alter table public.upec_exam_subject_catalogue
   add constraint upec_exam_subject_catalogue_selection_type_check
   check(selection_type in ('compulsory','required_choice','departmental_core','departmental_optional','outside_field_elective','programme_required','institution_specific','catalogue_option'));
