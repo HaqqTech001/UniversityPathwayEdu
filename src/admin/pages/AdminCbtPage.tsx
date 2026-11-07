@@ -228,7 +228,8 @@ export default function AdminCbtPage() {
     optionD: '',
     correctOption: 'A' as 'A' | 'B' | 'C' | 'D',
     explanation: '',
-    solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice'
+    solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice',
+    sourceName: '', sourceReference: '', sourceLicense: ''
   });
 
   const [isCreatingExam, setIsCreatingExam] = useState(false);
@@ -1314,13 +1315,13 @@ export default function AdminCbtPage() {
                 <tbody className="divide-y divide-slate-100">
                   {questionsState.loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
                         Loading questions from question repository...
                       </td>
                     </tr>
                   ) : !paginatedQuestions.length ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
                         {questionsState.error ? 'Unable to load question bank.' : 'No questions match the selected criteria.'}
                       </td>
                     </tr>
