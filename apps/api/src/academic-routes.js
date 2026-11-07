@@ -328,10 +328,13 @@ router.post('/questions/bulk',grant(...questionRoles),wrap(async(req,res)=>{
   fresh.push(item.record);
  }
  if(!fresh.length)return res.status(200).json({imported:0,rejected});
- const {data,error}=await db.from('upec_teacher_questions').insert(fresh).select('id');
+ const {data,error}=await db.from('upec_teacher_questions').insert(fresh).select('id,subject_id,prompt,topic,exam_type,exam_year,source_name,source_reference,status');
  if(error?.code==='23503')return res.status(400).json({error:'One or more subject IDs are invalid.',rejected});
  if(error)throw error;
- res.status(201).json({imported:data?.length||0,rejected});
+ const auditRows=(data||[]).map(question=>({question_id:question.id,actor_account_id:uuid(req.actor?.sub)?req.actor.sub:null,actor_role:req.staff?.role||'',action:'imported',after_data:question}));
+ const {error:auditError}=auditRows.length?await db.from('upec_question_audit_log').insert(auditRows):{error:null};
+ if(auditError)console.error('Bulk question audit write failed:',auditError.message);
+ res.status(201).json({imported:data?.length||0,rejected,auditRecorded:!auditError});
 }));
 router.post('/questions/extract-pdf',grant(...questionRoles),express.raw({type:['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document'],limit:'12mb'}),wrap(async(req,res)=>{
  const subjectId=String(req.query.subjectId||'');
