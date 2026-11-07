@@ -769,7 +769,7 @@ const examSubjectPayload=v=>({
  programme_name:typeof v.programmeName==='string'&&v.programmeName.trim()?v.programmeName.trim():null,
  source_reference:typeof v.sourceReference==='string'?v.sourceReference.trim():'',source_verified:v.sourceVerified===true,active:v.active!==false
 });
-const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type!=='ijmb'||!!s.subject_code);
+const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type==='ijmb'?!!s.subject_code:s.subject_code===null);
 router.get('/exams/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const examType=String(req.query.examType||'');
  const year=Number(req.query.year||2027);
