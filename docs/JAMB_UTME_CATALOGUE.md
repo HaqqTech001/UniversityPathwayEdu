@@ -35,9 +35,10 @@ Mounted under the academic router:
 - `GET /academic/exams/subjects?examType=jamb_utme&year=2027` — shared subject options.
 - `GET /academic/jamb/combinations?year=2027&institution=...&programme=...` — course-specific rules and filters.
 - `POST /academic/jamb/combinations` — admin creates a provisional rule; API enforces English Language and three additional subject slots and always saves it unverified.
-- `PATCH /academic/jamb/combinations/:id` — admin updates an existing rule without changing its verification status.
+- `PATCH /academic/jamb/combinations/:id` — admin updates an existing rule; any edit clears previous verification evidence and returns the rule to provisional status.
+- `POST /academic/jamb/combinations/:id/verify` — admin/super-admin records a source review only after confirming the exact saved year, institution, programme and subject set. It accepts HTTPS URLs on official JAMB domains, requires meaningful review notes and a signed-in staff identity.
 
-The admin form accepts three required subject slots or a combination of required subjects and alternative-subject choices. New entries are always provisional.
+The admin form accepts three required subject slots or a combination of required subjects and alternative-subject choices. New entries are always provisional. Admins can edit provisional entries and open an inline IBASS verification form; a verified entry displays its check date and review notes. Editing any verified rule invalidates its previous verification.
 
 The combination list is available to academic staff roles; writes are admin/super-admin only. The IJMB subject-code constraint remains limited to IJMB.
 
@@ -45,6 +46,7 @@ The combination list is available to academic staff roles; writes are admin/supe
 
 - `20261108_jamb_utme_combination_catalogue.sql` — combination table, indexes, RLS and initial subject catalogue.
 - `20261107_complete_jamb_utme_subject_options.sql` — idempotent completion of the IBASS selectable subject list.
+- `20261108_jamb_source_verification_workflow.sql` — verification evidence, staff attribution and database consistency checks.
 
 Both migrations were applied to the connected Supabase project. The admin Academic Catalogue includes a JAMB-specific provisional combination manager and links directly to IBASS.
 
@@ -53,3 +55,4 @@ Both migrations were applied to the connected Supabase project. The admin Academ
 - 2027 selectable subject names and English Language preselection: checked against the live official IBASS page.
 - Institution/course combinations: not yet populated or verified; each requires an exact institution and programme selection in IBASS.
 - The IBASS page is dynamic and may change by year; retain the exact year and source reference with every future rule.
+- Verification is an accountable staff attestation to the official IBASS record; the API does not scrape the interactive checker or independently prove the human comparison. Keep the verification notes precise and retain the official source URL.
