@@ -353,6 +353,26 @@ router.post('/conduct/acceptance',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_conduct_acceptances').upsert({student_account_id:req.actor.sub,policy_version:CONDUCT_VERSION},{onConflict:'student_account_id,policy_version',ignoreDuplicates:true}).select('accepted_at').maybeSingle();
  if(error)throw error;res.json({accepted:true,version:CONDUCT_VERSION,acceptedAt:data?.accepted_at||null});
 }));
+// JAMB UTME eligibility is independent of UPEC programme subject selection (WAEC/IJMB).
+// Students only receive active, source-verified institution/course rules.
+router.get('/admissions/jamb/catalogue',wrap(async(req,res)=>{
+ const year=Number(req.query.year||2027);
+ if(!Number.isInteger(year)||year<2026||year>2100)return res.status(400).json({error:'Choose a valid JAMB examination year.'});
+ const institution=typeof req.query.institution==='string'?req.query.institution.trim():'';
+ const programme=typeof req.query.programme==='string'?req.query.programme.trim():'';
+ if(institution.length>180||programme.length>180)return res.status(400).json({error:'Institution or programme search is too long.'});
+ let query=db.from('upec_jamb_utme_combinations')
+  .select('id,exam_year,institution_name,institution_code,programme_name,programme_code,english_language_required,required_subjects,alternative_subjects,alternative_subject_count,subject_group_rules,additional_notes,source_reference,source_checked_at,verification_notes')
+  .eq('exam_year',year).eq('active',true).eq('source_verified',true)
+  .order('institution_name').order('programme_name').limit(2000);
+ if(institution)query=query.ilike('institution_name','%'+institution.replace(/[\\%_]/g,'')+'%');
+ if(programme)query=query.ilike('programme_name','%'+programme.replace(/[\\%_]/g,'')+'%');
+ const {data,error}=await query;if(error)throw error;
+ const rows=data||[];
+ if(!institution)return res.json({year,institutions:[...new Set(rows.map(row=>row.institution_name))],combinations:[]});
+ if(!programme)return res.json({year,institution,institutions:[],programmes:[...new Set(rows.map(row=>row.programme_name))],combinations:[]});
+ res.json({year,institution,programme,combinations:rows});
+}));
 router.get('/admissions/programmes',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_academic_programmes').select('code,name,description').eq('active',true).order('name').limit(100);
  if(error)throw error;res.json({programmes:data||[]});
