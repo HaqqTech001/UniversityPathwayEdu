@@ -800,6 +800,31 @@ router.patch('/jamb/combinations/:id',grant('super_admin','admin'),wrap(async(re
  if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
  if(error)throw error;res.json({combination:data});
 }));
+router.post('/jamb/combinations/:id/verify',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid combination ID.'});
+ const actorId=uuid(req.actor?.sub)?req.actor.sub:null;
+ if(!actorId)return res.status(403).json({error:'A verified staff identity is required to record source verification.'});
+ const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
+ if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
+ const v=req.body||{};
+ const sourceUrl=typeof v.sourceReference==='string'?v.sourceReference.trim():'';
+ let source;
+ try{source=new URL(sourceUrl);}catch{return res.status(400).json({error:'Provide the official JAMB IBASS source URL.'});}
+ if(source.protocol!=='https:'||!['eligibility.jamb.gov.ng','ibass.jamb.gov.ng','jamb.gov.ng','www.jamb.gov.ng'].includes(source.hostname.toLowerCase()))return res.status(400).json({error:'Verification requires an official JAMB HTTPS source.'});
+ const notes=typeof v.verificationNotes==='string'?v.verificationNotes.trim():'';
+ if(notes.length<20||notes.length>2000)return res.status(400).json({error:'Record at least 20 characters describing the exact IBASS institution/course check.'});
+ const checkedSubjects=Array.isArray(v.requiredSubjects)?v.requiredSubjects.map(x=>String(x).trim()):[];
+ const checkedAlternatives=Array.isArray(v.alternativeSubjects)?v.alternativeSubjects.map(x=>String(x).trim()):[];
+ if(JSON.stringify([...checkedSubjects].sort())!==JSON.stringify([...existing.required_subjects].sort())||JSON.stringify([...checkedAlternatives].sort())!==JSON.stringify([...existing.alternative_subjects].sort()))return res.status(409).json({error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'});
+ if(existing.english_language_required!==true||checkedSubjects.length+existing.alternative_subject_count!==3)return res.status(400).json({error:'The saved combination does not satisfy the JAMB subject structure.'});
+ const {data,error}=await db.from('upec_jamb_utme_combinations').update({
+  source_reference:sourceUrl,source_verified:true,source_checked_at:new Date().toISOString(),
+  source_verified_by:actorId,verification_notes:notes,
+  verified_required_subjects:checkedSubjects,verified_alternative_subjects:checkedAlternatives
+ }).eq('id',req.params.id).select('*').single();
+ if(error)throw error;
+ res.json({combination:data});
+}));
 router.get('/exams/subjects',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const examType=String(req.query.examType||'');
  const year=Number(req.query.year||2027);
