@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import express, {Router} from 'express';
 import {inflateRawSync} from 'node:zlib';
 import {supabaseAdmin as db} from './db.js';
-import {jambCombinationPayload,validateJambCombination} from './jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification} from './jamb-catalogue.js';
 
 const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -807,21 +807,13 @@ router.post('/jamb/combinations/:id/verify',grant('super_admin','admin'),wrap(as
  const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
  const v=req.body||{};
- if(Number(v.examYear??existing.exam_year)!==existing.exam_year||String(v.institutionName??existing.institution_name).trim().toLowerCase()!==existing.institution_name.toLowerCase()||String(v.programmeName??existing.programme_name).trim().toLowerCase()!==existing.programme_name.toLowerCase())return res.status(409).json({error:'Verification must confirm the exact saved examination year, institution and programme.'});
- const sourceUrl=typeof v.sourceReference==='string'?v.sourceReference.trim():'';
- let source;
- try{source=new URL(sourceUrl);}catch{return res.status(400).json({error:'Provide the official JAMB IBASS source URL.'});}
- if(source.protocol!=='https:'||!['eligibility.jamb.gov.ng','ibass.jamb.gov.ng','jamb.gov.ng','www.jamb.gov.ng'].includes(source.hostname.toLowerCase()))return res.status(400).json({error:'Verification requires an official JAMB HTTPS source.'});
- const notes=typeof v.verificationNotes==='string'?v.verificationNotes.trim():'';
- if(notes.length<20||notes.length>2000)return res.status(400).json({error:'Record at least 20 characters describing the exact IBASS institution/course check.'});
- const checkedSubjects=Array.isArray(v.requiredSubjects)?v.requiredSubjects.map(x=>String(x).trim()):[];
- const checkedAlternatives=Array.isArray(v.alternativeSubjects)?v.alternativeSubjects.map(x=>String(x).trim()):[];
- if(JSON.stringify([...checkedSubjects].sort())!==JSON.stringify([...existing.required_subjects].sort())||JSON.stringify([...checkedAlternatives].sort())!==JSON.stringify([...existing.alternative_subjects].sort()))return res.status(409).json({error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'});
- if(existing.english_language_required!==true||checkedSubjects.length+existing.alternative_subject_count!==3)return res.status(400).json({error:'The saved combination does not satisfy the JAMB subject structure.'});
+ const check=validateJambVerification(existing,v);
+ if(!check.valid)return res.status(400).json({error:check.error});
+ const {sourceUrl,notes,required,alternatives}=check;
  const {data,error}=await db.from('upec_jamb_utme_combinations').update({
   source_reference:sourceUrl,source_verified:true,source_checked_at:new Date().toISOString(),
   source_verified_by:actorId,verification_notes:notes,
-  verified_required_subjects:checkedSubjects,verified_alternative_subjects:checkedAlternatives
+  verified_required_subjects:required,verified_alternative_subjects:alternatives
  }).eq('id',req.params.id).select('*').single();
  if(error)throw error;
  res.json({combination:data});
