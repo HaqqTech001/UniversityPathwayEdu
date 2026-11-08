@@ -49,5 +49,5 @@ export function validateJambVerification(existing,input={}){
  const alternatives=Array.isArray(input.alternativeSubjects)?input.alternativeSubjects.map(x=>String(x).trim()):[];
  if(!isSubjectList(required)||!isSubjectList(alternatives)||JSON.stringify([...required].sort())!==JSON.stringify([...existing.required_subjects].sort())||JSON.stringify([...alternatives].sort())!==JSON.stringify([...existing.alternative_subjects].sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
  if(existing.english_language_required!==true||required.length+existing.alternative_subject_count!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
- return {valid:true,sourceUrl,notes,required,alternatives};
+ return {valid:true,sourceUrl,notes,required:existing.required_subjects,alternatives:existing.alternative_subjects};
 }
