@@ -51,7 +51,7 @@ The combination list is available to academic staff roles; writes are admin/supe
 - `20261107_complete_jamb_utme_subject_options.sql` — idempotent completion of the IBASS selectable subject list.
 - `20261108_jamb_source_verification_workflow.sql` — verification evidence, staff attribution and database consistency checks.
 
-Both migrations were applied to the connected Supabase project. The admin Academic Catalogue includes a JAMB-specific provisional combination manager and links directly to IBASS.
+All three JAMB migrations were applied to the connected Supabase project. The admin Academic Catalogue includes a JAMB-specific provisional combination manager and links directly to IBASS.
 
 ## Verification gaps
 
