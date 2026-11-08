@@ -67,3 +67,9 @@ test('requires meaningful source verification notes',()=>{
 test('rejects verification when English Language is not fixed in the saved rule',()=>{
  assert.equal(validateJambVerification({...saved,english_language_required:false},verification).valid,false);
 });
+
+test('normalizes verified subject order to the saved rule for database evidence checks',()=>{
+ const result=validateJambVerification(saved,{...verification,requiredSubjects:['Chemistry','Mathematics','Physics']});
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.required,saved.required_subjects);
+});
