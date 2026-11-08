@@ -37,6 +37,9 @@ Mounted under the academic router:
 - `POST /academic/jamb/combinations` — admin creates a provisional rule; API enforces English Language and three additional subject slots and always saves it unverified.
 - `PATCH /academic/jamb/combinations/:id` — admin updates an existing rule; any edit clears previous verification evidence and returns the rule to provisional status.
 - `POST /academic/jamb/combinations/:id/verify` — admin/super-admin records a source review only after confirming the exact saved year, institution, programme and subject set. It accepts HTTPS URLs on official JAMB domains, requires meaningful review notes and a signed-in staff identity.
+- `GET /admissions/jamb/catalogue?year=2027&institution=...&programme=...` — student-only lookup. It returns only active, source-verified institution/course combinations; omit institution to list verified institutions or omit programme to list that institution's verified programmes.
+
+The student JAMB past-question page now includes a separate UTME subject-combination checker. It requires an exact institution and programme, queries the student-only endpoint, displays only individually verified rules and links back to official IBASS when no verified rule is recorded. It never substitutes another course or institution's combination.
 
 The admin form accepts three required subject slots or a combination of required subjects and alternative-subject choices. New entries are always provisional. Admins can edit provisional entries and open an inline IBASS verification form; a verified entry displays its check date and review notes. Editing any verified rule invalidates its previous verification.
 
