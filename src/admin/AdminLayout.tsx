@@ -135,7 +135,7 @@ export default function AdminLayout({
           TOP BAR
           ========================================================================= */}
       <header className="relative shrink-0 z-40 bg-[#08163B] text-white border-b border-[#14234C] shadow-md">
-        <div className="flex h-[76px] min-w-0 items-center justify-between gap-2 px-3 sm:h-20 sm:px-5 lg:px-6">
+        <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-2.5 sm:h-20 sm:px-5 lg:px-6">
           {/* Left: Mobile hamburger & Institutional Identity */}
           <div className="flex min-w-0 items-center gap-2 lg:gap-4">
             <button
@@ -150,7 +150,7 @@ export default function AdminLayout({
             </button>
 
             {/* Official artwork already contains the institutional name. */}
-            <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="block h-12 w-auto max-w-[175px] shrink-0 object-contain sm:h-14 sm:max-w-[240px] lg:h-16 lg:max-w-[290px]" />
+            <img src="/logo/pathway-footer.png" alt="University Pathway Educational Consult" className="block h-10 w-auto max-w-[138px] shrink-0 object-contain sm:h-14 sm:max-w-[240px] lg:h-16 lg:max-w-[290px]" />
           </div>
 
           {/* Center Search Input */}
@@ -401,7 +401,7 @@ export default function AdminLayout({
         )}
 
         {/* MAIN CONTENT OUTLET */}
-        <main className="flex-1 min-h-0 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 2xl:p-8 space-y-6">
+        <main className="min-h-0 min-w-0 max-w-full flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:space-y-6 sm:p-5 lg:p-6 2xl:p-8">
           {children}
         </main>
       </div>
