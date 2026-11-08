@@ -10,8 +10,6 @@ set search_path = public, pg_temp
 as $$
 declare
   requested_subject text;
-  group_rule jsonb;
-  group_subject text;
 begin
   if new.source_verified and not new.active then
     raise exception 'An inactive JAMB combination cannot remain source-verified.'
