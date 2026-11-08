@@ -794,8 +794,8 @@ router.patch('/jamb/combinations/:id',grant('super_admin','admin'),wrap(async(re
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
  const v=req.body||{},payload={examYear:v.examYear??existing.exam_year,institutionName:v.institutionName??existing.institution_name,institutionCode:v.institutionCode??existing.institution_code,programmeName:v.programmeName??existing.programme_name,programmeCode:v.programmeCode??existing.programme_code,englishLanguageRequired:true,requiredSubjects:v.requiredSubjects??existing.required_subjects,alternativeSubjects:v.alternativeSubjects??existing.alternative_subjects,alternativeSubjectCount:v.alternativeSubjectCount??existing.alternative_subject_count,subjectGroupRules:v.subjectGroupRules??existing.subject_group_rules,additionalNotes:v.additionalNotes??existing.additional_notes,sourceReference:v.sourceReference??existing.source_reference,active:v.active??existing.active};
  const row=jambCombinationPayload(payload);if(!validateJambCombination(row))return res.status(400).json({error:'Invalid JAMB combination update.'});
- // Verification is deliberately a separate, source-review action.
- row.source_verified=existing.source_verified;
+ // Any edit invalidates prior source verification; a fresh IBASS review is required.
+ row.source_verified=false;
  const {data,error}=await db.from('upec_jamb_utme_combinations').update(row).eq('id',req.params.id).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
  if(error)throw error;res.json({combination:data});
@@ -807,6 +807,7 @@ router.post('/jamb/combinations/:id/verify',grant('super_admin','admin'),wrap(as
  const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
  const v=req.body||{};
+ if(Number(v.examYear??existing.exam_year)!==existing.exam_year||String(v.institutionName??existing.institution_name).trim().toLowerCase()!==existing.institution_name.toLowerCase()||String(v.programmeName??existing.programme_name).trim().toLowerCase()!==existing.programme_name.toLowerCase())return res.status(409).json({error:'Verification must confirm the exact saved examination year, institution and programme.'});
  const sourceUrl=typeof v.sourceReference==='string'?v.sourceReference.trim():'';
  let source;
  try{source=new URL(sourceUrl);}catch{return res.status(400).json({error:'Provide the official JAMB IBASS source URL.'});}
