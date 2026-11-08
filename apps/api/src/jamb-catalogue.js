@@ -36,3 +36,18 @@ export function validateJambCombination(value){
   typeof value.source_reference==='string'&&value.source_reference.length>=8&&value.source_reference.length<=500&&
   typeof value.active==='boolean';
 }
+
+export function validateJambVerification(existing,input={}){
+ const year=Number(input.examYear),institution=String(input.institutionName||'').trim(),programme=String(input.programmeName||'').trim();
+ if(year!==existing.exam_year||institution.toLowerCase()!==existing.institution_name.toLowerCase()||programme.toLowerCase()!==existing.programme_name.toLowerCase())return {valid:false,error:'Verification must confirm the exact saved examination year, institution and programme.'};
+ const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
+ let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS source URL.'};}
+ if(source.protocol!=='https:'||!['eligibility.jamb.gov.ng','ibass.jamb.gov.ng','jamb.gov.ng','www.jamb.gov.ng'].includes(source.hostname.toLowerCase()))return {valid:false,error:'Verification requires an official JAMB HTTPS source.'};
+ const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
+ if(notes.length<20||notes.length>2000)return {valid:false,error:'Record at least 20 characters describing the exact IBASS institution/course check.'};
+ const required=Array.isArray(input.requiredSubjects)?input.requiredSubjects.map(x=>String(x).trim()):[];
+ const alternatives=Array.isArray(input.alternativeSubjects)?input.alternativeSubjects.map(x=>String(x).trim()):[];
+ if(!isSubjectList(required)||!isSubjectList(alternatives)||JSON.stringify([...required].sort())!==JSON.stringify([...existing.required_subjects].sort())||JSON.stringify([...alternatives].sort())!==JSON.stringify([...existing.alternative_subjects].sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
+ if(existing.english_language_required!==true||required.length+existing.alternative_subject_count!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
+ return {valid:true,sourceUrl,notes,required,alternatives};
+}
