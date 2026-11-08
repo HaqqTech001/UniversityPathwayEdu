@@ -795,7 +795,7 @@ router.patch('/jamb/combinations/:id',grant('super_admin','admin'),wrap(async(re
  const v=req.body||{},payload={examYear:v.examYear??existing.exam_year,institutionName:v.institutionName??existing.institution_name,institutionCode:v.institutionCode??existing.institution_code,programmeName:v.programmeName??existing.programme_name,programmeCode:v.programmeCode??existing.programme_code,englishLanguageRequired:true,requiredSubjects:v.requiredSubjects??existing.required_subjects,alternativeSubjects:v.alternativeSubjects??existing.alternative_subjects,alternativeSubjectCount:v.alternativeSubjectCount??existing.alternative_subject_count,subjectGroupRules:v.subjectGroupRules??existing.subject_group_rules,additionalNotes:v.additionalNotes??existing.additional_notes,sourceReference:v.sourceReference??existing.source_reference,active:v.active??existing.active};
  const row=jambCombinationPayload(payload);if(!validateJambCombination(row))return res.status(400).json({error:'Invalid JAMB combination update.'});
  // Any edit invalidates prior source verification; a fresh IBASS review is required.
- row.source_verified=false;
+ row.source_verified=false;row.source_checked_at=null;row.source_verified_by=null;row.verification_notes='';row.verified_required_subjects=[];row.verified_alternative_subjects=[];
  const {data,error}=await db.from('upec_jamb_utme_combinations').update(row).eq('id',req.params.id).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
  if(error)throw error;res.json({combination:data});
