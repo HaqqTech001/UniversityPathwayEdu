@@ -1303,7 +1303,7 @@ export default function AdminCbtPage() {
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* Filter Bar */}
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/50 p-2.5">
-              <div className="flex flex-1 items-center gap-2 min-w-[240px]">
+              <div className="flex min-w-0 w-full flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -1324,7 +1324,7 @@ export default function AdminCbtPage() {
                     setSelectedSubjectFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 sm:min-h-0 sm:w-auto sm:px-2 sm:py-1.5"
                 >
                   <option value="all">All Subjects</option>
                   {subjectsState.data.map(s => (
@@ -1340,7 +1340,7 @@ export default function AdminCbtPage() {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 sm:min-h-0 sm:w-auto sm:px-2 sm:py-1.5"
                 >
                   <option value="all">All Statuses</option>
                   <option value="published">Published</option>
@@ -1522,7 +1522,7 @@ export default function AdminCbtPage() {
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* Filter Bar */}
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/50 p-2.5">
-              <div className="flex flex-1 items-center gap-2 min-w-[240px]">
+              <div className="flex min-w-0 w-full flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -1543,7 +1543,7 @@ export default function AdminCbtPage() {
                     setSelectedSubjectFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 sm:min-h-0 sm:w-auto sm:px-2 sm:py-1.5"
                 >
                   <option value="all">All Subjects</option>
                   {subjectsState.data.map(s => (
@@ -1559,7 +1559,7 @@ export default function AdminCbtPage() {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 sm:min-h-0 sm:w-auto sm:px-2 sm:py-1.5"
                 >
                   <option value="all">All Statuses</option>
                   <option value="published">Published</option>
