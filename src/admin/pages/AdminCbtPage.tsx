@@ -977,22 +977,22 @@ export default function AdminCbtPage() {
   }, [resultsState.data, stationSettings.defaultPassMark]);
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden bg-[#F7F8FC] p-2 text-slate-800">
+    <div className="flex min-h-full min-w-0 flex-col gap-3 overflow-visible bg-[#F7F8FC] p-2 pb-4 text-slate-800 sm:gap-3 sm:p-3 lg:h-full lg:min-h-0 lg:gap-2 lg:overflow-hidden lg:p-2">
       {/* Top Bar Header */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+      <header className="flex shrink-0 flex-col items-stretch gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-extrabold text-[#111A43] sm:text-2xl">CBT &amp; Examinations</h1>
+            <h1 className="text-lg font-extrabold leading-tight text-[#111A43] sm:truncate sm:text-2xl">CBT &amp; Examinations</h1>
             <span className="hidden rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 sm:inline-flex">
               2025/2026 Academic Session
             </span>
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="max-w-2xl text-xs leading-relaxed text-slate-500 sm:text-[11px]">
             Assessment engine, verified question repository, candidate sessions &amp; academic analytics
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
           <button
             title="Refresh all datasets"
             aria-label="Refresh all datasets"
@@ -1003,7 +1003,7 @@ export default function AdminCbtPage() {
               if (selectedExamForResults) void fetchResults(selectedExamForResults);
               if (monitoringExamId) void fetchLiveAttempts(monitoringExamId);
             }}
-            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-xs"
           >
             <RefreshCw
               size={15}
@@ -1014,7 +1014,7 @@ export default function AdminCbtPage() {
 
           <button
             onClick={() => { setProviderTargetSubject(selectedSubjectFilter === 'all' ? '' : selectedSubjectFilter); setIsProviderImportOpen(true); }}
-            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-[#111A43] transition hover:bg-slate-50 sm:px-3 sm:text-xs"
           >
             <BookOpen size={14} />
             <span>Provider Library</span>
@@ -1022,7 +1022,7 @@ export default function AdminCbtPage() {
 
           <button
             onClick={() => { setPdfSubjectId(selectedSubjectFilter === 'all' ? '' : selectedSubjectFilter); setPdfCandidates([]); setIsPdfExtractOpen(true); }}
-            className="flex items-center gap-1 rounded-lg border border-[#C62839]/20 bg-[#C62839]/5 px-3 py-2 text-xs font-bold text-[#C62839] hover:bg-[#C62839]/10 transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-[#C62839]/20 bg-[#C62839]/5 px-2 py-2 text-[11px] font-bold text-[#C62839] transition hover:bg-[#C62839]/10 sm:px-3 sm:text-xs"
           >
             <FileQuestion size={14} />
             <span>Extract from PDF</span>
@@ -1030,7 +1030,7 @@ export default function AdminCbtPage() {
 
           <button
             onClick={() => setIsBulkImportOpen(true)}
-            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-xs"
           >
             <ClipboardList size={14} />
             <span>Bulk Import</span>
@@ -1038,7 +1038,7 @@ export default function AdminCbtPage() {
 
           <button
             onClick={() => { setEditingQuestion(null); setQuestionForm({ subjectId: '', prompt: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice', sourceName: '', sourceReference: '', sourceLicense: '' }); setIsCreatingQuestion(true); }}
-            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] hover:bg-slate-50 transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-[#111A43] transition hover:bg-slate-50 sm:px-3 sm:text-xs"
           >
             <Plus size={14} />
             <span>Add Question</span>
@@ -1054,7 +1054,7 @@ export default function AdminCbtPage() {
               });
               setIsCreatingExam(true);
             }}
-            className="flex items-center gap-1 rounded-lg bg-[#C62839] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#a82230] transition"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg bg-[#C62839] px-2 py-2 text-[11px] font-bold text-white shadow-xs transition hover:bg-[#a82230] sm:px-3.5 sm:text-xs"
           >
             <Plus size={14} />
             <span>Create Examination</span>
@@ -1132,7 +1132,7 @@ export default function AdminCbtPage() {
       </section>
 
       {/* 6 Sections + Desk Tab Navigation */}
-      <nav className="flex shrink-0 items-center gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs">
+      <nav aria-label="CBT workspace sections" className="grid shrink-0 grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs sm:flex sm:items-center sm:overflow-x-auto">
         {(
           [
             'Overview',
@@ -1150,7 +1150,7 @@ export default function AdminCbtPage() {
               setActiveSection(tab);
               setCurrentPage(1);
             }}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+            className={`flex min-h-10 min-w-0 items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-h-9 sm:whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-xs ${
               activeSection === tab
                 ? 'bg-[#111A43] text-white shadow-2xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -1162,10 +1162,10 @@ export default function AdminCbtPage() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+      <main className="flex min-h-[55vh] flex-1 flex-col overflow-visible rounded-xl border border-slate-200 bg-white shadow-xs lg:min-h-0 lg:overflow-hidden">
         {/* SECTION 1: OVERVIEW */}
         {activeSection === 'Overview' && (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="min-h-0 flex-1 overflow-visible p-3 space-y-4 sm:p-4 lg:overflow-y-auto">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               {/* Left Column: Recent Assessments */}
               <div className="lg:col-span-2 space-y-3">
@@ -1198,8 +1198,8 @@ export default function AdminCbtPage() {
                     <div className="h-8 animate-pulse rounded bg-slate-100" />
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-slate-200">
-                    <table className="w-full text-left text-xs">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="min-w-[620px] w-full text-left text-xs">
                       <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                         <tr>
                           <th className="py-2.5 px-3">Title</th>
@@ -1385,8 +1385,8 @@ export default function AdminCbtPage() {
             )}
 
             {/* Questions Table */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <table className="w-full text-left text-xs">
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="min-w-[620px] w-full text-left text-xs">
                 <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                   <tr>
                     <th className="py-2.5 px-3">Subject</th>
@@ -1603,8 +1603,8 @@ export default function AdminCbtPage() {
             )}
 
             {/* Exams Table */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <table className="w-full text-left text-xs">
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="min-w-[620px] w-full text-left text-xs">
                 <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                   <tr>
                     <th className="py-2.5 px-3">Examination</th>
@@ -1790,8 +1790,8 @@ export default function AdminCbtPage() {
               {searchingStudents && <p className="text-xs text-slate-400">Searching verified accounts...</p>}
 
               {searchedStudents.length > 0 && (
-                <div className="overflow-hidden rounded-xl border border-slate-200 mt-2">
-                  <table className="w-full text-left text-xs">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 mt-2">
+                  <table className="min-w-[620px] w-full text-left text-xs">
                     <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600">
                       <tr>
                         <th className="py-2 px-3">Student Name</th>
@@ -1903,7 +1903,7 @@ export default function AdminCbtPage() {
             )}
 
             {/* Results Table */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-auto">
               {resultsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading assessment results...</div>
               ) : !resultsState.data?.results?.length ? (
@@ -1919,7 +1919,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <table className="min-w-[620px] w-full text-left text-xs">
                   <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                     <tr>
                       <th className="py-2.5 px-3">Candidate</th>
@@ -2195,7 +2195,7 @@ export default function AdminCbtPage() {
             </div>
 
             {/* Attempts Live Table */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-auto">
               {attemptsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading session attempts...</div>
               ) : !attemptsState.data.length ? (
@@ -2211,7 +2211,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <table className="min-w-[620px] w-full text-left text-xs">
                   <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                     <tr>
                       <th className="py-2.5 px-3">Candidate</th>
@@ -2282,10 +2282,10 @@ export default function AdminCbtPage() {
 
       {/* MODAL 1: CREATE QUESTION */}
       {isCreatingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
           <form
             onSubmit={handleCreateQuestion}
-            className="max-h-[90dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+            className="max-h-[92dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">{editingQuestion ? 'Edit Question' : 'Add Question to Bank'}</h2>
@@ -2432,8 +2432,8 @@ export default function AdminCbtPage() {
 
 
       {isBulkImportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <form onSubmit={handleBulkQuestionImport} className="max-h-[90dvh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <form onSubmit={handleBulkQuestionImport} className="max-h-[92dvh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div>
                 <h2 className="text-base font-bold text-[#111A43]">Import Questions in Bulk</h2>
@@ -2460,8 +2460,8 @@ export default function AdminCbtPage() {
 
 
       {isPdfExtractOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-3">
-          <div className="max-h-[94dvh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <div className="max-h-[94dvh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-5">
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-lg font-bold text-[#111A43]">Extract questions from a document</h2>
@@ -2542,8 +2542,8 @@ export default function AdminCbtPage() {
       )}
 
       {isProviderImportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3">
-          <div className="max-h-[92dvh] w-full max-w-5xl space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <div className="max-h-[94dvh] w-full max-w-5xl space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-base font-bold text-[#111A43]">External Past-Question Providers</h2>
@@ -2609,10 +2609,10 @@ export default function AdminCbtPage() {
 
       {/* MODAL 2: CREATE EXAMINATION */}
       {isCreatingExam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
           <form
             onSubmit={handleCreateExam}
-            className="max-h-[90dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+            className="max-h-[92dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Create Examination</h2>
@@ -2717,8 +2717,8 @@ export default function AdminCbtPage() {
 
       {/* MODAL 3: SCHEDULE EXAMINATION */}
       {isSchedulingExam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <form onSubmit={handleSaveSchedule} className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <form onSubmit={handleSaveSchedule} className="max-h-[92dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Schedule Examination</h2>
               <button
@@ -2765,8 +2765,8 @@ export default function AdminCbtPage() {
 
       {/* MODAL 4: ELIGIBILITY MANAGEMENT */}
       {isEligibilityModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <div className="max-h-[90dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <div className="max-h-[92dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Candidate Eligibility</h2>
               <button
@@ -2853,8 +2853,8 @@ export default function AdminCbtPage() {
       )}
 
       {correctionPolicyExam && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-3">
-          <form onSubmit={e => { e.preventDefault(); void handleSaveCorrectionPolicy(); }} className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <form onSubmit={e => { e.preventDefault(); void handleSaveCorrectionPolicy(); }} className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Correction release policy</h2>
               <button type="button" onClick={() => setCorrectionPolicyExam(null)} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
@@ -2877,7 +2877,7 @@ export default function AdminCbtPage() {
       )}
 
       {questionHistoryTarget && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-3" onClick={() => setQuestionHistoryTarget(null)}>
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3" onClick={() => setQuestionHistoryTarget(null)}>
           <section role="dialog" aria-modal="true" aria-label="Question change history" className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
             <header className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
               <div className="min-w-0">
@@ -2886,7 +2886,7 @@ export default function AdminCbtPage() {
               </div>
               <button type="button" onClick={() => setQuestionHistoryTarget(null)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">Close</button>
             </header>
-            <div className="max-h-[65vh] space-y-3 overflow-y-auto p-4">
+            <div className="max-h-[70dvh] space-y-3 overflow-y-auto p-3 sm:p-4">
               {questionHistoryLoading ? <p className="py-8 text-center text-sm text-slate-500">Loading audit history…</p>
                 : questionHistoryError ? <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{questionHistoryError}</p>
                 : questionHistory.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">No recorded changes yet. New edits and review actions will appear here.</p>
@@ -2933,8 +2933,8 @@ export default function AdminCbtPage() {
 
       {/* MODAL 5: NOTIFY GUARDIANS */}
       {isNotifyingGuardians && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <div className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
+          <div className="max-h-[92dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h2 className="text-base font-bold text-[#111A43]">Notify Guardians &amp; Candidates</h2>
               <button
