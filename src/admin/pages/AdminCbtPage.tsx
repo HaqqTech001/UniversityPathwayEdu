@@ -1132,7 +1132,7 @@ export default function AdminCbtPage() {
       </section>
 
       {/* 6 Sections + Desk Tab Navigation */}
-      <nav aria-label="CBT workspace sections" className="grid shrink-0 grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs sm:flex sm:items-center sm:overflow-x-auto">
+      <nav aria-label="CBT workspace sections" className="flex min-w-0 shrink-0 snap-x gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs">
         {(
           [
             'Overview',
@@ -1150,13 +1150,14 @@ export default function AdminCbtPage() {
               setActiveSection(tab);
               setCurrentPage(1);
             }}
-            className={`flex min-h-10 min-w-0 items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-h-9 sm:whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-xs ${
+            className={`flex min-h-10 shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-semibold leading-tight transition sm:min-h-9 sm:px-3 sm:py-1.5 sm:text-xs ${
               activeSection === tab
                 ? 'bg-[#111A43] text-white shadow-2xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            {tab}
+            <span className="sm:hidden">{tab === 'Question Bank' ? 'Questions' : tab === 'Examinations' ? 'Exams' : tab === 'Results & Analytics' ? 'Results' : tab === 'Live Monitoring Desk' ? 'Live Desk' : tab}</span>
+            <span className="hidden sm:inline">{tab}</span>
           </button>
         ))}
       </nav>
@@ -1300,7 +1301,7 @@ export default function AdminCbtPage() {
 
         {/* SECTION 2: QUESTION BANK */}
         {activeSection === 'Question Bank' && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-visible lg:min-h-0 lg:overflow-hidden">
             {/* Filter Bar */}
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/50 p-2.5">
               <div className="flex min-w-0 w-full flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center">
@@ -1370,7 +1371,7 @@ export default function AdminCbtPage() {
 
             {/* Error Banner */}
             {questionsState.error && (
-              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <div className="shrink-0 flex flex-col items-stretch justify-between gap-2 border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
                   <AlertCircle size={16} />
                   <span>{questionsState.error}</span>
@@ -1385,7 +1386,7 @@ export default function AdminCbtPage() {
             )}
 
             {/* Questions Table */}
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
               <table className="min-w-[620px] w-full text-left text-xs">
                 <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                   <tr>
@@ -1519,7 +1520,7 @@ export default function AdminCbtPage() {
 
         {/* SECTION 3: EXAMINATIONS */}
         {activeSection === 'Examinations' && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-visible lg:min-h-0 lg:overflow-hidden">
             {/* Filter Bar */}
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/50 p-2.5">
               <div className="flex min-w-0 w-full flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center">
@@ -1588,7 +1589,7 @@ export default function AdminCbtPage() {
 
             {/* Error Banner */}
             {examsState.error && (
-              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <div className="shrink-0 flex flex-col items-stretch justify-between gap-2 border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
                   <AlertCircle size={16} />
                   <span>{examsState.error}</span>
@@ -1603,7 +1604,7 @@ export default function AdminCbtPage() {
             )}
 
             {/* Exams Table */}
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
               <table className="min-w-[620px] w-full text-left text-xs">
                 <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                   <tr>
@@ -1825,15 +1826,15 @@ export default function AdminCbtPage() {
 
         {/* SECTION 5: RESULTS & ANALYTICS */}
         {activeSection === 'Results & Analytics' && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-visible lg:min-h-0 lg:overflow-hidden">
             {/* Exam Selector Bar */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/50 p-3">
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-col items-stretch justify-between gap-3 border-b border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <span className="text-xs font-semibold text-slate-600">Select Examination:</span>
                 <select
                   value={selectedExamForResults}
                   onChange={e => setSelectedExamForResults(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#111A43]"
+                  className="min-h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] sm:w-auto sm:py-1.5"
                 >
                   {examsState.data.map(e => (
                     <option key={e.id} value={e.id}>
@@ -1847,7 +1848,7 @@ export default function AdminCbtPage() {
               <button
                 onClick={() => fetchResults(selectedExamForResults)}
                 disabled={resultsState.loading}
-                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="flex min-h-10 w-full items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto sm:py-1.5"
               >
                 <RefreshCw size={13} className={resultsState.loading ? 'animate-spin' : ''} />
                 <span>Refresh Results</span>
@@ -1856,7 +1857,7 @@ export default function AdminCbtPage() {
 
             {/* Error Banner */}
             {resultsState.error && (
-              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <div className="shrink-0 flex flex-col items-stretch justify-between gap-2 border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
                   <AlertCircle size={16} />
                   <span>{resultsState.error}</span>
@@ -1903,7 +1904,7 @@ export default function AdminCbtPage() {
             )}
 
             {/* Results Table */}
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
               {resultsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading assessment results...</div>
               ) : !resultsState.data?.results?.length ? (
@@ -2131,15 +2132,15 @@ export default function AdminCbtPage() {
 
         {/* SECTION 7: LIVE MONITORING DESK */}
         {activeSection === 'Live Monitoring Desk' && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-visible lg:min-h-0 lg:overflow-hidden">
             {/* Monitoring Header & Controls */}
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/50 p-3">
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-col items-stretch justify-between gap-3 border-b border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <span className="text-xs font-semibold text-slate-700">Active Examination:</span>
                 <select
                   value={monitoringExamId}
                   onChange={e => setMonitoringExamId(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#111A43]"
+                  className="min-h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#111A43] sm:w-auto sm:py-1.5"
                 >
                   {examsState.data.map(e => (
                     <option key={e.id} value={e.id}>
@@ -2152,14 +2153,14 @@ export default function AdminCbtPage() {
                 <button
                   onClick={() => fetchLiveAttempts(monitoringExamId)}
                   disabled={attemptsState.loading}
-                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  className="flex min-h-10 w-full items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto sm:py-1.5"
                 >
                   <RefreshCw size={13} className={attemptsState.loading ? 'animate-spin' : ''} />
                   <span>Refresh Sessions</span>
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-auto">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-medium text-slate-600">
                   {attemptsState.data.length} Session(s) Recorded
@@ -2169,7 +2170,7 @@ export default function AdminCbtPage() {
 
             {/* Error Banner */}
             {attemptsState.error && (
-              <div className="shrink-0 flex items-center justify-between border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <div className="shrink-0 flex flex-col items-stretch justify-between gap-2 border-b border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
                   <AlertCircle size={16} />
                   <span>{attemptsState.error}</span>
@@ -2195,7 +2196,7 @@ export default function AdminCbtPage() {
             </div>
 
             {/* Attempts Live Table */}
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
               {attemptsState.loading ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading session attempts...</div>
               ) : !attemptsState.data.length ? (
