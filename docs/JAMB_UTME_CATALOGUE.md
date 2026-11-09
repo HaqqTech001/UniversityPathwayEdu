@@ -188,3 +188,5 @@ These official sources confirm the institution/programme-specific structure and 
 - No external course names or combinations were fabricated. The operator must copy course names from the exact institution IBASS listing; every programme remains provisional pending its own verification.
 
 Migration: `jamb_programme_discovery_provenance_20261109` applied. Matching migration file: `apps/api/migrations/20261109_jamb_programme_discovery_provenance.sql`.
+
+- Admin directory GET now includes the discovery source URL, notes, timestamp and staff account so provisional programme provenance remains visible during review.
