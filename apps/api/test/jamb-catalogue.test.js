@@ -109,7 +109,7 @@ test('rejects subject duplication across required, alternative and grouped choic
 });
 
 const savedProgramme={id:'programme-1',institution_id:'institution-1',exam_year:2027,programme_name:'Software Engineering'};
-const programmeEvidence={institutionId:'institution-1',examYear:2027,programmeName:'Software Engineering',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA',verificationNotes:'Checked the exact programme name under the selected institution and confirmed its admission-year applicability in IBASS.'};
+const programmeEvidence={institutionId:'institution-1',examYear:2027,programmeName:'Software Engineering',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN',verificationNotes:'Checked the exact programme name under the selected institution and confirmed its admission-year applicability in IBASS.'};
 test('accepts programme verification only for the exact institution, programme, year and IBASS page',()=>{
  assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN').valid,true);
  assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,institutionId:'institution-2'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
