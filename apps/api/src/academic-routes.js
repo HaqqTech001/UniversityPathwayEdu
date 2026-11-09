@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import express, {Router} from 'express';
 import {inflateRawSync} from 'node:zlib';
 import {supabaseAdmin as db} from './db.js';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements} from './jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements,validateJambProgrammeDiscovery} from './jamb-catalogue.js';
 
 const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -792,6 +792,24 @@ router.post('/jamb/directory/institutions',grant('super_admin','admin'),wrap(asy
  const row={institution_name:institutionName,institution_type:institutionType,state_name:typeof v.stateName==='string'?v.stateName.trim().slice(0,100):null,official_source_reference:source,source_verified:false,active:true};
  const {data,error}=await db.from('upec_jamb_institutions').insert(row).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'This institution and institution type already exist.'});if(error)throw error;res.status(201).json({institution:data});
+}));
+router.post('/jamb/directory/programmes/discover',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const v=req.body||{};
+ if(!uuid(v.institutionId))return res.status(400).json({error:'Select a valid institution.'});
+ const {data:institution,error:institutionError}=await db.from('upec_jamb_institutions').select('id,official_source_reference,source_verified,active').eq('id',v.institutionId).maybeSingle();
+ if(institutionError)throw institutionError;if(!institution)return res.status(404).json({error:'Institution not found.'});
+ const checked=validateJambProgrammeDiscovery(institution,v);
+ if(!checked.valid)return res.status(400).json({error:checked.error});
+ const {data:existing,error:existingError}=await db.from('upec_jamb_programmes').select('programme_name').eq('institution_id',institution.id).eq('exam_year',checked.year);
+ if(existingError)throw existingError;
+ const known=new Set((existing||[]).map(row=>row.programme_name.trim().toLowerCase()));
+ const fresh=checked.programmeNames.filter(name=>!known.has(name.toLowerCase()));
+ if(!fresh.length)return res.json({inserted:0,duplicates:checked.programmeNames.length,programmes:[]});
+ const rows=fresh.map(programmeName=>({institution_id:institution.id,exam_year:checked.year,programme_name:programmeName,official_source_reference:checked.sourceUrl,source_verified:false,active:true,verification_notes:'',programme_category:null}));
+ const {data,error}=await db.from('upec_jamb_programmes').insert(rows).select('id,institution_id,exam_year,programme_name,official_source_reference,source_verified,active');
+ if(error?.code==='23505')return res.status(409).json({error:'A programme was added concurrently. Refresh the directory and retry; no record was verified.'});
+ if(error)throw error;
+ res.status(201).json({inserted:data?.length||0,duplicates:checked.programmeNames.length-fresh.length,programmes:data||[],message:'All discovered programmes remain provisional until individually verified.'});
 }));
 router.post('/jamb/directory/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
  const v=req.body||{},programmeName=String(v.programmeName||'').trim(),source=String(v.officialSourceReference||'').trim(),year=Number(v.examYear||2027);
