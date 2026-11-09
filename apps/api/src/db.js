@@ -8,7 +8,7 @@ if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY ar
 export const supabaseProjectRef = (() => {
   try {
     const hostname = new URL(url).hostname;
-    return hostname.match(/^([a-z0-9-]+)\\.supabase\\.co$/i)?.[1] ?? null;
+    return hostname.match(/^([a-z0-9-]+)\.supabase\.co$/i)?.[1] ?? null;
   } catch {
     return null;
   }
