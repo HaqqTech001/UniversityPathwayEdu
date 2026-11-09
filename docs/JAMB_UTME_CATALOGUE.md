@@ -41,7 +41,7 @@ Mounted under the academic router:
 
 The student JAMB past-question page now includes a separate UTME subject-combination checker. It requires an exact institution and programme, queries the student-only endpoint, displays only individually verified rules and links back to official IBASS when no verified rule is recorded. It never substitutes another course or institution's combination.
 
-The admin form accepts three required subject slots or a combination of required subjects and alternative-subject choices. New entries are always provisional. Admins can edit provisional entries and open an inline IBASS verification form; a verified entry displays its check date and review notes. Editing any verified rule invalidates its previous verification.
+The admin form accepts three remaining UTME subject slots as fixed required subjects, alternative-subject choices, and structured IBASS subject groups (`name`, `subjects`, `choose`). Group `choose` counts contribute to the three remaining slots. Verification records the exact checked group structure in `verified_subject_group_rules`; changing the group structure invalidates prior verification. New entries are always provisional. Admins can edit provisional entries and open an inline IBASS verification form; a verified entry displays its check date and review notes. Editing any verified rule invalidates its previous verification.
 
 The combination list is available to academic staff roles; writes are admin/super-admin only. The IJMB subject-code constraint remains limited to IJMB.
 
@@ -59,3 +59,12 @@ All three JAMB migrations were applied to the connected Supabase project. The ad
 - Institution/course combinations: not yet populated or verified; each requires an exact institution and programme selection in IBASS.
 - The IBASS page is dynamic and may change by year; retain the exact year and source reference with every future rule.
 - Verification is an accountable staff attestation to the official IBASS record; the API does not scrape the interactive checker or independently prove the human comparison. Keep the verification notes precise and retain the official source URL.
+
+
+## Subject-group verification update (9 November 2026)
+
+- `verified_subject_group_rules` stores the exact IBASS-checked subject-group structure separately from the provisional `subject_group_rules`.
+- Group choices count toward the three remaining UTME subject slots; they are not treated as extra subjects.
+- The API validates group names, unique group labels, subject lists and choose counts, and requires exact group evidence before verification.
+- The database guard checks each group subject against the active year-specific JAMB subject catalogue and requires verified group evidence to match the saved rule.
+- No institution/course records were added by this change. All 2027 subject options remain distinct from institution/course combinations.
