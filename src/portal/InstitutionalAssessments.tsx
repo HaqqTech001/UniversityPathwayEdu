@@ -50,18 +50,18 @@ export default function InstitutionalAssessments(){
 
  useEffect(()=>{
   if(!attempt||!expires||result||!hydrated.current)return;
-  let active=true;
-  const sendHeartbeat=()=>{void upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex).catch(()=>{});};
+  const sendHeartbeat=async()=>{
+   try{await upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex);}catch{}
+  };
   const onVisibilityChange=()=>{
    if(document.visibilityState==='hidden'){
-    void upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex,'tab-focus-lost').catch(()=>{});
-   }else sendHeartbeat();
+    try{void upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex,'tab-focus-lost').catch(()=>{});}catch{}
+   }else void sendHeartbeat();
   };
   sendHeartbeat();
   const heartbeat=window.setInterval(sendHeartbeat,15000);
   document.addEventListener('visibilitychange',onVisibilityChange);
   return()=>{
-   active=false;
    window.clearInterval(heartbeat);
    document.removeEventListener('visibilitychange',onVisibilityChange);
   };
