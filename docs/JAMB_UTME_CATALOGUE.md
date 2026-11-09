@@ -76,3 +76,27 @@ All three JAMB migrations were applied to the connected Supabase project. The ad
 - API validation requires the number of alternative subjects to satisfy the configured alternative choice count.
 - A subject cannot appear more than once across fixed required subjects, alternatives, or any subject-group option. This prevents a duplicated subject from being counted as two different UTME slots.
 - These checks do not create or verify any institution/course combinations. The connected database currently contains no JAMB combination records.
+
+
+## Institution and programme directory (9 November 2026)
+
+The JAMB directory is deliberately separate from verified UTME combinations:
+
+- `upec_jamb_institutions` stores institution identity, type, state, official IBASS source, source-check evidence and active status.
+- `upec_jamb_programmes` stores institution-linked programme names by examination year, with independent source references and verification status.
+- Directory discovery does not imply that a programme's UTME combination has been verified.
+- New institutions and programmes entered through the admin API remain provisional. No combination is created automatically.
+- Staff discovery endpoint: `GET /academic/jamb/directory?year=2027`.
+- Admin creation endpoints: `POST /academic/jamb/directory/institutions` and `POST /academic/jamb/directory/programmes`.
+
+The first four institution identities were seeded from individual official IBASS brochure institution pages: Admiralty University of Nigeria, University of Benin, Greenfield University and Osun State University. Their institution identity is source-verified; no programme-year rows or subject combinations were inferred from the institution listings.
+
+Official references:
+- [JAMB IBASS eligibility checker](https://eligibility.jamb.gov.ng/)
+- [JAMB official FAQ, question 7](https://www.jamb.gov.ng/FAQ)
+- [Admiralty University IBASS listing](https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA%2C+IBUSA%2C+DELTA+STATE)
+- [University of Benin IBASS listing](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE)
+- [Greenfield University IBASS listing](https://ibass.jamb.gov.ng/brochure-courses?id=371&school=GREENFIELD+UNIVERSITY%2C+KASARAMI%2C+KADUNA+STATE)
+- [Osun State University IBASS listing](https://ibass.jamb.gov.ng/brochure-courses?id=798&school=OSUN+STATE+UNIVERSITY%2C+OSOGBO%2C+OSUN+STATE)
+
+Programme rows remain empty until the applicable admission-year listing is confirmed and entered. The IBASS brochure is updated and institution/course availability must be rechecked for each year.
