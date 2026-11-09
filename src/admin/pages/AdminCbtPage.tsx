@@ -1845,7 +1845,7 @@ export default function AdminCbtPage() {
         {/* SECTION 4: CANDIDATES */}
         {activeSection === 'Candidates' && (
           <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-4 sm:p-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 space-y-3 sm:p-4">
               <h2 className="text-sm font-bold text-[#111A43]">Verified Candidate Search &amp; Eligibility</h2>
               <p className="text-xs text-slate-500">
                 Search enrolled student accounts from the verified registry to verify student credentials and examine eligibility.
@@ -2089,8 +2089,8 @@ export default function AdminCbtPage() {
 
         {/* SECTION 6: CBT SETTINGS */}
         {activeSection === 'CBT Settings' && (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-6">
-            <div className="max-w-3xl space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-4">
+            <div className="mx-auto w-full max-w-3xl space-y-4 sm:space-y-6">
               <div>
                 <h2 className="text-base font-bold text-[#111A43]">CBT Administration Policies &amp; Settings</h2>
                 <p className="text-xs text-slate-500">
@@ -2099,7 +2099,7 @@ export default function AdminCbtPage() {
               </div>
 
               {settingsNotice && (
-                <div className="rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800 flex items-center gap-2">
+                <div role="status" className="rounded-lg bg-emerald-50 p-3 text-xs leading-5 text-emerald-800 flex items-start gap-2">
                   <CheckCircle2 size={16} />
                   <span>{settingsNotice}</span>
                 </div>
@@ -2156,7 +2156,7 @@ export default function AdminCbtPage() {
                   Settings persisted in browser storage (<code>localStorage</code>) across sessions for this administrative terminal:
                 </p>
 
-                <form onSubmit={handleSaveStationSettings} className="space-y-3 text-xs">
+                <form onSubmit={handleSaveStationSettings} className="space-y-4 text-xs">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <label className="block space-y-1 font-semibold text-slate-700">
                       <span>Default Pass Mark (%) for Analytics</span>
@@ -2168,7 +2168,7 @@ export default function AdminCbtPage() {
                         onChange={e =>
                           setStationSettings(v => ({ ...v, defaultPassMark: Number(e.target.value) }))
                         }
-                        className="w-full rounded-lg border border-slate-200 p-2 focus:border-[#111A43] focus:outline-hidden"
+                        className="min-h-12 w-full rounded-lg border border-slate-200 bg-white p-3 text-base font-medium focus:border-[#111A43] focus:outline-hidden"
                       />
                       <span className="text-[10px] font-normal text-slate-400">
                         Used to calculate pass rate percentages in the Results &amp; Analytics tab.
@@ -2193,12 +2193,12 @@ export default function AdminCbtPage() {
                     </label>
                   </div>
 
-                  <label className="flex items-center gap-2 pt-1">
+                  <label className="flex min-h-12 items-start gap-3 rounded-lg bg-slate-50 p-3 pt-3">
                     <input
                       type="checkbox"
                       checked={stationSettings.enforceFocusNotice}
                       onChange={e => setStationSettings(v => ({ ...v, enforceFocusNotice: e.target.checked }))}
-                      className="rounded border-slate-300 text-[#111A43]"
+                      className="mt-0.5 size-5 shrink-0 rounded border-slate-300 text-[#111A43]"
                     />
                     <span className="font-medium text-slate-700">
                       Display browser focus loss guidance banner on student assessment screen
@@ -2207,7 +2207,7 @@ export default function AdminCbtPage() {
 
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white hover:bg-[#1c2965] transition"
+                    className="min-h-12 w-full rounded-lg bg-[#111A43] px-4 py-3 font-bold text-white hover:bg-[#1c2965] transition sm:w-auto"
                   >
                     Save Station Preferences
                   </button>
@@ -2215,7 +2215,7 @@ export default function AdminCbtPage() {
               </div>
 
               {/* Category C: Features Requiring Database Extension */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+              <div className="min-w-0 rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2 sm:p-4">
                 <div className="flex items-center gap-2">
                   <ShieldAlert size={16} className="text-amber-700" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
