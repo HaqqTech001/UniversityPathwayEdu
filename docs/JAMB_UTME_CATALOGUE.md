@@ -100,3 +100,15 @@ Official references:
 - [Osun State University IBASS listing](https://ibass.jamb.gov.ng/brochure-courses?id=798&school=OSUN+STATE+UNIVERSITY%2C+OSOGBO%2C+OSUN+STATE)
 
 Programme rows remain empty until the applicable admission-year listing is confirmed and entered. The IBASS brochure is updated and institution/course availability must be rechecked for each year.
+
+
+## Programme discovery and independent verification (9 November 2026)
+
+- Added 15 provisional programme discovery rows for three institutions (five each for University of Benin, Greenfield University and Osun State University), based on course listings associated with their official IBASS institution pages.
+- These records are stored with `source_verified=false`. The source pages establish programme discovery only; they do not, in the evidence currently captured, establish 2027 availability. Do not use these rows as proof of 2027 admission availability or subject combinations.
+- No programme records were seeded for Admiralty University in this increment because a sufficiently clear course list was not independently confirmed.
+- Added `PATCH /academic/jamb/directory/programmes/:id/verify`. It accepts evidence only when the institution ID, programme name and year match the saved row, the URL is an HTTPS `ibass.jamb.gov.ng/brochure-courses` page, and the reviewer records meaningful notes.
+- Programme verification is separate from the later UTME subject-combination verification. Marking a programme listing verified must not automatically verify its UTME subjects.
+- Admin programme cards now expose a verification form for provisional rows.
+
+Database state after this increment: 4 institution identities (4 verified), 15 programme discovery rows (0 verified), and 0 UTME combinations. All 15 programme rows remain provisional pending admission-year confirmation.
