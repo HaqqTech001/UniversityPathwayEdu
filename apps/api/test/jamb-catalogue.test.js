@@ -111,15 +111,15 @@ test('rejects subject duplication across required, alternative and grouped choic
 const savedProgramme={id:'programme-1',institution_id:'institution-1',exam_year:2027,programme_name:'Software Engineering'};
 const programmeEvidence={institutionId:'institution-1',examYear:2027,programmeName:'Software Engineering',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA',verificationNotes:'Checked the exact programme name under the selected institution and confirmed its admission-year applicability in IBASS.'};
 test('accepts programme verification only for the exact institution, programme, year and IBASS page',()=>{
- assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence).valid,true);
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,institutionId:'institution-2'}).valid,false);
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,examYear:2026}).valid,false);
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,programmeName:'Computer Science'}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN').valid,true);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,institutionId:'institution-2'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,examYear:2026},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,programmeName:'Computer Science'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
 });
 test('rejects non-IBASS programme verification URLs and incomplete evidence',()=>{
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'https://jamb.gov.ng/FAQ'}).valid,false);
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'http://ibass.jamb.gov.ng/brochure-courses?id=21'}).valid,false);
- assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,verificationNotes:'listed'}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'https://jamb.gov.ng/FAQ'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'http://ibass.jamb.gov.ng/brochure-courses?id=101'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,verificationNotes:'listed'},'https://ibass.jamb.gov.ng/brochure-courses?id=101').valid,false);
 });
 
 test('rejects an IBASS programme page belonging to a different institution',()=>{
