@@ -207,3 +207,15 @@ Official directory pages reviewed:
 - [University of Benin](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE)
 
 JAMB's [degree-specific requirements brochure](https://ibass.jamb.gov.ng/assets/uploads/degree-specific-requirements.pdf) is an additional official reference, but its general/category guidance must not be substituted for an institution-and-course-specific IBASS record.
+
+
+## Database enforcement for the three remaining UTME subjects (9 November 2026)
+
+- Added migration `20261109_jamb_utme_three_remaining_subject_slots_guard.sql` and applied it to the connected Supabase project.
+- Every active UTME combination must explicitly keep English Language compulsory. The database stores only the remaining three subject slots because the IBASS checker preselects English.
+- The database now independently enforces exactly three remaining slots across required subjects, alternative-subject selections and grouped options.
+- It rejects duplicate subject candidates across those structures, English/Use of English repeated in the configurable slots, invalid alternative counts, non-integer group selection counts, and subjects missing from the year-specific shared JAMB subject catalogue.
+- Verified combinations still require the verified subject catalogue entries and matching verified subject-group evidence.
+- Added regression cases for under/over-filled group structures and overlapping subject candidates.
+
+Source review: JAMB's official IBASS institution directory for [Admiralty University](https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA%2C+IBUSA%2C+DELTA+STATE) exposes programme names, while JAMB's official [degree-specific sciences brochure](https://ibass.jamb.gov.ng/assets/uploads/brochure-degree-sciences.pdf) contains programme-level subject requirements and special-consideration remarks. Neither a broad degree-category row nor a programme-name listing alone proves a particular institution/course/year combination. No combination records were seeded or marked verified in this increment.
