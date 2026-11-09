@@ -1287,7 +1287,7 @@ export default function AdminCbtPage() {
                     <div>
                       <p className="font-semibold text-slate-800">Telemetry Boundary</p>
                       <p className="text-[11px] text-slate-500">
-                        The telemetry table exists, but the student heartbeat writer and monitoring read path are not yet connected. Tab-focus events must be reported as observed events, not assumed.
+                        Candidate heartbeat timestamps, question position and tab-focus loss events are now recorded by the student examination client and displayed from the telemetry table. These are client-reported signals, not proof of physical presence.
                       </p>
                     </div>
                   </div>
@@ -2231,16 +2231,16 @@ export default function AdminCbtPage() {
                 </p>
                 <ul className="list-disc pl-5 text-xs text-amber-900 space-y-1">
                   <li>
-                    <strong>Question order:</strong> <code>shuffle_questions</code> exists in <code>upec_assessments</code>; the student question retrieval route still needs to apply it.
+                    <strong>Question order:</strong> <code>shuffle_questions</code> is applied server-side using a stable per-attempt order, so refreshes do not reshuffle an active candidate's paper.
                   </li>
                   <li>
-                    <strong>Option order:</strong> <code>shuffle_options</code> exists; server-side option permutation and answer-key mapping still need end-to-end verification.
+                    <strong>Option order:</strong> <code>shuffle_options</code> applies a stable per-attempt option permutation; saved answers are mapped back to the original answer key before grading.
                   </li>
                   <li>
                     <strong>Score withholding:</strong> <code>hide_score_until_closed</code> exists; submission and student result responses must consistently enforce it.
                   </li>
                   <li>
-                    <strong>Candidate telemetry:</strong> <code>upec_assessment_telemetry</code> exists; heartbeat writes, monitoring reads and tab-focus event reporting are not yet connected.
+                    <strong>Candidate telemetry:</strong> heartbeat writes, monitoring reads, question position and tab-focus loss reporting are connected through <code>upec_assessment_telemetry</code>.
                   </li>
                 </ul>
               </div>
@@ -2308,7 +2308,7 @@ export default function AdminCbtPage() {
               <div>
                 <span className="font-bold">Honest Telemetry Notice: </span>
                 The monitor below displays authentic attempt lifecycle timestamps (
-                <code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>). The telemetry table exists, but heartbeat freshness and tab-focus events are not yet wired into this view. Examination results are never used as a substitute for active sessions.
+                <code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>). Heartbeat timestamps, question position and tab-focus loss counts are now read from the telemetry table. These are client-reported signals, not proof of physical presence. Examination results are never used as a substitute for active sessions.
               </div>
             </div>
 
