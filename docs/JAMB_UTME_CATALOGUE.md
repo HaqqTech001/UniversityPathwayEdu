@@ -121,3 +121,21 @@ Database state after this increment: 4 institution identities (4 verified), 15 p
 - The directory API accepts an `institutionId` filter and validates it as a UUID before querying programme records.
 - Regression coverage includes exact institution, programme, year, IBASS host/path, and institution-page identifier checks.
 - Existing programme discovery rows remain provisional. No UTME combination has been created or marked verified from these directory records.
+
+
+## UTME combination directory linkage and verification gates (9 November 2026)
+
+- Added nullable foreign keys `upec_jamb_utme_combinations.institution_id` and `programme_id` to the JAMB institution and institution/year programme directory. Existing records are backfilled only on exact case-insensitive institution + programme + year matches.
+- New combination creation now requires selecting the exact institution and programme IDs. The API checks that the programme belongs to that institution and year before inserting the provisional combination.
+- Admin combination creation now uses institution and programme directory selectors instead of free-text institution/course fields. The selected programme must exist in the selected year.
+- A combination cannot be source-verified unless its linked institution identity is verified and its exact institution/year programme listing is independently verified.
+- UTME combination verification now requires the matching institution's official IBASS brochure URL (same institution ID), and retains the subject-list and subject-group equality checks.
+- Directory entries, programme listing verification, and UTME subject-combination verification remain separate statuses.
+- Existing unlinked legacy combinations cannot be verified until linked to a matching directory programme; no records were present when this relationship migration was applied.
+
+Official source references reviewed for this increment:
+- [JAMB IBASS University of Benin programme directory](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE), which displays institution-specific programme names.
+- [JAMB IBASS science brochure](https://ibass.jamb.gov.ng/assets/uploads/brochure-degree-sciences.pdf), which distinguishes UTME subjects and special-consideration remarks.
+- [JAMB IBASS degree-specific requirements](https://ibass.jamb.gov.ng/assets/uploads/degree-specific-requirements.pdf), which includes institution-specific requirements and exceptions.
+
+These brochure sources support the catalogue structure, but no 2027 programme availability or individual subject combination was newly marked verified in this increment. Each course-year row still needs exact review in IBASS.
