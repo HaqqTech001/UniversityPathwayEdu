@@ -137,7 +137,7 @@ router.put('/assessments/attempts/:id/telemetry',wrap(async(req,res)=>{
  if(attempt.submitted_at)return res.status(409).json({error:'This examination has already been submitted.'});
  const now=new Date().toISOString();
  if(Date.parse(attempt.expires_at)<=Date.now())return res.status(409).json({error:'The examination time has expired.'});
- const {data:existing,error:telemetryError}=await db.from('upec_assessment_telemetry').select('id,tab_focus_lost_count').eq('attempt_id',attempt.id).maybeSingle();
+ const {data:existing,error:telemetryError}=await db.from('upec_assessment_telemetry').select('id,tab_focus_lost_count').eq('attempt_id',attempt.id).order('last_heartbeat_at',{ascending:false}).limit(1).maybeSingle();
  if(telemetryError)throw telemetryError;
  const update={
   last_heartbeat_at:now,
