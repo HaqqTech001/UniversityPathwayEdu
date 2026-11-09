@@ -190,3 +190,20 @@ These official sources confirm the institution/programme-specific structure and 
 Migration: `jamb_programme_discovery_provenance_20261109` applied. Matching migration file: `apps/api/migrations/20261109_jamb_programme_discovery_provenance.sql`.
 
 - Admin directory GET now includes the discovery source URL, notes, timestamp and staff account so provisional programme provenance remains visible during review.
+
+
+## IBASS validation hardening and source coverage review (9 November 2026)
+
+- Combination validation now rejects English Language / Use of English if it is mistakenly repeated in required subjects, alternative subjects, or any subject-group option. English remains the fixed first UTME subject; only the remaining three slots are configurable.
+- Programme verification now accepts only the exact `/brochure-courses` route (not a nested path) and requires the institution ID in the submitted IBASS URL to match the saved institution brochure ID.
+- Combination, programme, and O-Level/Direct Entry verification share the same exact-institution IBASS URL check.
+- Regression tests cover English appearing in each configurable slot type, exact institution matching, and rejection of nested/mismatched IBASS URLs.
+- Reviewed official IBASS institution directories for Admiralty University (ID 21), Greenfield University (ID 371), Osun State University (ID 798), and University of Benin (ID 101). The live directory pages list programmes, but the fetched listings do not establish a 2027 applicability date or expose each course's expanded subject requirements in the search result. Consequently, no 2027 programme or UTME combination has been marked verified from these listings alone.
+
+Official directory pages reviewed:
+- [Admiralty University of Nigeria](https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA%2C+IBUSA%2C+DELTA+STATE)
+- [Greenfield University](https://ibass.jamb.gov.ng/brochure-courses?id=371&school=GREENFIELD+UNIVERSITY%2C+KASARAMI%2C+KADUNA+STATE)
+- [Osun State University](https://ibass.jamb.gov.ng/brochure-courses?id=798&school=OSUN+STATE+UNIVERSITY%2C+OSOGBO%2C+OSUN+STATE)
+- [University of Benin](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE)
+
+JAMB's [degree-specific requirements brochure](https://ibass.jamb.gov.ng/assets/uploads/degree-specific-requirements.pdf) is an additional official reference, but its general/category guidance must not be substituted for an institution-and-course-specific IBASS record.
