@@ -48,7 +48,7 @@ export function validateJambCombination(value){
   typeof value.active==='boolean';
 }
 
-export function validateJambVerification(existing,input={},institutionSourceReference=''){
+export function validateJambVerification(existing,input={},institutionSourceReference=input.sourceReference||''){
  const year=Number(input.examYear),institution=String(input.institutionName||'').trim(),programme=String(input.programmeName||'').trim();
  if(year!==existing.exam_year||institution.toLowerCase()!==existing.institution_name.toLowerCase()||programme.toLowerCase()!==existing.programme_name.toLowerCase())return {valid:false,error:'Verification must confirm the exact saved examination year, institution and programme.'};
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
