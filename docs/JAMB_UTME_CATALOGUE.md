@@ -112,3 +112,12 @@ Programme rows remain empty until the applicable admission-year listing is confi
 - Admin programme cards now expose a verification form for provisional rows.
 
 Database state after this increment: 4 institution identities (4 verified), 15 programme discovery rows (0 verified), and 0 UTME combinations. All 15 programme rows remain provisional pending admission-year confirmation.
+
+
+## Institution-bound programme verification hardening (9 November 2026)
+
+- Programme verification now checks that the submitted IBASS brochure URL has the same institution identifier (`id` query parameter) as the saved institution's official IBASS brochure reference.
+- A valid-looking IBASS URL for another institution is rejected.
+- The directory API accepts an `institutionId` filter and validates it as a UUID before querying programme records.
+- Regression coverage includes exact institution, programme, year, IBASS host/path, and institution-page identifier checks.
+- Existing programme discovery rows remain provisional. No UTME combination has been created or marked verified from these directory records.
