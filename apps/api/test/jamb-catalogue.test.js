@@ -207,3 +207,16 @@ test('requires an exact IBASS brochure path and institution ID for programme ver
  assert.equal(validateJambProgrammeVerification(existing,{...base,sourceReference:'https://ibass.jamb.gov.ng/brochure-courses/101?id=101'},institutionSource).valid,false);
  assert.equal(validateJambProgrammeVerification(existing,base,'https://ibass.jamb.gov.ng/brochure-courses?id=102').valid,false);
 });
+
+test('requires exactly three configurable UTME slots when subject groups are used',()=>{
+ const twoSlots=jambCombinationPayload({...valid,requiredSubjects:['Mathematics'],subjectGroupRules:[{name:'Science option',subjects:['Physics','Chemistry'],choose:1}]});
+ const fourSlots=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Science option',subjects:['Chemistry','Biology'],choose:2}]});
+ assert.equal(validateJambCombination(twoSlots),false);
+ assert.equal(validateJambCombination(fourSlots),false);
+});
+test('rejects duplicate candidates across required, alternative and subject-group options',()=>{
+ const alternativeOverlap=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:['Physics','Chemistry'],alternativeSubjectCount:1});
+ const groupOverlap=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['Physics','Chemistry'],choose:1}]});
+ assert.equal(validateJambCombination(alternativeOverlap),false);
+ assert.equal(validateJambCombination(groupOverlap),false);
+});
