@@ -780,6 +780,7 @@ router.get('/jamb/directory',grant('super_admin','admin','teacher','cbt_manager'
  const {data:institutionRows,error:institutionError}=await institutions;if(institutionError)throw institutionError;
  let programmes=db.from('upec_jamb_programmes').select('id,institution_id,exam_year,programme_name,programme_category,source_verified,official_source_reference,active').eq('exam_year',year).eq('active',true).order('programme_name').limit(5000);
  if(req.query.programme)programmes=programmes.ilike('programme_name','%'+String(req.query.programme).slice(0,180)+'%');
+ if(req.query.institutionId){if(!uuid(req.query.institutionId))return res.status(400).json({error:'Invalid institution filter.'});programmes=programmes.eq('institution_id',req.query.institutionId);}
  if(req.query.verified==='true'||req.query.verified==='false')programmes=programmes.eq('source_verified',req.query.verified==='true');
  const {data:programmeRows,error:programmeError}=await programmes;if(programmeError)throw programmeError;
  const institutionIds=new Set((institutionRows||[]).map(row=>row.id));
