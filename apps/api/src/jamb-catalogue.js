@@ -1,6 +1,7 @@
 const isYear=value=>Number.isInteger(value)&&value>=2026&&value<=2100;
 const isName=value=>typeof value==='string'&&value.trim().length>=2&&value.trim().length<=160;
 const isSubjectList=value=>Array.isArray(value)&&value.every(item=>typeof item==='string'&&item.trim().length>=2&&item.trim().length<=100)&&new Set(value.map(item=>item.trim().toLowerCase())).size===value.length;
+const normalizeGroups=groups=>(Array.isArray(groups)?groups:[]).map(group=>({name:String(group.name||'').trim().toLowerCase(),choose:group.choose,subjects:[...(group.subjects||[])].map(subject=>String(subject).trim().toLowerCase()).sort()})).sort((a,b)=>a.name.localeCompare(b.name));
 
 export function jambCombinationPayload(value={}){
  return {
@@ -22,17 +23,20 @@ export function jambCombinationPayload(value={}){
 }
 
 export function validateJambCombination(value){
+ const groupsValid=Array.isArray(value.subject_group_rules)&&value.subject_group_rules.every(group=>
+  group&&typeof group==='object'&&!Array.isArray(group)&&isName(group.name)&&
+  Array.isArray(group.subjects)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&
+  group.choose>=1&&group.choose<=group.subjects.length
+ );
+ const groupedSlots=Array.isArray(value.subject_group_rules)?value.subject_group_rules.reduce((sum,group)=>sum+(Number.isInteger(group?.choose)?group.choose:0),0):0;
  return isYear(value.exam_year)&&isName(value.institution_name)&&isName(value.programme_name)&&
   value.english_language_required===true&&isSubjectList(value.required_subjects)&&
   isSubjectList(value.alternative_subjects)&&Number.isInteger(value.alternative_subject_count)&&
   value.alternative_subject_count>=0&&value.alternative_subject_count<=3&&
-  value.required_subjects.length+value.alternative_subject_count===3&&
+  value.required_subjects.length+value.alternative_subject_count+groupedSlots===3&&
   (value.alternative_subject_count===0?value.alternative_subjects.length===0:value.alternative_subjects.length>=value.alternative_subject_count)&&
-  Array.isArray(value.subject_group_rules)&&value.subject_group_rules.every(group=>
-   group&&typeof group==='object'&&!Array.isArray(group)&&typeof group.name==='string'&&
-   Array.isArray(group.subjects)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&
-   group.choose>=1&&group.choose<=group.subjects.length
-  )&&typeof value.additional_notes==='string'&&value.additional_notes.length<=2000&&
+  groupsValid&&new Set(value.subject_group_rules.map(group=>group.name.trim().toLowerCase())).size===value.subject_group_rules.length&&
+  typeof value.additional_notes==='string'&&value.additional_notes.length<=2000&&
   typeof value.source_reference==='string'&&value.source_reference.length>=8&&value.source_reference.length<=500&&
   typeof value.active==='boolean';
 }
@@ -47,7 +51,9 @@ export function validateJambVerification(existing,input={}){
  if(notes.length<20||notes.length>2000)return {valid:false,error:'Record at least 20 characters describing the exact IBASS institution/course check.'};
  const required=Array.isArray(input.requiredSubjects)?input.requiredSubjects.map(x=>String(x).trim()):[];
  const alternatives=Array.isArray(input.alternativeSubjects)?input.alternativeSubjects.map(x=>String(x).trim()):[];
- if(!isSubjectList(required)||!isSubjectList(alternatives)||JSON.stringify([...required].sort())!==JSON.stringify([...existing.required_subjects].sort())||JSON.stringify([...alternatives].sort())!==JSON.stringify([...existing.alternative_subjects].sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
- if(existing.english_language_required!==true||required.length+existing.alternative_subject_count!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
- return {valid:true,sourceUrl,notes,required:existing.required_subjects,alternatives:existing.alternative_subjects};
+ const groups=Array.isArray(input.subjectGroupRules)?input.subjectGroupRules:[];
+ if(!isSubjectList(required)||!isSubjectList(alternatives)||JSON.stringify([...required].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.required_subjects||[])].map(x=>x.toLowerCase()).sort())||JSON.stringify([...alternatives].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.alternative_subjects||[])].map(x=>x.toLowerCase()).sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
+ if(!Array.isArray(existing.subject_group_rules)||JSON.stringify(normalizeGroups(groups))!==JSON.stringify(normalizeGroups(existing.subject_group_rules)))return {valid:false,error:'The IBASS-checked subject groups do not match the saved combination. Update the provisional combination first.'};
+ if(existing.english_language_required!==true||required.length+(existing.alternative_subject_count||0)+groups.reduce((sum,group)=>sum+group.choose,0)!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
+ return {valid:true,sourceUrl,notes,required:existing.required_subjects,alternatives:existing.alternative_subjects,groups:existing.subject_group_rules||[]};
 }
