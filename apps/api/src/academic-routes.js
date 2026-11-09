@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import express, {Router} from 'express';
 import {inflateRawSync} from 'node:zlib';
 import {supabaseAdmin as db} from './db.js';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification} from './jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification} from './jamb-catalogue.js';
 
 const router=Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
@@ -800,6 +800,15 @@ router.post('/jamb/directory/programmes',grant('super_admin','admin'),wrap(async
  const row={institution_id:v.institutionId,exam_year:year,programme_name:programmeName,programme_category:typeof v.programmeCategory==='string'?v.programmeCategory.trim().slice(0,120):null,official_source_reference:source,source_verified:false,active:true};
  const {data,error}=await db.from('upec_jamb_programmes').insert(row).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'This programme is already listed for the institution and year.'});if(error)throw error;res.status(201).json({programme:data});
+}));
+router.patch('/jamb/directory/programmes/:id/verify',grant('super_admin','admin'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid programme ID.'});
+ const {data:existing,error:readError}=await db.from('upec_jamb_programmes').select('*').eq('id',req.params.id).maybeSingle();
+ if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB directory programme not found.'});
+ const checked=validateJambProgrammeVerification(existing,req.body||{});
+ if(!checked.valid)return res.status(400).json({error:checked.error});
+ const {data,error}=await db.from('upec_jamb_programmes').update({source_verified:true,source_checked_at:new Date().toISOString(),official_source_reference:checked.sourceUrl,verification_notes:checked.notes,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('*').single();
+ if(error)throw error;res.json({programme:data});
 }));
 router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
