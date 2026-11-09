@@ -80,3 +80,24 @@ export function validateJambProgrammeVerification(existing,input={},institutionS
  if(notes.length<30||notes.length>2000)return {valid:false,error:'Explain how the exact programme and admission year were checked (at least 30 characters).'};
  return {valid:true,sourceUrl,notes};
 }
+
+
+const isRequirementSet=value=>value&&typeof value==='object'&&!Array.isArray(value)&&
+ Array.isArray(value.requiredSubjects)&&isSubjectList(value.requiredSubjects)&&
+ Array.isArray(value.subjectGroups)&&value.subjectGroups.every(group=>group&&typeof group==='object'&&!Array.isArray(group)&&isName(group.name)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&group.choose>=1&&group.choose<=group.subjects.length)&&
+ new Set(value.subjectGroups.map(group=>group.name.trim().toLowerCase())).size===value.subjectGroups.length;
+
+export function validateJambEntryRequirements(existing,input={},institutionSourceReference=''){
+ const institutionId=String(input.institutionId||'').trim(),year=Number(input.examYear);
+ if(institutionId!==existing.institution_id||year!==existing.exam_year||String(input.programmeName||'').trim().toLowerCase()!==existing.programme_name.toLowerCase())return {valid:false,error:'Entry requirement verification must match the exact institution, programme and year.'};
+ if(!existing.source_verified)return {valid:false,error:'Verify the exact institution-specific programme listing before its entry requirements.'};
+ const olevel=input.olevelRequirements,direct=input.directEntryRequirements;
+ if(!isRequirementSet(olevel)||!isRequirementSet(direct)||!Array.isArray(direct.acceptedQualifications)||!direct.acceptedQualifications.every(x=>typeof x==='string'&&x.trim().length>=2&&x.trim().length<=160))return {valid:false,error:'Provide valid O-Level required subjects/groups and Direct Entry subjects/groups/accepted qualifications.'};
+ const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
+ let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS source URL.'};}
+ let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The institution has no valid official IBASS source.'};}
+ if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||source.pathname!=='/brochure-courses'||institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'Entry requirements must be checked on this exact institution’s official IBASS brochure page.'};
+ const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
+ if(notes.length<30||notes.length>2000)return {valid:false,error:'Record at least 30 characters describing the exact O-Level and Direct Entry requirements checked.'};
+ return {valid:true,sourceUrl,notes,olevel,direct};
+}
