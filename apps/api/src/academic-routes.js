@@ -805,7 +805,7 @@ router.post('/jamb/directory/programmes/discover',grant('super_admin','admin'),w
  const known=new Set((existing||[]).map(row=>row.programme_name.trim().toLowerCase()));
  const fresh=checked.programmeNames.filter(name=>!known.has(name.toLowerCase()));
  if(!fresh.length)return res.json({inserted:0,duplicates:checked.programmeNames.length,programmes:[]});
- const rows=fresh.map(programmeName=>({institution_id:institution.id,exam_year:checked.year,programme_name:programmeName,official_source_reference:checked.sourceUrl,source_verified:false,active:true,verification_notes:'',programme_category:null}));
+ const rows=fresh.map(programmeName=>({institution_id:institution.id,exam_year:checked.year,programme_name:programmeName,official_source_reference:checked.sourceUrl,discovery_source_reference:checked.sourceUrl,discovery_notes:checked.notes,discovered_at:new Date().toISOString(),discovered_by:uuid(req.actor?.sub)?req.actor.sub:null,source_verified:false,active:true,verification_notes:'',programme_category:null}));
  const {data,error}=await db.from('upec_jamb_programmes').insert(rows).select('id,institution_id,exam_year,programme_name,official_source_reference,source_verified,active');
  if(error?.code==='23505')return res.status(409).json({error:'A programme was added concurrently. Refresh the directory and retry; no record was verified.'});
  if(error)throw error;
