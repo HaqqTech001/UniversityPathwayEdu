@@ -136,7 +136,7 @@ export function validateJambProgrammeDiscovery(institution,input={}){
  if(!isYear(year))return {valid:false,error:'Choose a valid JAMB examination year.'};
  const names=Array.isArray(input.programmeNames)?input.programmeNames:[];
  if(!names.length||names.length>500)return {valid:false,error:'Provide between 1 and 500 programme names copied from the official IBASS directory.'};
- const normalized=names.map(value=>typeof value==='string'?value.trim().replace(/\\s+/g,' '):'');
+ const normalized=names.map(value=>typeof value==='string'?value.trim().replace(/\s+/g,' '):'');
  if(normalized.some(value=>!isName(value)||value.length>180))return {valid:false,error:'Every programme name must contain 2–180 characters.'};
  const unique=[...new Map(normalized.map(value=>[value.toLowerCase(),value])).values()];
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
