@@ -41,6 +41,8 @@ export function validateJambCombination(value){
   value.required_subjects.length+value.alternative_subject_count+groupedSlots===3&&
   (value.alternative_subject_count===0?value.alternative_subjects.length===0:value.alternative_subjects.length>=value.alternative_subject_count)&&
   groupsValid&&new Set(value.subject_group_rules.map(group=>group.name.trim().toLowerCase())).size===value.subject_group_rules.length&&
+  (value.alternative_subject_count===0?value.alternative_subjects.length===0:value.alternative_subjects.length>=value.alternative_subject_count)&&
+  (()=>{const selected=[...value.required_subjects,...value.alternative_subjects,...value.subject_group_rules.flatMap(group=>group.subjects)].map(subject=>subject.trim().toLowerCase());return new Set(selected).size===selected.length;})()&&
   typeof value.additional_notes==='string'&&value.additional_notes.length<=2000&&
   typeof value.source_reference==='string'&&value.source_reference.length>=8&&value.source_reference.length<=500&&
   typeof value.active==='boolean';
