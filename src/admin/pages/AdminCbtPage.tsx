@@ -1220,7 +1220,7 @@ export default function AdminCbtPage() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-slate-200">
-                    <table className="min-w-[620px] w-full text-left text-xs">
+                    <table className="min-w-[780px] w-full text-left text-xs">
                       <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                         <tr>
                           <th className="py-2.5 px-3">Title</th>
@@ -2249,7 +2249,7 @@ export default function AdminCbtPage() {
                     <strong>Option order:</strong> <code>shuffle_options</code> applies a stable per-attempt option permutation; saved answers are mapped back to the original answer key before grading.
                   </li>
                   <li>
-                    <strong>Score withholding:</strong> <code>hide_score_until_closed</code> exists; submission and student result responses must consistently enforce it.
+                    <strong>Score withholding:</strong> <code>hide_score_until_closed</code> is enforced by the submission, resumed-attempt and student results APIs.
                   </li>
                   <li>
                     <strong>Candidate telemetry:</strong> heartbeat writes, monitoring reads, question position and tab-focus loss reporting are connected through <code>upec_assessment_telemetry</code>.
