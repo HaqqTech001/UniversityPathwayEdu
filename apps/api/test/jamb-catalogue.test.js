@@ -191,14 +191,12 @@ test('bulk IBASS discovery rejects empty, malformed, or oversized course lists',
  assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:Array(501).fill('Computer Science')}).valid,false);
 });
 
-test('rejects English Language repeated inside the three remaining UTME subject slots',()=>{
- for(const field of ['requiredSubjects','alternativeSubjects']){
-  const input={...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:[],alternativeSubjectCount:0};
-  input[field]=['English Language'];
-  if(field==='alternativeSubjects')input.alternativeSubjectCount=1;
-  assert.equal(validateJambCombination(jambCombinationPayload(input)),false);
- }
+test('rejects English Language repeated inside required, alternative and grouped UTME subject slots',()=>{
+ const required=jambCombinationPayload({...valid,requiredSubjects:['English Language','Mathematics','Physics']});
+ const alternative=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:['English Language','Biology'],alternativeSubjectCount:1});
  const grouped=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['English Language','Biology'],choose:1}]});
+ assert.equal(validateJambCombination(required),false);
+ assert.equal(validateJambCombination(alternative),false);
  assert.equal(validateJambCombination(grouped),false);
 });
 test('requires an exact IBASS brochure path and institution ID for programme verification',()=>{
