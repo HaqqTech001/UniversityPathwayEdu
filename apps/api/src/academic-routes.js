@@ -259,6 +259,16 @@ router.patch('/questions/:id',grant(...questionRoles),wrap(async(req,res)=>{
  const {data:before,error:beforeError}=await db.from('upec_teacher_questions').select('*').eq('id',id).maybeSingle();
  if(beforeError)throw beforeError;
  if(!before||(req.staff.role==='teacher'&&before.author_account_id!==req.actor.sub))return res.status(404).json({error:'Question not found or you cannot edit it.'});
+ const {data:links,error:linksError}=await db.from('upec_assessment_questions').select('assessment_id').eq('question_id',id);
+ if(linksError)throw linksError;
+ const assessmentIds=[...new Set((links||[]).map(link=>link.assessment_id))];
+ if(assessmentIds.length){
+  const {data:published,error:publishedError}=await db.from('upec_assessments').select('id').in('id',assessmentIds).in('status',['published','closed']).limit(1);
+  if(publishedError)throw publishedError;
+  const {data:started,error:startedError}=await db.from('upec_assessment_attempts').select('id').in('assessment_id',assessmentIds).limit(1);
+  if(startedError)throw startedError;
+  if(published?.length||started?.length)return res.status(409).json({error:'This question is locked because it belongs to a published or attempted examination. Duplicate it to create a revised version.'});
+ }
 
  const {subjectId,prompt,options,correctOption,explanation=''}=req.body||{};
  if(!uuid(id)||!uuid(subjectId)||typeof prompt!=='string'||prompt.trim().length<10||prompt.length>5000||
