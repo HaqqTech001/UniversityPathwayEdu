@@ -2018,6 +2018,11 @@ export default function AdminCbtPage() {
                           </div>
                           <span className={"shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold " + (pct === null ? "bg-slate-100 text-slate-500" : passed ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>{pct === null ? 'No score' : pct + '%'}</span>
                         </div>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className={"rounded-full px-2 py-1 text-[10px] font-bold " + (pct === null ? "bg-slate-100 text-slate-600" : passed ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>{pct === null ? 'Not graded' : passed ? 'PASS' : 'BELOW PASS MARK'}</span>
+                          <span className="text-[10px] font-semibold text-slate-500">Pass mark: {stationSettings.defaultPassMark}%</span>
+                        </div>
+                        {pct !== null && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Candidate percentage score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, pct))}><div className={"h-full rounded-full " + (passed ? "bg-emerald-500" : "bg-rose-500")} style={{ width: Math.max(0, Math.min(100, pct)) + '%' }} /></div>}
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <div className="rounded-lg bg-slate-50 p-2"><p className="text-[10px] text-slate-500">Score</p><p className="text-sm font-bold text-[#111A43]">{r.score ?? '—'} / {r.total_questions ?? '—'}</p></div>
                           <div className="rounded-lg bg-slate-50 p-2"><p className="text-[10px] text-slate-500">Submitted</p><p className="break-words text-xs font-semibold text-slate-700">{r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}</p></div>
