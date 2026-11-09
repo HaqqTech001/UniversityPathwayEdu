@@ -68,3 +68,11 @@ All three JAMB migrations were applied to the connected Supabase project. The ad
 - The API validates group names, unique group labels, subject lists and choose counts, and requires exact group evidence before verification.
 - The database guard checks each group subject against the active year-specific JAMB subject catalogue and requires verified group evidence to match the saved rule.
 - No institution/course records were added by this change. All 2027 subject options remain distinct from institution/course combinations.
+
+
+## Catalogue administration and validation hardening (9 November 2026)
+
+- The admin JAMB list supports local filters by institution, programme/course and verification status, with visible counts for the loaded records.
+- API validation requires the number of alternative subjects to satisfy the configured alternative choice count.
+- A subject cannot appear more than once across fixed required subjects, alternatives, or any subject-group option. This prevents a duplicated subject from being counted as two different UTME slots.
+- These checks do not create or verify any institution/course combinations. The connected database currently contains no JAMB combination records.
