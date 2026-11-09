@@ -520,10 +520,22 @@ router.get('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
 }));
 router.post('/assessments',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,title,durationMinutes,questionIds}=req.body||{};
+ const shuffleQuestions=req.body?.shuffleQuestions??false;
+ const shuffleOptions=req.body?.shuffleOptions??false;
+ const hideScoreUntilClosed=req.body?.hideScoreUntilClosed??false;
+ if(typeof shuffleQuestions!=='boolean'||typeof shuffleOptions!=='boolean'||typeof hideScoreUntilClosed!=='boolean')return res.status(400).json({error:'Invalid examination controls.'});
  if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>160||!Number.isInteger(durationMinutes)||durationMinutes<5||durationMinutes>240||!Array.isArray(questionIds)||questionIds.length<1||questionIds.length>100||!questionIds.every(uuid))return res.status(400).json({error:'Enter a valid assessment and select approved questions.'});
  const {data,error}=await db.rpc('upec_create_assessment',{p_author:req.actor.sub,p_subject:subjectId,p_title:title,p_duration:durationMinutes,p_questions:questionIds});
  if(error?.code==='23514'||error?.code==='22023')return res.status(409).json({error:error.message});
- if(error)throw error;res.status(201).json({assessmentId:data});
+ if(error)throw error;
+ const {data:configured,error:settingsError}=await db.from('upec_assessments').update({shuffle_questions:shuffleQuestions,shuffle_options:shuffleOptions,hide_score_until_closed:hideScoreUntilClosed}).eq('id',data).eq('status','draft').select('id').maybeSingle();
+ if(settingsError||!configured){
+  const {error:cleanupError}=await db.from('upec_assessments').delete().eq('id',data).eq('status','draft');
+  if(cleanupError)console.error('Failed to clean up an incompletely configured CBT draft:',cleanupError.message);
+  if(settingsError)throw settingsError;
+  return res.status(409).json({error:'Assessment settings could not be saved. Please retry.'});
+ }
+ res.status(201).json({assessmentId:data});
 }));
 // Publication is reserved for assessment managers. Re-check every linked
 // question at publication time, as approval may change after draft creation.
