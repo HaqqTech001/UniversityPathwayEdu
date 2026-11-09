@@ -74,6 +74,8 @@ export function validateJambProgrammeVerification(existing,input={},institutionS
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
  let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS programme source URL.'};}
  if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||!source.pathname.startsWith('/brochure-courses'))return {valid:false,error:'Programme verification requires the official JAMB IBASS brochure course page.'};
+ let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The saved institution does not have a valid official IBASS source.'};}
+ if(institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'The programme source must belong to the selected institution’s official IBASS brochure page.'};
  const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
  if(notes.length<30||notes.length>2000)return {valid:false,error:'Explain how the exact programme and admission year were checked (at least 30 characters).'};
  return {valid:true,sourceUrl,notes};
