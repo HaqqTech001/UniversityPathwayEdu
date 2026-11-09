@@ -821,8 +821,9 @@ export default function AdminCbtPage() {
       const data = await api(`/api/staff/academic/assessments/${exam.id}/eligibility`);
       setRestrictedMode(Boolean(data.restricted));
       setEligibleStudents(data.studentIds || []);
-    } catch {
+    } catch (err: any) {
       setEligibleStudents([]);
+      notify(err.message || 'Could not load candidate eligibility. Refresh and try again before changing these settings.', 'error');
     }
   };
 
@@ -1283,7 +1284,7 @@ export default function AdminCbtPage() {
                     <div>
                       <p className="font-semibold text-slate-800">Telemetry Boundary</p>
                       <p className="text-[11px] text-slate-500">
-                        Per-second heartbeats and tab focus interception require the proposed telemetry table extension.
+                        The telemetry table exists, but the student heartbeat writer and monitoring read path are not yet connected. Tab-focus events must be reported as observed events, not assumed.
                       </p>
                     </div>
                   </div>
@@ -2214,32 +2215,29 @@ export default function AdminCbtPage() {
                 </form>
               </div>
 
-              {/* Category C: Features Requiring Database Extension */}
+              {/* Category C: Existing schema capabilities awaiting end-to-end wiring */}
               <div className="min-w-0 rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2 sm:p-4">
                 <div className="flex items-center gap-2">
                   <ShieldAlert size={16} className="text-amber-700" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                    3. Features Requiring Database Schema Extensions (Not Enforced)
+                    3. Examination Controls Awaiting End-to-End Integration
                   </h3>
                 </div>
                 <p className="text-[11px] text-amber-800">
-                  The following capabilities require database migration approval before they can be enforced by the examination engine:
+                  The database already contains the settings and telemetry table below. They must be connected to student delivery and verified before being presented as enforced controls.
                 </p>
                 <ul className="list-disc pl-5 text-xs text-amber-900 space-y-1">
                   <li>
-                    <strong>Randomized Question Permutation:</strong> Requires <code>shuffle_questions boolean</code> in{' '}
-                    <code>upec_assessments</code> and student assessment API query randomization.
+                    <strong>Question order:</strong> <code>shuffle_questions</code> exists in <code>upec_assessments</code>; the student question retrieval route still needs to apply it.
                   </li>
                   <li>
-                    <strong>Randomized Multiple Choice Options:</strong> Requires server-side permutation of options A–D in the student retrieval endpoint.
+                    <strong>Option order:</strong> <code>shuffle_options</code> exists; server-side option permutation and answer-key mapping still need end-to-end verification.
                   </li>
                   <li>
-                    <strong>Withhold Score Disclosure:</strong> Requires <code>hide_results_until_closed boolean</code> in{' '}
-                    <code>upec_assessments</code> and updating <code>upec_submit_assessment</code>.
+                    <strong>Score withholding:</strong> <code>hide_score_until_closed</code> exists; submission and student result responses must consistently enforce it.
                   </li>
                   <li>
-                    <strong>Candidate Live Heartbeat &amp; Tab-Switch Interception:</strong> Requires the proposed{' '}
-                    <code>upec_assessment_telemetry</code> table and heartbeat logging route.
+                    <strong>Candidate telemetry:</strong> <code>upec_assessment_telemetry</code> exists; heartbeat writes, monitoring reads and tab-focus event reporting are not yet connected.
                   </li>
                 </ul>
               </div>
@@ -2306,9 +2304,8 @@ export default function AdminCbtPage() {
               <ShieldAlert size={15} className="text-amber-700 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">Honest Telemetry Notice: </span>
-                Real-time per-second heartbeat and client tab-switch detection require the proposed Supabase telemetry extension (
-                <code className="font-mono font-semibold">upec_assessment_telemetry</code> table). The monitor below displays authentic server-recorded session lifecycle timestamps (
-                <code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>) from the database. Examination results are never used as a substitute for active sessions.
+                The monitor below displays authentic attempt lifecycle timestamps (
+                <code className="font-mono">started_at</code>, <code className="font-mono">expires_at</code>, <code className="font-mono">submitted_at</code>). The telemetry table exists, but heartbeat freshness and tab-focus events are not yet wired into this view. Examination results are never used as a substitute for active sessions.
               </div>
             </div>
 
