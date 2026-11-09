@@ -805,7 +805,9 @@ router.patch('/jamb/directory/programmes/:id/verify',grant('super_admin','admin'
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid programme ID.'});
  const {data:existing,error:readError}=await db.from('upec_jamb_programmes').select('*').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB directory programme not found.'});
- const checked=validateJambProgrammeVerification(existing,req.body||{});
+ const {data:institution,error:institutionError}=await db.from('upec_jamb_institutions').select('id,official_source_reference').eq('id',existing.institution_id).maybeSingle();
+ if(institutionError)throw institutionError;if(!institution)return res.status(404).json({error:'Programme institution not found.'});
+ const checked=validateJambProgrammeVerification(existing,req.body||{},institution.official_source_reference);
  if(!checked.valid)return res.status(400).json({error:checked.error});
  const {data,error}=await db.from('upec_jamb_programmes').update({source_verified:true,source_checked_at:new Date().toISOString(),official_source_reference:checked.sourceUrl,verification_notes:checked.notes,updated_at:new Date().toISOString()}).eq('id',req.params.id).select('*').single();
  if(error)throw error;res.json({programme:data});
