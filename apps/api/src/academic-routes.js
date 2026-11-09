@@ -646,7 +646,7 @@ router.get('/assessments/:id/attempts',grant(...questionRoles),wrap(async(req,re
  }
  const telemetryByAttempt=new Map();
  if(attemptIds.length){
-  const {data:telemetry,error:telemetryError}=await db.from('upec_assessment_telemetry').select('attempt_id,last_heartbeat_at,tab_focus_lost_count,current_question_index').in('attempt_id',attemptIds);
+  const {data:telemetry,error:telemetryError}=await db.from('upec_assessment_telemetry').select('attempt_id,last_heartbeat_at,tab_focus_lost_count,current_question_index').in('attempt_id',attemptIds).order('last_heartbeat_at',{ascending:true});
   if(telemetryError)throw telemetryError;
   (telemetry||[]).forEach(row=>telemetryByAttempt.set(row.attempt_id,row));
  }
