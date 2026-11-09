@@ -1306,7 +1306,7 @@ export default function AdminCbtPage() {
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/50 p-2.5">
               <div className="flex min-w-0 w-full flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1315,7 +1315,7 @@ export default function AdminCbtPage() {
                       setCurrentPage(1);
                     }}
                     placeholder="Search question prompts..."
-                    className="min-h-10 w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#111A43] focus:outline-hidden"
+                    className="min-h-11 w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#111A43] focus:outline-hidden"
                   />
                 </div>
 
@@ -1861,7 +1861,20 @@ export default function AdminCbtPage() {
               {searchingStudents && <p className="text-xs text-slate-400">Searching verified accounts...</p>}
 
               {searchedStudents.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 mt-2">
+                <>
+                <div className="mt-2 grid gap-2 sm:hidden" aria-label="Verified candidate search results">
+                  {searchedStudents.map(std => (
+                    <article key={std.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#111A43]/10 text-xs font-bold text-[#111A43]">{String(std.full_name || 'S').trim().charAt(0).toUpperCase()}</div>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-semibold text-[#111A43]">{std.full_name}</p>
+                        <p className="mt-0.5 break-all font-mono text-[10px] text-slate-500">{std.id}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">Verified</span>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-2 hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
                   <table className="min-w-[620px] w-full text-left text-xs">
                     <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600">
                       <tr>
@@ -1885,6 +1898,7 @@ export default function AdminCbtPage() {
                     </tbody>
                   </table>
                 </div>
+                </>
               )}
 
               {!searchingStudents && studentSearchInput.length >= 2 && !searchedStudents.length && (
@@ -2927,11 +2941,11 @@ export default function AdminCbtPage() {
                 </div>
 
                 {searchedStudents.length > 0 && (
-                  <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
+                  <div className="max-h-[min(42dvh,18rem)] overflow-y-auto overscroll-contain rounded-lg border border-slate-200 divide-y divide-slate-100">
                     {searchedStudents.map(s => {
                       const isAdded = eligibleStudents.includes(s.id);
                       return (
-                        <div key={s.id} className="flex items-center justify-between p-2 text-xs">
+                        <div key={s.id} className="flex min-w-0 items-center justify-between gap-3 p-3 text-xs">
                           <div>
                             <p className="font-semibold text-slate-800">{s.full_name}</p>
                             <p className="font-mono text-[10px] text-slate-400">{s.id}</p>
@@ -2945,7 +2959,7 @@ export default function AdminCbtPage() {
                                 setEligibleStudents(prev => [...prev, s.id]);
                               }
                             }}
-                            className={`rounded px-2 py-1 text-[11px] font-bold ${
+                            className={`min-h-10 min-w-16 rounded-lg px-3 py-2 text-[11px] font-bold ${
                               isAdded ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-[#111A43] text-white'
                             }`}
                           >
