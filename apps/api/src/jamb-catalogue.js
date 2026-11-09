@@ -54,6 +54,8 @@ export function validateJambVerification(existing,input={}){
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
  let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS source URL.'};}
  if(source.protocol!=='https:'||!['eligibility.jamb.gov.ng','ibass.jamb.gov.ng','jamb.gov.ng','www.jamb.gov.ng'].includes(source.hostname.toLowerCase()))return {valid:false,error:'Verification requires an official JAMB HTTPS source.'};
+ let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The saved institution does not have a valid official IBASS source.'};}
+ if(institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'The programme source must belong to the selected institution’s official IBASS brochure page.'};
  const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
  if(notes.length<20||notes.length>2000)return {valid:false,error:'Record at least 20 characters describing the exact IBASS institution/course check.'};
  const required=Array.isArray(input.requiredSubjects)?input.requiredSubjects.map(x=>String(x).trim()):[];
@@ -66,7 +68,7 @@ export function validateJambVerification(existing,input={}){
 }
 
 
-export function validateJambProgrammeVerification(existing,input={}){
+export function validateJambProgrammeVerification(existing,input={},institutionSourceReference=''){
  const year=Number(input.examYear),name=String(input.programmeName||'').trim(),institutionId=String(input.institutionId||'').trim();
  if(year!==existing.exam_year||name.toLowerCase()!==String(existing.programme_name||'').toLowerCase()||institutionId!==existing.institution_id)return {valid:false,error:'Verification must match the exact saved institution, programme and admission year.'};
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
