@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements} from '../src/jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements,buildStudentJambProgramme} from '../src/jamb-catalogue.js';
 
 const valid={
  examYear:2027,institutionName:'University A',programmeName:'Computer Science',
@@ -154,4 +154,22 @@ test('rejects entry requirements from another institution IBASS page',()=>{
 test('rejects unverified programme listings and malformed O-Level subject groups',()=>{
  assert.equal(validateJambEntryRequirements({...entryProgramme,source_verified:false},validEntry,entryInstitutionSource).valid,false);
  assert.equal(validateJambEntryRequirements(entryProgramme,{...validEntry,olevelRequirements:{requiredSubjects:[],subjectGroups:[{name:'Choose one',subjects:['Biology'],choose:2}]}},entryInstitutionSource).valid,false);
+});
+
+
+test('student JAMB projection returns only verified combinations for the exact programme and year',()=>{
+ const programme={id:'programme-1',institution_id:'institution-1',exam_year:2027,programme_name:'Computer Science',programme_category:'Computing',entry_requirements_source_verified:false,olevel_requirements:{requiredSubjects:['English Language']},direct_entry_requirements:{requiredSubjects:['Mathematics']}};
+ const base={id:'combination-1',institution_id:'institution-1',programme_id:'programme-1',exam_year:2027,active:true,source_verified:true,english_language_required:true,required_subjects:['Mathematics','Physics','Chemistry']};
+ const result=buildStudentJambProgramme(programme,[base,{...base,id:'unverified',source_verified:false},{...base,id:'wrong-course',programme_id:'programme-2'},{...base,id:'wrong-year',exam_year:2026},{...base,id:'inactive',active:false}]);
+ assert.equal(result.utmeCombinations.length,1);
+ assert.equal(result.utmeCombinations[0].id,'combination-1');
+ assert.equal(result.olevelRequirements,null);
+ assert.equal(result.directEntryRequirements,null);
+});
+test('student JAMB projection exposes O-Level and Direct Entry only after independent verification',()=>{
+ const programme={id:'programme-1',institution_id:'institution-1',exam_year:2027,programme_name:'Computer Science',entry_requirements_source_verified:true,olevel_requirements:{requiredSubjects:['English Language','Mathematics']},direct_entry_requirements:{acceptedQualifications:['A-Level']}};
+ const result=buildStudentJambProgramme(programme,[]);
+ assert.deepEqual(result.olevelRequirements,programme.olevel_requirements);
+ assert.deepEqual(result.directEntryRequirements,programme.direct_entry_requirements);
+ assert.deepEqual(result.utmeCombinations,[]);
 });
