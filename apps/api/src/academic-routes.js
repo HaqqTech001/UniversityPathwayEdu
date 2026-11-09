@@ -772,6 +772,35 @@ const examSubjectPayload=v=>({
 });
 const validateExamSubject=s=>examTypes.has(s.exam_type)&&examYear(s.exam_year)&&name(s.subject_name)&&(!s.subject_code||/^[A-Z0-9_-]{2,32}$/.test(s.subject_code))&&examFields.has(s.field_of_study)&&examCategories.has(s.subject_category)&&examSelections.has(s.selection_type)&&s.source_reference.length>=3&&s.source_reference.length<=300&&(s.exam_type!=='post_utme'||!!s.institution_name)&&(s.exam_type==='ijmb'?!!s.subject_code:s.subject_code===null);
 
+// JAMB directory discovery is separate from verified eligibility combinations.
+router.get('/jamb/directory',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
+ const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
+ let institutions=db.from('upec_jamb_institutions').select('id,institution_name,institution_type,state_name,source_verified,official_source_reference,active').eq('active',true).order('institution_name').limit(2000);
+ if(req.query.institution)institutions=institutions.ilike('institution_name','%'+String(req.query.institution).slice(0,180)+'%');
+ const {data:institutionRows,error:institutionError}=await institutions;if(institutionError)throw institutionError;
+ let programmes=db.from('upec_jamb_programmes').select('id,institution_id,exam_year,programme_name,programme_category,source_verified,official_source_reference,active').eq('exam_year',year).eq('active',true).order('programme_name').limit(5000);
+ if(req.query.programme)programmes=programmes.ilike('programme_name','%'+String(req.query.programme).slice(0,180)+'%');
+ if(req.query.verified==='true'||req.query.verified==='false')programmes=programmes.eq('source_verified',req.query.verified==='true');
+ const {data:programmeRows,error:programmeError}=await programmes;if(programmeError)throw programmeError;
+ const institutionIds=new Set((institutionRows||[]).map(row=>row.id));
+ res.json({year,institutions:institutionRows||[],programmes:(programmeRows||[]).filter(row=>institutionIds.has(row.institution_id))});
+}));
+router.post('/jamb/directory/institutions',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const v=req.body||{},institutionName=String(v.institutionName||'').trim(),institutionType=String(v.institutionType||''),source=String(v.officialSourceReference||'').trim();
+ if(!name(institutionName)||!['university','polytechnic','college_of_education','monotechnic','other'].includes(institutionType)||!/^https:\/\//i.test(source)||source.length>500)return res.status(400).json({error:'Provide a valid institution name, type and official HTTPS source reference.'});
+ const row={institution_name:institutionName,institution_type:institutionType,state_name:typeof v.stateName==='string'?v.stateName.trim().slice(0,100):null,official_source_reference:source,source_verified:false,active:true};
+ const {data,error}=await db.from('upec_jamb_institutions').insert(row).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'This institution and institution type already exist.'});if(error)throw error;res.status(201).json({institution:data});
+}));
+router.post('/jamb/directory/programmes',grant('super_admin','admin'),wrap(async(req,res)=>{
+ const v=req.body||{},programmeName=String(v.programmeName||'').trim(),source=String(v.officialSourceReference||'').trim(),year=Number(v.examYear||2027);
+ if(!uuid(v.institutionId)||!examYear(year)||!name(programmeName)||!/^https:\/\//i.test(source)||source.length>500)return res.status(400).json({error:'Provide a valid institution, year, programme name and official HTTPS source reference.'});
+ const {data:institution,error:institutionError}=await db.from('upec_jamb_institutions').select('id').eq('id',v.institutionId).eq('active',true).maybeSingle();
+ if(institutionError)throw institutionError;if(!institution)return res.status(404).json({error:'Active JAMB institution not found.'});
+ const row={institution_id:v.institutionId,exam_year:year,programme_name:programmeName,programme_category:typeof v.programmeCategory==='string'?v.programmeCategory.trim().slice(0,120):null,official_source_reference:source,source_verified:false,active:true};
+ const {data,error}=await db.from('upec_jamb_programmes').insert(row).select('*').single();
+ if(error?.code==='23505')return res.status(409).json({error:'This programme is already listed for the institution and year.'});if(error)throw error;res.status(201).json({programme:data});
+}));
 router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
  let query=db.from('upec_jamb_utme_combinations').select('*').eq('exam_year',year).order('institution_name').order('programme_name').limit(2000);
