@@ -176,7 +176,7 @@ test('student JAMB projection exposes O-Level and Direct Entry only after indepe
 
 const discoveryInstitution={id:'institution-1',active:true,source_verified:true,official_source_reference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A'};
 test('bulk IBASS discovery accepts exact institution page and de-duplicates programme names',()=>{
- const result=validateJambProgrammeDiscovery(discoveryInstitution,{examYear:2027,programmeNames:['Computer Science','Mathematics',' computer science '],sourceReference:discoveryInstitution.official_source_reference,discoveryNotes:'Copied course names from the official institution programme listing.'});
+ const result=validateJambProgrammeDiscovery(discoveryInstitution,{examYear:2027,programmeNames:['Computer   Science','Mathematics',' computer science '],sourceReference:discoveryInstitution.official_source_reference,discoveryNotes:'Copied course names from the official institution programme listing.'});
  assert.equal(result.valid,true);
  assert.deepEqual(result.programmeNames,['Computer Science','Mathematics']);
 });
