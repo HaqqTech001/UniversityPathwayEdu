@@ -68,7 +68,6 @@ app.get('/api/backend/status',async(_req,res)=>{
     supabaseAdmin.from('local_accounts').select('id',{head:true,count:'exact'}),
     supabaseAdmin.from('upec_assessments').select('id,correction_release_mode,corrections_release_at,corrections_released_at,corrections_released_by',{head:true})
   ]);
-  const errors = [connection.error,assessmentSchema.error].filter(Boolean);
   res.status(connection.error ? 503 : 200).json({
     database:connection.error?'not_ready':'connected',
     service:'supabase',
