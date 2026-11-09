@@ -183,17 +183,23 @@ router.put('/assessments/attempts/:id/answers',wrap(async(req,res)=>{
 router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
  const answers=req.body?.answers;
- if(!answers||typeof answers!=='object'||Array.isArray(answers)||Object.keys(answers).length>100)return res.status(400).json({error:'Invalid answers.'});
- const {data,error}=await db.rpc('upec_submit_assessment',{p_attempt:req.params.id,p_student:req.actor.sub,p_answers:answers});
+ if(!answers||typeof answers!=='object'||Array.isArray(answers)||Object.keys(answers).length>100||!Object.values(answers).every(value=>['A','B','C','D'].includes(value)))return res.status(400).json({error:'Invalid answers.'});
+ const {data:attempt,error:attemptError}=await db.from('upec_assessment_attempts').select('id,assessment_id').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(attemptError)throw attemptError;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ const {data:exam,error:examError}=await db.from('upec_assessments').select('status,closes_at,hide_score_until_closed,shuffle_options').eq('id',attempt.assessment_id).maybeSingle();
+ if(examError)throw examError;
+ let canonicalAnswers=answers;
+ if(exam?.shuffle_options&&Object.keys(answers).length){
+  const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,options').in('id',Object.keys(answers));
+  if(questionError)throw questionError;
+  canonicalAnswers=normalizeAssessmentAnswers({answers,attemptId:attempt.id,questions:questions||[],shuffleOptions:true});
+ }
+ const {data,error}=await db.rpc('upec_submit_assessment',{p_attempt:req.params.id,p_student:req.actor.sub,p_answers:canonicalAnswers});
  if(error?.code==='P0002')return res.status(404).json({error:'Attempt not found.'});
  if(error?.code==='22023')return res.status(409).json({error:error.message});
  if(error)throw error;
  const result=data?.[0];
- const {data:attempt,error:attemptError}=await db.from('upec_assessment_attempts').select('assessment_id').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
- if(attemptError)throw attemptError;
- if(!attempt)return res.status(404).json({error:'Attempt not found.'});
- const {data:exam,error:examError}=await db.from('upec_assessments').select('status,closes_at,hide_score_until_closed').eq('id',attempt.assessment_id).maybeSingle();
- if(examError)throw examError;
  const examEnded=Boolean(exam&&(exam.status==='closed'||(exam.closes_at&&Date.parse(exam.closes_at)<=Date.now())));
  const scoreHidden=Boolean(exam?.hide_score_until_closed&&!examEnded);
  res.json({result:{attemptId:result.attempt_id,score:scoreHidden?null:result.correct_count,totalQuestions:scoreHidden?null:result.question_count,scorePending:scoreHidden,submittedAt:result.submitted_time}});
