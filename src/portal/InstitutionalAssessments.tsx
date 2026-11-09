@@ -5,9 +5,9 @@ import {upecAuthApi} from '../lib/upecAuthApi';
 
 type Exam={id:string;title:string;duration_minutes:number};
 type Question={id:string;prompt:string;options:Record<string,string>};
-type HistoryItem={id:string;assessment_id:string;title:string;submitted_at:string;score:number;total_questions:number;correctionsAvailable:boolean;correctionsMessage:string};
+type HistoryItem={id:string;assessment_id:string;title:string;submitted_at:string;score:number|null;total_questions:number|null;scorePending?:boolean;correctionsAvailable:boolean;correctionsMessage:string};
 type CorrectionReview={title:string;score:number;totalQuestions:number;questions:Array<{id:string;prompt:string;options:Record<string,string>;selectedAnswer:string|null;correctAnswer:string;isCorrect:boolean;explanation:string;solutionSteps?:string;topic?:string;subtopic?:string;difficulty?:string;examType?:string;examYear?:number|null}>};
-type Result={score:number;totalQuestions:number};
+type Result={score:number|null;totalQuestions:number|null;scorePending?:boolean};
 type SaveState='saved'|'saving'|'unsaved';
 
 export default function InstitutionalAssessments(){
@@ -73,7 +73,7 @@ export default function InstitutionalAssessments(){
   try{
    const value=token();const started=await upecAuthApi.startAssessment(value,exam.id);const details=await upecAuthApi.assessmentAttempt(value,started.attemptId);
    setActiveExam(exam);setAttempt(started.attemptId);setQuestions(details.questions||[]);setExpires(details.attempt.expiresAt||'');setAnswers(details.attempt.answers||{});setCurrentIndex(0);setFlagged([]);hydrated.current=true;
-   if(details.attempt.submittedAt){setResult({score:details.attempt.score||0,totalQuestions:details.attempt.totalQuestions||0});setQuestions([]);setExpires('');}
+   if(details.attempt.submittedAt){setResult({score:details.attempt.score??null,totalQuestions:details.attempt.totalQuestions??null,scorePending:Boolean(details.attempt.scorePending)});setQuestions([]);setExpires('');}
   }catch(e){setError(e instanceof Error?e.message:'Unable to open this assessment.');}
   finally{setBusy(false);}
  };
@@ -112,7 +112,7 @@ export default function InstitutionalAssessments(){
 
   {result&&<div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
    <div className="flex items-center gap-2 text-emerald-800"><CheckCircle2 size={20}/><h4 className="font-bold">Assessment submitted</h4></div>
-   <p className="mt-2 text-3xl font-black tracking-tight text-[#111a43]">{result.score}<span className="text-lg font-semibold text-slate-400"> / {result.totalQuestions}</span></p>
+   {result.scorePending||result.score===null?<p className="mt-2 text-base font-semibold text-amber-800">Your score is being withheld until the examination closes.</p>:<p className="mt-2 text-3xl font-black tracking-tight text-[#111a43]">{result.score}<span className="text-lg font-semibold text-slate-400"> / {result.totalQuestions}</span></p>}
    <p className="mt-1 text-sm text-slate-600">Your submission has been recorded successfully.</p>
    <button type="button" onClick={leaveAttempt} className="mt-4 rounded-lg bg-[#111a43] px-4 py-2.5 text-sm font-semibold text-white">Back to assessments</button>
   </div>}
@@ -127,7 +127,7 @@ export default function InstitutionalAssessments(){
    </div>
    <div className="space-y-3 border-t border-slate-200 pt-5">
     <h4 className="text-sm font-bold text-[#111a43]">Previous results</h4>
-    {history.length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Your submitted examination results will appear here.</p>:<div className="divide-y divide-slate-100 rounded-xl border border-slate-200">{history.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3.5"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[#111a43]">{item.title||'Institutional assessment'}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(item.submitted_at).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-3"><div className="text-right"><p className="font-bold tabular-nums text-[#111a43]">{item.score}/{item.total_questions}</p><p className="text-[11px] text-slate-400">Score</p></div>{item.correctionsAvailable?<button type="button" disabled={correctionLoading} onClick={()=>void openCorrections(item.id)} className="rounded-lg bg-[#111a43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{correctionLoading?'Loading…':'Review corrections'}</button>:<span className="max-w-36 text-right text-[11px] text-slate-400">{item.correctionsMessage||'Corrections pending'}</span>}</div></div>)}</div>}
+    {history.length===0?<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Your submitted examination results will appear here.</p>:<div className="divide-y divide-slate-100 rounded-xl border border-slate-200">{history.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3.5"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[#111a43]">{item.title||'Institutional assessment'}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(item.submitted_at).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-3"><div className="text-right"><p className="font-bold tabular-nums text-[#111a43]">{item.scorePending||item.score===null?'Pending release':item.score+'/'+(item.total_questions??'—')}</p><p className="text-[11px] text-slate-400">Score</p></div>{item.correctionsAvailable?<button type="button" disabled={correctionLoading} onClick={()=>void openCorrections(item.id)} className="rounded-lg bg-[#111a43] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{correctionLoading?'Loading…':'Review corrections'}</button>:<span className="max-w-36 text-right text-[11px] text-slate-400">{item.correctionsMessage||'Corrections pending'}</span>}</div></div>)}</div>}
    </div>
   </div>}
 
