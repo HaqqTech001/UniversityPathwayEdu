@@ -7,7 +7,7 @@ import express from 'express';
 import localAuth from './local-auth.js';
 import studentPortal from './student-portal.js';
 import staffPortal from './staff-portal.js';
-import {supabaseAdmin} from './db.js';
+import {supabaseAdmin,supabaseProjectRef} from './db.js';
 import {signToken} from './security.js';
 import {getMailer} from './mail.js';
 const requiredSecrets=['JWT_SECRET','OTP_SECRET','AUTH_PASSWORD_PEPPER'];
@@ -63,7 +63,21 @@ if(process.env.ENABLE_DEV_TOKENS==='true' && process.env.NODE_ENV!=='production'
     res.json({token:signToken({sub,role})});
   });
 }
-app.get('/api/backend/status',async(_req,res)=>{ const {error}=await supabaseAdmin .from('local_accounts').select('id',{head:true,count:'exact'});res.status(error?503:200).json({database:error?'not_ready':'connected',service:'supabase',detail:error?.message}); });
+app.get('/api/backend/status',async(_req,res)=>{
+  const [connection,assessmentSchema] = await Promise.all([
+    supabaseAdmin.from('local_accounts').select('id',{head:true,count:'exact'}),
+    supabaseAdmin.from('upec_assessments').select('id,correction_release_mode,corrections_release_at,corrections_released_at,corrections_released_by',{head:true})
+  ]);
+  const errors = [connection.error,assessmentSchema.error].filter(Boolean);
+  res.status(connection.error ? 503 : 200).json({
+    database:connection.error?'not_ready':'connected',
+    service:'supabase',
+    projectRef:supabaseProjectRef,
+    assessmentCorrectionColumns:assessmentSchema.error?'not_ready':'ready',
+    assessmentSchemaDetail:assessmentSchema.error?.message,
+    detail:connection.error?.message
+  });
+});
 app.use((err,req,res,next)=>{
  console.error(err);
  const raw=String(err?.message||'')+' '+String(err?.details||'')+' '+String(err?.cause?.message||'');
