@@ -190,3 +190,22 @@ test('bulk IBASS discovery rejects empty, malformed, or oversized course lists',
  assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:['x']}).valid,false);
  assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:Array(501).fill('Computer Science')}).valid,false);
 });
+
+test('rejects English Language repeated inside the three remaining UTME subject slots',()=>{
+ for(const field of ['requiredSubjects','alternativeSubjects']){
+  const input={...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:[],alternativeSubjectCount:0};
+  input[field]=['English Language'];
+  if(field==='alternativeSubjects')input.alternativeSubjectCount=1;
+  assert.equal(validateJambCombination(jambCombinationPayload(input)),false);
+ }
+ const grouped=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['English Language','Biology'],choose:1}]});
+ assert.equal(validateJambCombination(grouped),false);
+});
+test('requires an exact IBASS brochure path and institution ID for programme verification',()=>{
+ const existing={id:'p1',institution_id:'institution-1',exam_year:2027,programme_name:'Computer Science'};
+ const base={institutionId:'institution-1',examYear:2027,programmeName:'Computer Science',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101',verificationNotes:'Checked the exact Computer Science listing for this institution and year.'};
+ const institutionSource='https://ibass.jamb.gov.ng/brochure-courses?id=101';
+ assert.equal(validateJambProgrammeVerification(existing,base,institutionSource).valid,true);
+ assert.equal(validateJambProgrammeVerification(existing,{...base,sourceReference:'https://ibass.jamb.gov.ng/brochure-courses/101?id=101'},institutionSource).valid,false);
+ assert.equal(validateJambProgrammeVerification(existing,base,'https://ibass.jamb.gov.ng/brochure-courses?id=102').valid,false);
+});
