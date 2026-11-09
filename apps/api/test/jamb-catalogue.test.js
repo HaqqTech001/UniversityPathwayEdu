@@ -94,3 +94,16 @@ test('requires exact subject-group evidence before recording IBASS verification'
  assert.equal(validateJambVerification(existing,checked).valid,true);
  assert.equal(validateJambVerification(existing,{...checked,subjectGroupRules:[{name:'Options',subjects:['Biology','Chemistry'],choose:1}]}).valid,false);
 });
+
+test('requires enough alternative subjects for the declared choice count',()=>{
+ const row=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:['Chemistry'],alternativeSubjectCount:2});
+ assert.equal(validateJambCombination(row),false);
+});
+test('rejects subject duplication across required, alternative and grouped choices',()=>{
+ const requiredAlternative=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],alternativeSubjects:['Mathematics','Chemistry'],alternativeSubjectCount:1});
+ const requiredGroup=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['Physics','Biology'],choose:1}]});
+ const duplicateGroups=jambCombinationPayload({...valid,requiredSubjects:['Mathematics'],subjectGroupRules:[{name:'First',subjects:['Biology','Chemistry'],choose:1},{name:'Second',subjects:['Chemistry','Agriculture'],choose:1}]});
+ assert.equal(validateJambCombination(requiredAlternative),false);
+ assert.equal(validateJambCombination(requiredGroup),false);
+ assert.equal(validateJambCombination(duplicateGroups),false);
+});
