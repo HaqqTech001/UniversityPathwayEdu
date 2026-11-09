@@ -107,13 +107,23 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
   return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:scoreHidden?null:attempt.score,totalQuestions:scoreHidden?null:attempt.total_questions,scorePending:scoreHidden}});
  }
  if(Date.now()>Date.parse(attempt.expires_at))return res.status(409).json({error:'This examination has expired. Answer review is unavailable after the deadline.',expiresAt:attempt.expires_at});
+ const {data:exam,error:examError}=await db.from('upec_assessments').select('shuffle_questions,shuffle_options').eq('id',attempt.assessment_id).maybeSingle();
+ if(examError)throw examError;
  const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',attempt.assessment_id).order('position').limit(100);
  if(linkError)throw linkError;
  const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,prompt,options').in('id',(links||[]).map(l=>l.question_id));
  if(questionError)throw questionError;
  const byId=new Map((questions||[]).map(q=>[q.id,q]));
+ const orderedLinks=orderAssessmentQuestions(links||[],attempt.id,Boolean(exam?.shuffle_questions));
  const savedAnswers=attempt.answers&&typeof attempt.answers==='object'&&!Array.isArray(attempt.answers)?attempt.answers:{};
- res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at,answers:savedAnswers},questions:(links||[]).map(l=>byId.get(l.question_id)).filter(Boolean)});
+ const visibleAnswers=displayAssessmentAnswers({answers:savedAnswers,attemptId:attempt.id,questions:questions||[],shuffleOptions:Boolean(exam?.shuffle_options)});
+ const visibleQuestions=orderedLinks.map(link=>{
+  const question=byId.get(link.question_id);
+  if(!question)return null;
+  if(!exam?.shuffle_options)return question;
+  return {...question,options:assessmentOptionPermutation(attempt.id,question.id,question.options||{}).displayOptions};
+ }).filter(Boolean);
+ res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at,answers:visibleAnswers},questions:visibleQuestions});
 }));
 router.put('/assessments/attempts/:id/telemetry',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
