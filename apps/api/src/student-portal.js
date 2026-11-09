@@ -167,7 +167,15 @@ router.put('/assessments/attempts/:id/answers',wrap(async(req,res)=>{
  if(linksError)throw linksError;
  const allowed=new Set((links||[]).map(link=>link.question_id));
  if(Object.keys(answers).some(questionId=>!allowed.has(questionId)))return res.status(400).json({error:'An answer does not belong to this examination.'});
- const {data,error}=await db.from('upec_assessment_attempts').update({answers}).eq('id',attempt.id).eq('student_account_id',req.actor.sub).is('submitted_at',null).gt('expires_at',now).select('id').maybeSingle();
+ const {data:exam,error:examError}=await db.from('upec_assessments').select('shuffle_options').eq('id',attempt.assessment_id).maybeSingle();
+ if(examError)throw examError;
+ let canonicalAnswers=answers;
+ if(exam?.shuffle_options&&Object.keys(answers).length){
+  const {data:questions,error:questionError}=await db.from('upec_teacher_questions').select('id,options').in('id',Object.keys(answers));
+  if(questionError)throw questionError;
+  canonicalAnswers=normalizeAssessmentAnswers({answers,attemptId:attempt.id,questions:questions||[],shuffleOptions:true});
+ }
+ const {data,error}=await db.from('upec_assessment_attempts').update({answers:canonicalAnswers}).eq('id',attempt.id).eq('student_account_id',req.actor.sub).is('submitted_at',null).gt('expires_at',now).select('id').maybeSingle();
  if(error)throw error;
  if(!data)return res.status(409).json({error:'The examination is no longer accepting answers.'});
  res.json({saved:true,savedAt:now});
