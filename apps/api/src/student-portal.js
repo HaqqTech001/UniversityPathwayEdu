@@ -46,6 +46,41 @@ router.get('/assessments',wrap(async(req,res)=>{
  res.json({assessments:(data||[]).filter(a=>(!a.opens_at||Date.parse(a.opens_at)<=now)&&(!a.closes_at||Date.parse(a.closes_at)>now)&&(!a.restricted||assigned.has(a.id))).map(({restricted,...a})=>a)});
 }));
 const validUuid=value=>typeof value==='string'&&/^[0-9a-f-]{36}$/i.test(value);
+const stableAssessmentHash=value=>crypto.createHash('sha256').update(String(value)).digest('hex');
+const assessmentOptionPermutation=(attemptId,questionId,options)=>{
+ const letters=['A','B','C','D'];
+ const canonical=letters.filter(letter=>Object.prototype.hasOwnProperty.call(options||{},letter));
+ const randomized=[...canonical].sort((a,b)=>stableAssessmentHash(attemptId+':'+questionId+':option:'+a).localeCompare(stableAssessmentHash(attemptId+':'+questionId+':option:'+b)));
+ const displayToCanonical={},canonicalToDisplay={},displayOptions={};
+ randomized.forEach((original,index)=>{
+  const display=letters[index];
+  displayToCanonical[display]=original;
+  canonicalToDisplay[original]=display;
+  displayOptions[display]=options[original];
+ });
+ return {displayToCanonical,canonicalToDisplay,displayOptions};
+};
+const orderAssessmentQuestions=(links,attemptId,shuffle)=>shuffle?[...links].sort((a,b)=>stableAssessmentHash(attemptId+':question:'+a.question_id).localeCompare(stableAssessmentHash(attemptId+':question:'+b.question_id))):links;
+const normalizeAssessmentAnswers=({answers,attemptId,questions,shuffleOptions})=>{
+ if(!shuffleOptions)return answers;
+ const byId=new Map((questions||[]).map(question=>[question.id,question]));
+ return Object.fromEntries(Object.entries(answers).map(([questionId,displayLetter])=>{
+  const question=byId.get(questionId);
+  if(!question)return [questionId,displayLetter];
+  const permutation=assessmentOptionPermutation(attemptId,questionId,question.options||{});
+  return [questionId,permutation.displayToCanonical[displayLetter]||displayLetter];
+ }));
+};
+const displayAssessmentAnswers=({answers,attemptId,questions,shuffleOptions})=>{
+ if(!shuffleOptions)return answers;
+ const byId=new Map((questions||[]).map(question=>[question.id,question]));
+ return Object.fromEntries(Object.entries(answers).map(([questionId,canonicalLetter])=>{
+  const question=byId.get(questionId);
+  if(!question)return [questionId,canonicalLetter];
+  const permutation=assessmentOptionPermutation(attemptId,questionId,question.options||{});
+  return [questionId,permutation.canonicalToDisplay[canonicalLetter]||canonicalLetter];
+ }));
+};
 router.post('/assessments/:id/start',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid assessment ID.'});
  const {data:attemptId,error}=await db.rpc('upec_begin_assessment',{p_assessment:req.params.id,p_student:req.actor.sub});
