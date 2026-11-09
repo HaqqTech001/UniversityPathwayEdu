@@ -41,8 +41,8 @@ test('new combinations are always provisional regardless of client verification 
  assert.equal(jambCombinationPayload({...valid,sourceVerified:true}).source_verified,false);
 });
 
-const saved={exam_year:2027,institution_name:'University A',programme_name:'Computer Science',english_language_required:true,required_subjects:['Mathematics','Physics','Chemistry'],alternative_subjects:[],alternative_subject_count:0};
-const verification={examYear:2027,institutionName:'University A',programmeName:'Computer Science',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A',verificationNotes:'Checked exact University A Computer Science listing for the 2027 UTME year.',requiredSubjects:['Mathematics','Physics','Chemistry'],alternativeSubjects:[]};
+const saved={exam_year:2027,institution_name:'University A',programme_name:'Computer Science',english_language_required:true,required_subjects:['Mathematics','Physics','Chemistry'],alternative_subjects:[],alternative_subject_count:0,subject_group_rules:[]};
+const verification={examYear:2027,institutionName:'University A',programmeName:'Computer Science',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A',verificationNotes:'Checked exact University A Computer Science listing for the 2027 UTME year.',requiredSubjects:['Mathematics','Physics','Chemistry'],alternativeSubjects:[],subjectGroupRules:[]};
 
 test('accepts verification evidence only for the exact saved institution, programme and year',()=>{
  assert.equal(validateJambVerification(saved,verification).valid,true);
