@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements,buildStudentJambProgramme} from '../src/jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements,buildStudentJambProgramme,validateJambProgrammeDiscovery} from '../src/jamb-catalogue.js';
 
 const valid={
  examYear:2027,institutionName:'University A',programmeName:'Computer Science',
@@ -172,4 +172,21 @@ test('student JAMB projection exposes O-Level and Direct Entry only after indepe
  assert.deepEqual(result.olevelRequirements,programme.olevel_requirements);
  assert.deepEqual(result.directEntryRequirements,programme.direct_entry_requirements);
  assert.deepEqual(result.utmeCombinations,[]);
+});
+
+const discoveryInstitution={id:'institution-1',active:true,source_verified:true,official_source_reference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A'};
+test('bulk IBASS discovery accepts exact institution page and de-duplicates programme names',()=>{
+ const result=validateJambProgrammeDiscovery(discoveryInstitution,{examYear:2027,programmeNames:['Computer Science','Mathematics',' computer science '],sourceReference:discoveryInstitution.official_source_reference,discoveryNotes:'Copied course names from the official institution programme listing.'});
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.programmeNames,['Computer Science','Mathematics']);
+});
+test('bulk IBASS discovery refuses unverified institutions and mismatched IBASS pages',()=>{
+ assert.equal(validateJambProgrammeDiscovery({...discoveryInstitution,source_verified:false},{examYear:2027,programmeNames:['Computer Science'],sourceReference:discoveryInstitution.official_source_reference,discoveryNotes:'Copied from the programme listing.'}).valid,false);
+ assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{examYear:2027,programmeNames:['Computer Science'],sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=102',discoveryNotes:'Copied from the programme listing.'}).valid,false);
+});
+test('bulk IBASS discovery rejects empty, malformed, or oversized course lists',()=>{
+ const base={examYear:2027,sourceReference:discoveryInstitution.official_source_reference,discoveryNotes:'Copied from the programme listing.'};
+ assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:[]}).valid,false);
+ assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:['x']}).valid,false);
+ assert.equal(validateJambProgrammeDiscovery(discoveryInstitution,{...base,programmeNames:Array(501).fill('Computer Science')}).valid,false);
 });
