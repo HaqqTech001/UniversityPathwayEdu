@@ -176,3 +176,15 @@ Authoritative references:
 - [Official IBASS University of Benin programme directory](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE).
 
 These official sources confirm the institution/programme-specific structure and default English selection in the checker; they do not verify the provisional 2027 course rows in this repository.
+
+
+## Bulk IBASS programme discovery (9 November 2026)
+
+- Added `POST /academic/jamb/directory/programmes/discover` for admin/super-admin. It accepts an institution, year, exact institution IBASS brochure URL, reviewer notes, and a list of programme names copied from that official page.
+- The endpoint requires an active, source-verified institution identity and the exact matching IBASS brochure URL. It normalises whitespace, de-duplicates names, skips programmes already present for that institution/year, and inserts new rows as provisional only.
+- Added an admin form to paste one programme name per line from the institution's official IBASS course directory. The UI explicitly states that discovery does not verify programme availability, O-Level/Direct Entry requirements, or UTME subject combinations.
+- Added separate provenance fields: discovery source URL, discovery notes, timestamp and staff account. These are distinct from programme verification source/timestamp/notes.
+- Added validation tests for exact institution/source matching, de-duplication, inactive/unverified institutions, malformed lists and list size limits.
+- No external course names or combinations were fabricated. The operator must copy course names from the exact institution IBASS listing; every programme remains provisional pending its own verification.
+
+Migration: `jamb_programme_discovery_provenance_20261109` applied. Matching migration file: `apps/api/migrations/20261109_jamb_programme_discovery_provenance.sql`.
