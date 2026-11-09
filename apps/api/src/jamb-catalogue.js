@@ -1,6 +1,11 @@
 const isYear=value=>Number.isInteger(value)&&value>=2026&&value<=2100;
 const isName=value=>typeof value==='string'&&value.trim().length>=2&&value.trim().length<=160;
 const isSubjectList=value=>Array.isArray(value)&&value.every(item=>typeof item==='string'&&item.trim().length>=2&&item.trim().length<=100)&&new Set(value.map(item=>item.trim().toLowerCase())).size===value.length;
+const isSubjectGroupList=groups=>Array.isArray(groups)&&groups.every(group=>
+ group&&typeof group==='object'&&!Array.isArray(group)&&isName(group.name)&&
+ Array.isArray(group.subjects)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&
+ group.choose>=1&&group.choose<=group.subjects.length
+)&&new Set(groups.map(group=>group.name.trim().toLowerCase())).size===groups.length;
 const normalizeGroups=groups=>(Array.isArray(groups)?groups:[]).map(group=>({name:String(group.name||'').trim().toLowerCase(),choose:group.choose,subjects:[...(group.subjects||[])].map(subject=>String(subject).trim().toLowerCase()).sort()})).sort((a,b)=>a.name.localeCompare(b.name));
 
 export function jambCombinationPayload(value={}){
@@ -52,7 +57,7 @@ export function validateJambVerification(existing,input={}){
  const required=Array.isArray(input.requiredSubjects)?input.requiredSubjects.map(x=>String(x).trim()):[];
  const alternatives=Array.isArray(input.alternativeSubjects)?input.alternativeSubjects.map(x=>String(x).trim()):[];
  const groups=Array.isArray(input.subjectGroupRules)?input.subjectGroupRules:[];
- if(!isSubjectList(required)||!isSubjectList(alternatives)||JSON.stringify([...required].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.required_subjects||[])].map(x=>x.toLowerCase()).sort())||JSON.stringify([...alternatives].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.alternative_subjects||[])].map(x=>x.toLowerCase()).sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
+ if(!isSubjectList(required)||!isSubjectList(alternatives)||!isSubjectGroupList(groups)||JSON.stringify([...required].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.required_subjects||[])].map(x=>x.toLowerCase()).sort())||JSON.stringify([...alternatives].map(x=>x.toLowerCase()).sort())!==JSON.stringify([...(existing.alternative_subjects||[])].map(x=>x.toLowerCase()).sort()))return {valid:false,error:'The IBASS-checked subjects do not match the saved combination. Update the provisional combination first.'};
  if(!Array.isArray(existing.subject_group_rules)||JSON.stringify(normalizeGroups(groups))!==JSON.stringify(normalizeGroups(existing.subject_group_rules)))return {valid:false,error:'The IBASS-checked subject groups do not match the saved combination. Update the provisional combination first.'};
  if(existing.english_language_required!==true||required.length+(existing.alternative_subject_count||0)+groups.reduce((sum,group)=>sum+group.choose,0)!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
  return {valid:true,sourceUrl,notes,required:existing.required_subjects,alternatives:existing.alternative_subjects,groups:existing.subject_group_rules||[]};
