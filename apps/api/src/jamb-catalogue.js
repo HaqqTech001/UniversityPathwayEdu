@@ -85,6 +85,7 @@ export function validateJambProgrammeVerification(existing,input={},institutionS
 const isRequirementSet=value=>value&&typeof value==='object'&&!Array.isArray(value)&&
  Array.isArray(value.requiredSubjects)&&isSubjectList(value.requiredSubjects)&&
  Array.isArray(value.subjectGroups)&&value.subjectGroups.every(group=>group&&typeof group==='object'&&!Array.isArray(group)&&isName(group.name)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&group.choose>=1&&group.choose<=group.subjects.length)&&
+ (value.requiredSubjects.length>0||value.subjectGroups.length>0)&&
  new Set(value.subjectGroups.map(group=>group.name.trim().toLowerCase())).size===value.subjectGroups.length;
 
 export function validateJambEntryRequirements(existing,input={},institutionSourceReference=''){
