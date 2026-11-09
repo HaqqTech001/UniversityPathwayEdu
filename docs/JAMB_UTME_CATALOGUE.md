@@ -145,3 +145,16 @@ Database enforcement follow-up:
 - The relationship migration was followed by a constraint migration after confirming the combination table contained zero rows. Both `institution_id` and `programme_id` are now NOT NULL, with a unique index on institution + programme + year.
 - The combination list API can filter by institution ID and programme ID.
 - Combination edits preserve the directory-linked institution, programme and year; changing the academic identity requires a separate directory-linked record rather than mutating names on an existing rule.
+
+
+## Separate O-Level and Direct Entry requirements (9 November 2026)
+
+- Added programme-level `olevel_requirements` and `direct_entry_requirements` JSON structures. These are deliberately independent of the UTME subject combination table.
+- Added independent source URL, verification status, checked timestamp and reviewer notes for entry requirements. Verifying the programme directory listing or UTME combination does not verify O-Level/Direct Entry rules.
+- Added `PATCH /academic/jamb/directory/programmes/:id/entry-requirements/verify`. It requires the exact programme ID, institution and year; a previously verified programme listing; a verified institution identity; an exact matching official IBASS brochure page; structured O-Level/Direct Entry subjects and groups; and meaningful reviewer notes.
+- Added an admin review panel to each verified programme listing. It loads existing JSON requirements and allows an authorised reviewer to save/re-verify them.
+- The directory GET response now returns the entry requirement structures and their independent verification status.
+- Added validator tests for valid structures, wrong institution/year, wrong IBASS institution page, unverified programme, and malformed subject groups.
+- Existing 15 programme rows receive empty provisional requirement structures. None is automatically marked verified; no O-Level or Direct Entry rule was invented.
+
+Migration applied: `jamb_separate_olevel_direct_entry_requirements_20261109`.
