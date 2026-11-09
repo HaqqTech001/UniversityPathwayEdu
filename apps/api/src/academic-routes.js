@@ -625,15 +625,29 @@ router.get('/assessments/:id/attempts',grant(...questionRoles),wrap(async(req,re
  const {data:attempts,error}=await db.from('upec_assessment_attempts').select('id,student_account_id,started_at,expires_at,submitted_at,score,total_questions').eq('assessment_id',exam.id).order('started_at',{ascending:false}).limit(200);
  if(error)throw error;
  const studentIds=[...new Set((attempts||[]).map(a=>a.student_account_id))];
+ const attemptIds=(attempts||[]).map(a=>a.id);
  let studentsMap={};
  if(studentIds.length>0){
-  const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  const {data:accounts,error:accountError}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  if(accountError)throw accountError;
   (accounts||[]).forEach(acc=>{if(acc.full_name)studentsMap[acc.id]=acc.full_name;});
  }
- const formatted=(attempts||[]).map(a=>({
-  ...a,
-  student_name:studentsMap[a.student_account_id]||null
- }));
+ const telemetryByAttempt=new Map();
+ if(attemptIds.length){
+  const {data:telemetry,error:telemetryError}=await db.from('upec_assessment_telemetry').select('attempt_id,last_heartbeat_at,tab_focus_lost_count,current_question_index').in('attempt_id',attemptIds);
+  if(telemetryError)throw telemetryError;
+  (telemetry||[]).forEach(row=>telemetryByAttempt.set(row.attempt_id,row));
+ }
+ const formatted=(attempts||[]).map(a=>{
+  const telemetry=telemetryByAttempt.get(a.id);
+  return {
+   ...a,
+   student_name:studentsMap[a.student_account_id]||null,
+   last_heartbeat_at:telemetry?.last_heartbeat_at||null,
+   tab_focus_lost_count:telemetry?.tab_focus_lost_count??null,
+   current_question_index:telemetry?.current_question_index??null
+  };
+ });
  res.json({assessment:exam,attempts:formatted});
 }));
 // Limited, verified student directory for assessment assignment; no email or phone exposed.
