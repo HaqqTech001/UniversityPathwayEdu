@@ -757,6 +757,10 @@ export default function AdminCbtPage() {
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSchedulingExam) return;
+    if (scheduleForm.opensAt && scheduleForm.closesAt && new Date(scheduleForm.closesAt).getTime() <= new Date(scheduleForm.opensAt).getTime()) {
+      notify('Closing time must be later than opening time.', 'error');
+      return;
+    }
     setSavingAction(true);
     try {
       await api(`/api/staff/academic/assessments/${isSchedulingExam.id}/schedule`, {
@@ -2428,7 +2432,8 @@ export default function AdminCbtPage() {
               <button
                 type="button"
                 onClick={() => { setIsCreatingQuestion(false); setEditingQuestion(null); }}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close schedule dialog"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
               >
                 <X size={18} />
               </button>
@@ -2440,7 +2445,7 @@ export default function AdminCbtPage() {
                 required
                 value={questionForm.subjectId}
                 onChange={e => setQuestionForm(v => ({ ...v, subjectId: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"
+                className="mt-1 min-h-12 w-full rounded-lg border border-slate-200 p-3 text-base"
               >
                 <option value="">Select subject</option>
                 {subjectsState.data.map(s => (
@@ -2755,7 +2760,8 @@ export default function AdminCbtPage() {
               <button
                 type="button"
                 onClick={() => setIsCreatingExam(false)}
-                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close candidate eligibility dialog"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
               >
                 <X size={18} />
               </button>
@@ -2854,9 +2860,9 @@ export default function AdminCbtPage() {
       {/* MODAL 3: SCHEDULE EXAMINATION */}
       {isSchedulingExam && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
-          <form onSubmit={handleSaveSchedule} className="max-h-[92dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
+          <form role="dialog" aria-modal="true" aria-labelledby="schedule-exam-title" onSubmit={handleSaveSchedule} className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-base font-bold text-[#111A43]">Schedule Examination</h2>
+              <h2 id="schedule-exam-title" className="text-base font-bold text-[#111A43]">Schedule Examination</h2>
               <button
                 type="button"
                 onClick={() => setIsSchedulingExam(null)}
@@ -2872,6 +2878,7 @@ export default function AdminCbtPage() {
               Opening Time (Start)
               <input
                 type="datetime-local"
+                max={scheduleForm.closesAt || undefined}
                 value={scheduleForm.opensAt}
                 onChange={e => setScheduleForm(v => ({ ...v, opensAt: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"
@@ -2882,6 +2889,7 @@ export default function AdminCbtPage() {
               Closing Time (Deadline)
               <input
                 type="datetime-local"
+                min={scheduleForm.opensAt || undefined}
                 value={scheduleForm.closesAt}
                 onChange={e => setScheduleForm(v => ({ ...v, closesAt: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"
@@ -2902,9 +2910,9 @@ export default function AdminCbtPage() {
       {/* MODAL 4: ELIGIBILITY MANAGEMENT */}
       {isEligibilityModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
-          <div className="max-h-[92dvh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
+          <div role="dialog" aria-modal="true" aria-labelledby="candidate-eligibility-title" className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-base font-bold text-[#111A43]">Candidate Eligibility</h2>
+              <h2 id="candidate-eligibility-title" className="text-base font-bold text-[#111A43]">Candidate Eligibility</h2>
               <button
                 type="button"
                 onClick={() => setIsEligibilityModal(null)}
@@ -2990,9 +2998,9 @@ export default function AdminCbtPage() {
 
       {correctionPolicyExam && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
-          <form onSubmit={e => { e.preventDefault(); void handleSaveCorrectionPolicy(); }} className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
+          <form role="dialog" aria-modal="true" aria-labelledby="correction-policy-title" onSubmit={e => { e.preventDefault(); void handleSaveCorrectionPolicy(); }} className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-base font-bold text-[#111A43]">Correction release policy</h2>
+              <h2 id="correction-policy-title" className="text-base font-bold text-[#111A43]">Correction release policy</h2>
               <button type="button" onClick={() => setCorrectionPolicyExam(null)} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
             </div>
             <p className="text-xs text-slate-500">{correctionPolicyExam.title}</p>
@@ -3070,9 +3078,9 @@ export default function AdminCbtPage() {
       {/* MODAL 5: NOTIFY GUARDIANS */}
       {isNotifyingGuardians && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-3">
-          <div className="max-h-[92dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
+          <div role="dialog" aria-modal="true" aria-labelledby="guardian-notification-title" className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-base font-bold text-[#111A43]">Notify Guardians &amp; Candidates</h2>
+              <h2 id="guardian-notification-title" className="text-base font-bold text-[#111A43]">Notify Guardians &amp; Candidates</h2>
               <button
                 type="button"
                 onClick={() => setIsNotifyingGuardians(null)}
