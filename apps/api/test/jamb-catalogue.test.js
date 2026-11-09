@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification} from '../src/jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification,validateJambEntryRequirements} from '../src/jamb-catalogue.js';
 
 const valid={
  examYear:2027,institutionName:'University A',programmeName:'Computer Science',
@@ -132,4 +132,26 @@ test('rejects an IBASS programme page belonging to a different institution',()=>
  assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN').valid,true);
  assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=371&school=GREENFIELD+UNIVERSITY').valid,false);
  assert.ok(otherInstitution.includes('id=371'));
+});
+
+
+const entryProgramme={institution_id:'institution-1',exam_year:2027,programme_name:'Computer Science',source_verified:true};
+const entryInstitutionSource='https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A';
+const validEntry={institutionId:'institution-1',examYear:2027,programmeName:'Computer Science',olevelRequirements:{requiredSubjects:['English Language','Mathematics'],subjectGroups:[{name:'Science subject',subjects:['Physics','Chemistry','Biology'],choose:2}]},directEntryRequirements:{requiredSubjects:['Mathematics'],subjectGroups:[],acceptedQualifications:['A-Level passes in relevant subjects']},sourceReference:entryInstitutionSource,verificationNotes:'Checked the exact Computer Science row and entry requirements on the selected institution IBASS brochure.'};
+test('validates O-Level and Direct Entry requirements independently from UTME combinations',()=>{
+ const result=validateJambEntryRequirements(entryProgramme,validEntry,entryInstitutionSource);
+ assert.equal(result.valid,true);
+ assert.deepEqual(result.olevel,validEntry.olevelRequirements);
+ assert.deepEqual(result.direct,validEntry.directEntryRequirements);
+});
+test('rejects entry requirement verification for a different institution or year',()=>{
+ assert.equal(validateJambEntryRequirements(entryProgramme,{...validEntry,institutionId:'institution-2'},entryInstitutionSource).valid,false);
+ assert.equal(validateJambEntryRequirements(entryProgramme,{...validEntry,examYear:2026},entryInstitutionSource).valid,false);
+});
+test('rejects entry requirements from another institution IBASS page',()=>{
+ assert.equal(validateJambEntryRequirements(entryProgramme,{...validEntry,sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=371'},entryInstitutionSource).valid,false);
+});
+test('rejects unverified programme listings and malformed O-Level subject groups',()=>{
+ assert.equal(validateJambEntryRequirements({...entryProgramme,source_verified:false},validEntry,entryInstitutionSource).valid,false);
+ assert.equal(validateJambEntryRequirements(entryProgramme,{...validEntry,olevelRequirements:{requiredSubjects:[],subjectGroups:[{name:'Choose one',subjects:['Biology'],choose:2}]}},entryInstitutionSource).valid,false);
 });
