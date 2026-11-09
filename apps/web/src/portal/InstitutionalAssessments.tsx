@@ -9,8 +9,22 @@ export default function InstitutionalAssessments(){
  const token=()=>{const value=getStudentToken();if(!value)throw Error('Please sign in again.');return value;};
  useEffect(()=>{const key=getStudentToken();if(!key)return;Promise.all([upecAuthApi.studentAssessments(key),upecAuthApi.assessmentResults(key)]).then(([a,b])=>{setExams(a.assessments);setHistory(b.results);}).catch(e=>setError(e.message));},[]);
  useEffect(()=>{if(!expires)return;const tick=()=>setSeconds(Math.max(0,Math.ceil((new Date(expires).getTime()-Date.now())/1000)));tick();const timer=setInterval(tick,1000);return()=>clearInterval(timer);},[expires]);
- const open=async(id:string)=>{setBusy(true);setError('');try{const started=await upecAuthApi.startAssessment(token(),id);const details=await upecAuthApi.assessmentAttempt(token(),started.attemptId);setAttempt(started.attemptId);setQuestions(details.questions||[]);setExpires(details.attempt.expiresAt||'');setAnswers({});setResult(details.attempt.submittedAt?{score:details.attempt.score??null,totalQuestions:details.attempt.totalQuestions??null,scorePending:Boolean(details.attempt.scorePending)}:null);}catch(e){setError(e instanceof Error?e.message:'Unable to start assessment.');}finally{setBusy(false);}};
- const submit=async()=>{if(!expires||Date.now()>=Date.parse(expires)){setError('The examination time has expired. Submission is no longer available.');return;}setBusy(true);setError('');try{const response=await upecAuthApi.submitAssessment(token(),attempt,answers);setResult(response.result);setQuestions([]);setExpires('');void upecAuthApi.assessmentResults(token()).then(r=>setHistory(r.results)).catch(()=>{});}catch(e){setError(e instanceof Error?e.message:'Submission failed.');}finally{setBusy(false);}};
+ useEffect(()=>{
+  if(!attempt||!expires||result)return;
+  const timer=window.setTimeout(()=>{void upecAuthApi.saveAssessmentAnswers(token(),attempt,answers).catch(e=>setError(e instanceof Error?e.message:'Answers could not be saved.'));},650);
+  return()=>window.clearTimeout(timer);
+ },[attempt,expires,result,answers]);
+ useEffect(()=>{
+  if(!attempt||!expires||result)return;
+  const heartbeat=()=>{try{void upecAuthApi.assessmentTelemetry(token(),attempt).catch(()=>{});}catch{}};
+  const onVisibilityChange=()=>{if(document.visibilityState==='hidden'){try{void upecAuthApi.assessmentTelemetry(token(),attempt,undefined,'tab-focus-lost').catch(()=>{});}catch{}}else heartbeat();};
+  heartbeat();
+  const interval=window.setInterval(heartbeat,15000);
+  document.addEventListener('visibilitychange',onVisibilityChange);
+  return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisibilityChange);};
+ },[attempt,expires,result]);
+ const open=async(id:string)=>{setBusy(true);setError('');try{const started=await upecAuthApi.startAssessment(token(),id);const details=await upecAuthApi.assessmentAttempt(token(),started.attemptId);setAttempt(started.attemptId);setQuestions(details.questions||[]);setExpires(details.attempt.expiresAt||'');setAnswers(details.attempt.answers||{});setResult(details.attempt.submittedAt?{score:details.attempt.score??null,totalQuestions:details.attempt.totalQuestions??null,scorePending:Boolean(details.attempt.scorePending)}:null);}catch(e){setError(e instanceof Error?e.message:'Unable to start assessment.');}finally{setBusy(false);}};
+ const submit=async()=>{if(!expires||Date.now()>=Date.parse(expires)){setError('The examination time has expired. Submission is no longer available.');return;}setBusy(true);setError('');try{await upecAuthApi.saveAssessmentAnswers(token(),attempt,answers);const response=await upecAuthApi.submitAssessment(token(),attempt,answers);setResult(response.result);setQuestions([]);setExpires('');void upecAuthApi.assessmentResults(token()).then(r=>setHistory(r.results)).catch(()=>{});}catch(e){setError(e instanceof Error?e.message:'Submission failed.');}finally{setBusy(false);}};
  return <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7" aria-labelledby="institutional-tests"><h3 id="institutional-tests" className="text-lg font-bold text-[#111a43]">University Pathway Institutional Assessments</h3><p className="mt-2 text-sm text-slate-600">Teacher-authored assessments are separate from JAMB historical practice.</p>
  {error&&<p role="alert" className="my-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
  {result&&<div role="status" className="my-4 rounded-lg bg-emerald-50 p-4 text-emerald-800"><p className="font-semibold">Assessment submitted successfully.</p><p className="mt-1">{result.scorePending||result.score===null?'Your score is being withheld until the examination closes.':'Score: '+result.score+' / '+result.totalQuestions+'.'}</p><button type="button" onClick={()=>{setAttempt('');setResult(null);}} className="mt-3 rounded-lg bg-[#111a43] px-4 py-2 text-sm font-semibold text-white">Back to assessments</button></div>}
