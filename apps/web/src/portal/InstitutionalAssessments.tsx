@@ -19,7 +19,10 @@ export default function InstitutionalAssessments(){
     setHistory(response.results);
     const completed=response.results.find(item=>item.id===attempt);
     if(completed)setResult({score:completed.score??null,totalQuestions:completed.total_questions??null,scorePending:Boolean(completed.scorePending)});
-    else setError('Your examination time has ended. The system is finalising the attempt; refresh your results shortly.');
+    else{
+     setError('Your examination time has ended. The system is finalising the attempt; refresh your results shortly.');
+     setAttempt('');
+    }
     setQuestions([]);
     setExpires('');
    }catch(e){if(!cancelled)setError(e instanceof Error?e.message:'The expired attempt could not be finalised yet.');}
