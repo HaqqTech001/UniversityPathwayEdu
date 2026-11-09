@@ -102,7 +102,14 @@ router.post('/assessments/attempts/:id/submit',wrap(async(req,res)=>{
  if(error?.code==='22023')return res.status(409).json({error:error.message});
  if(error)throw error;
  const result=data?.[0];
- res.json({result:{attemptId:result.attempt_id,score:result.correct_count,totalQuestions:result.question_count,submittedAt:result.submitted_time}});
+ const {data:attempt,error:attemptError}=await db.from('upec_assessment_attempts').select('assessment_id').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(attemptError)throw attemptError;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ const {data:exam,error:examError}=await db.from('upec_assessments').select('status,closes_at,hide_score_until_closed').eq('id',attempt.assessment_id).maybeSingle();
+ if(examError)throw examError;
+ const examEnded=Boolean(exam&&(exam.status==='closed'||(exam.closes_at&&Date.parse(exam.closes_at)<=Date.now())));
+ const scoreHidden=Boolean(exam?.hide_score_until_closed&&!examEnded);
+ res.json({result:{attemptId:result.attempt_id,score:scoreHidden?null:result.correct_count,totalQuestions:scoreHidden?null:result.question_count,scorePending:scoreHidden,submittedAt:result.submitted_time}});
 }));
 const correctionWindow = async assessment => {
  const now=Date.now();
@@ -141,7 +148,7 @@ router.get('/assessment-results',wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_assessment_attempts').select('id,assessment_id,started_at,submitted_at,score,total_questions').eq('student_account_id',req.actor.sub).not('submitted_at','is',null).order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
  const ids=[...new Set((data||[]).map(row=>row.assessment_id))];
- const {data:assessments,error:assessmentError}=ids.length?await db.from('upec_assessments').select('id,title,status,closes_at,correction_release_mode,corrections_release_at,corrections_released_at').in('id',ids):{data:[],error:null};
+ const {data:assessments,error:assessmentError}=ids.length?await db.from('upec_assessments').select('id,title,status,closes_at,hide_score_until_closed,correction_release_mode,corrections_release_at,corrections_released_at').in('id',ids):{data:[],error:null};
  if(assessmentError)throw assessmentError;
  const examById=new Map((assessments||[]).map(exam=>[exam.id,exam]));
  const {data:active,error:activeError}=ids.length?await db.from('upec_assessment_attempts').select('assessment_id').in('assessment_id',ids).is('submitted_at',null).gt('expires_at',new Date().toISOString()):{data:[],error:null};
@@ -158,7 +165,8 @@ router.get('/assessment-results',wrap(async(req,res)=>{
    (mode==='manual'&&Boolean(exam.corrections_released_at));
   const available=Boolean(ended&&!activeIds.has(exam.id)&&released);
   const reason=!ended?'The examination is still open.':activeIds.has(exam.id)?'Other candidates are still completing this examination.':available?'Corrections are available.':mode==='scheduled'?'Corrections are scheduled for a later time.':'Corrections have not been released by the academic team.';
-  return {...row,title:exam.title,correctionsAvailable:available,correctionsMessage:reason};
+  const scoreHidden=Boolean(exam.hide_score_until_closed&&!ended);
+  return {...row,score:scoreHidden?null:row.score,total_questions:scoreHidden?null:row.total_questions,scorePending:scoreHidden,title:exam.title,correctionsAvailable:available,correctionsMessage:reason};
  });
  res.json({results});
 }));
