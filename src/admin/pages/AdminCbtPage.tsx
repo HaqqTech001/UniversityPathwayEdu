@@ -2332,7 +2332,7 @@ export default function AdminCbtPage() {
                 <div className="grid gap-2 p-3 sm:hidden">
                   {attemptsState.data.map(attempt => {
                     const submitted = Boolean(attempt.submitted_at);
-                    const autoFinalized = submitted && attempt.submitted_at === attempt.expires_at && attempt.score === 0;
+                    const autoFinalized = submitted && attempt.submitted_at === attempt.expires_at;
                     const expired = !submitted && new Date(attempt.expires_at).getTime() < Date.now();
                     const status = autoFinalized ? 'Expired (Auto-Finalized)' : submitted ? 'Submitted' : expired ? 'Time Expired (Unsubmitted)' : 'In Progress';
                     const statusClass = autoFinalized ? 'bg-slate-100 text-slate-700' : submitted ? 'bg-emerald-50 text-emerald-700' : expired ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700';
@@ -2348,6 +2348,7 @@ export default function AdminCbtPage() {
                       <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-xs">
                         <div><p className="text-slate-500">Last heartbeat</p><strong className="text-slate-700">{attempt.last_heartbeat_at?new Date(attempt.last_heartbeat_at).toLocaleTimeString():'Not received'}</strong></div>
                         <div><p className="text-slate-500">Focus losses</p><strong className="text-slate-700">{attempt.tab_focus_lost_count??'Not recorded'}</strong></div>
+                        <div className="col-span-2"><p className="text-slate-500">Last question viewed</p><strong className="text-slate-700">{attempt.current_question_index===null||attempt.current_question_index===undefined?'Not recorded':'Question '+(attempt.current_question_index+1)}</strong></div>
                         <div className="col-span-2"><p className="text-slate-500">Recorded score</p><strong className="text-[#111A43]">{submitted && attempt.score !== null && attempt.total_questions !== null ? String(attempt.score) + ' / ' + String(attempt.total_questions) : '—'}</strong></div>
                       </div>
                     </article>;
@@ -2363,6 +2364,7 @@ export default function AdminCbtPage() {
                       <th className="py-2.5 px-3">Status</th>
                       <th className="py-2.5 px-3">Last heartbeat</th>
                       <th className="py-2.5 px-3 text-right">Focus losses</th>
+                      <th className="py-2.5 px-3">Question viewed</th>
                       <th className="py-2.5 px-3 text-right">Score</th>
                     </tr>
                   </thead>
@@ -2371,8 +2373,7 @@ export default function AdminCbtPage() {
                       const isSubmitted = Boolean(attempt.submitted_at);
                       const isOverdueFinalized =
                         isSubmitted &&
-                        attempt.submitted_at === attempt.expires_at &&
-                        attempt.score === 0;
+                        attempt.submitted_at === attempt.expires_at;
                       const isExpired = !isSubmitted && new Date(attempt.expires_at).getTime() < Date.now();
 
                       return (
@@ -2411,6 +2412,7 @@ export default function AdminCbtPage() {
                           </td>
                           <td className="py-2.5 px-3 text-slate-600">{attempt.last_heartbeat_at?new Date(attempt.last_heartbeat_at).toLocaleTimeString():'Not received'}</td>
                           <td className="py-2.5 px-3 text-right text-slate-600">{attempt.tab_focus_lost_count??'—'}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{attempt.current_question_index===null||attempt.current_question_index===undefined?'—':attempt.current_question_index+1}</td>
                           <td className="py-2.5 px-3 text-right font-bold text-[#111A43]">
                             {isSubmitted && attempt.score !== null && attempt.total_questions !== null
                               ? `${attempt.score} / ${attempt.total_questions}`
