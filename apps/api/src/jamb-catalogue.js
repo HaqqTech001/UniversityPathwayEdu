@@ -118,3 +118,22 @@ export function buildStudentJambProgramme(programme,combinations=[]){
   utmeCombinations:exact
  };
 }
+
+
+export function validateJambProgrammeDiscovery(institution,input={}){
+ const year=Number(input.examYear);
+ if(!institution||institution.active!==true||institution.source_verified!==true)return {valid:false,error:'Programme discovery requires an active, verified institution identity.'};
+ if(!isYear(year))return {valid:false,error:'Choose a valid JAMB examination year.'};
+ const names=Array.isArray(input.programmeNames)?input.programmeNames:[];
+ if(!names.length||names.length>500)return {valid:false,error:'Provide between 1 and 500 programme names copied from the official IBASS directory.'};
+ const normalized=names.map(value=>typeof value==='string'?value.trim().replace(/\\s+/g,' '):'');
+ if(normalized.some(value=>!isName(value)||value.length>180))return {valid:false,error:'Every programme name must contain 2–180 characters.'};
+ const unique=[...new Map(normalized.map(value=>[value.toLowerCase(),value])).values()];
+ const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
+ let source,institutionSource;
+ try{source=new URL(sourceUrl);institutionSource=new URL(institution.official_source_reference);}catch{return {valid:false,error:'Provide the exact official IBASS institution brochure URL.'};}
+ if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||source.pathname!=='/brochure-courses'||institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||!source.searchParams.get('id')||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'Programme discovery must use the official IBASS brochure page for this exact institution.'};
+ const notes=typeof input.discoveryNotes==='string'?input.discoveryNotes.trim():'';
+ if(notes.length<20||notes.length>1000)return {valid:false,error:'Record where and how the programme names were copied from the IBASS directory.'};
+ return {valid:true,year,programmeNames:unique,sourceUrl,notes};
+}
