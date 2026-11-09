@@ -49,6 +49,25 @@ export default function InstitutionalAssessments(){
  },[answers,attempt,expires,result]);
 
  useEffect(()=>{
+  if(!attempt||!expires||result||!hydrated.current)return;
+  let active=true;
+  const sendHeartbeat=()=>{void upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex).catch(()=>{});};
+  const onVisibilityChange=()=>{
+   if(document.visibilityState==='hidden'){
+    void upecAuthApi.assessmentTelemetry(token(),attempt,currentIndex,'tab-focus-lost').catch(()=>{});
+   }else sendHeartbeat();
+  };
+  sendHeartbeat();
+  const heartbeat=window.setInterval(sendHeartbeat,15000);
+  document.addEventListener('visibilitychange',onVisibilityChange);
+  return()=>{
+   active=false;
+   window.clearInterval(heartbeat);
+   document.removeEventListener('visibilitychange',onVisibilityChange);
+  };
+ },[attempt,expires,result,currentIndex]);
+
+ useEffect(()=>{
   if(!attempt||!expires||seconds!==0||result)return;
   let cancelled=false;
   upecAuthApi.assessmentAttempt(token(),attempt).catch(e=>{
