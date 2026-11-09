@@ -6,6 +6,16 @@ const isSubjectGroupList=groups=>Array.isArray(groups)&&groups.every(group=>
  Array.isArray(group.subjects)&&isSubjectList(group.subjects)&&Number.isInteger(group.choose)&&
  group.choose>=1&&group.choose<=group.subjects.length
 )&&new Set(groups.map(group=>group.name.trim().toLowerCase())).size===groups.length;
+const isExactInstitutionIbassSource=(sourceUrl,institutionSourceReference)=>{
+ let source,institutionSource;
+ try{source=new URL(sourceUrl);institutionSource=new URL(institutionSourceReference);}catch{return false;}
+ const sourceId=source.searchParams.get('id'),institutionId=institutionSource.searchParams.get('id');
+ return source.protocol==='https:'&&source.hostname.toLowerCase()==='ibass.jamb.gov.ng'&&source.pathname==='/brochure-courses'&&
+  institutionSource.protocol==='https:'&&institutionSource.hostname.toLowerCase()==='ibass.jamb.gov.ng'&&institutionSource.pathname==='/brochure-courses'&&
+  Boolean(sourceId&&institutionId)&&sourceId===institutionId;
+};
+const containsEnglishSubject=subjects=>Array.isArray(subjects)&&subjects.some(subject=>['english language','use of english'].includes(String(subject).trim().toLowerCase()));
+
 const normalizeGroups=groups=>(Array.isArray(groups)?groups:[]).map(group=>({name:String(group.name||'').trim().toLowerCase(),choose:group.choose,subjects:[...(group.subjects||[])].map(subject=>String(subject).trim().toLowerCase()).sort()})).sort((a,b)=>a.name.localeCompare(b.name));
 
 export function jambCombinationPayload(value={}){
@@ -42,7 +52,7 @@ export function validateJambCombination(value){
   (value.alternative_subject_count===0?value.alternative_subjects.length===0:value.alternative_subjects.length>=value.alternative_subject_count)&&
   groupsValid&&new Set(value.subject_group_rules.map(group=>group.name.trim().toLowerCase())).size===value.subject_group_rules.length&&
   (value.alternative_subject_count===0?value.alternative_subjects.length===0:value.alternative_subjects.length>=value.alternative_subject_count)&&
-  (()=>{const selected=[...value.required_subjects,...value.alternative_subjects,...value.subject_group_rules.flatMap(group=>group.subjects)].map(subject=>subject.trim().toLowerCase());return new Set(selected).size===selected.length;})()&&
+  (()=>{const selected=[...value.required_subjects,...value.alternative_subjects,...value.subject_group_rules.flatMap(group=>group.subjects)].map(subject=>subject.trim().toLowerCase());return new Set(selected).size===selected.length&&!containsEnglishSubject(selected);})()&&
   typeof value.additional_notes==='string'&&value.additional_notes.length<=2000&&
   typeof value.source_reference==='string'&&value.source_reference.length>=8&&value.source_reference.length<=500&&
   typeof value.active==='boolean';
@@ -55,7 +65,7 @@ export function validateJambVerification(existing,input={},institutionSourceRefe
  let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS source URL.'};}
  if(source.protocol!=='https:'||!['eligibility.jamb.gov.ng','ibass.jamb.gov.ng','jamb.gov.ng','www.jamb.gov.ng'].includes(source.hostname.toLowerCase()))return {valid:false,error:'Verification requires an official JAMB HTTPS source.'};
  let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The saved institution does not have a valid official IBASS source.'};}
- if(institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||source.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'The combination source must be the official IBASS brochure page for this exact institution.'};
+ if(!isExactInstitutionIbassSource(sourceUrl,institutionSourceReference))return {valid:false,error:'The combination source must be the official IBASS brochure page for this exact institution.'};
  const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
  if(notes.length<20||notes.length>2000)return {valid:false,error:'Record at least 20 characters describing the exact IBASS institution/course check.'};
  const required=Array.isArray(input.requiredSubjects)?input.requiredSubjects.map(x=>String(x).trim()):[];
@@ -73,9 +83,9 @@ export function validateJambProgrammeVerification(existing,input={},institutionS
  if(year!==existing.exam_year||name.toLowerCase()!==String(existing.programme_name||'').toLowerCase()||institutionId!==existing.institution_id)return {valid:false,error:'Verification must match the exact saved institution, programme and admission year.'};
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
  let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS programme source URL.'};}
- if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||!source.pathname.startsWith('/brochure-courses'))return {valid:false,error:'Programme verification requires the official JAMB IBASS brochure course page.'};
+ if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||source.pathname!=='/brochure-courses')return {valid:false,error:'Programme verification requires the official JAMB IBASS brochure course page.'};
  let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The saved institution does not have a valid official IBASS source.'};}
- if(institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'The programme source must belong to the selected institution’s official IBASS brochure page.'};
+ if(!isExactInstitutionIbassSource(sourceUrl,institutionSourceReference))return {valid:false,error:'The programme source must belong to the selected institution’s official IBASS brochure page.'};
  const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
  if(notes.length<30||notes.length>2000)return {valid:false,error:'Explain how the exact programme and admission year were checked (at least 30 characters).'};
  return {valid:true,sourceUrl,notes};
@@ -97,7 +107,7 @@ export function validateJambEntryRequirements(existing,input={},institutionSourc
  const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
  let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS source URL.'};}
  let institutionSource;try{institutionSource=new URL(institutionSourceReference);}catch{return {valid:false,error:'The institution has no valid official IBASS source.'};}
- if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||source.pathname!=='/brochure-courses'||institutionSource.protocol!=='https:'||institutionSource.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||institutionSource.pathname!=='/brochure-courses'||source.searchParams.get('id')!==institutionSource.searchParams.get('id'))return {valid:false,error:'Entry requirements must be checked on this exact institution’s official IBASS brochure page.'};
+ if(!isExactInstitutionIbassSource(sourceUrl,institutionSourceReference))return {valid:false,error:'Entry requirements must be checked on this exact institution’s official IBASS brochure page.'};
  const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
  if(notes.length<30||notes.length>2000)return {valid:false,error:'Record at least 30 characters describing the exact O-Level and Direct Entry requirements checked.'};
  return {valid:true,sourceUrl,notes,olevel,direct};
