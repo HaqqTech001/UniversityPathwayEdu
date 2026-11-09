@@ -80,6 +80,34 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
  const savedAnswers=attempt.answers&&typeof attempt.answers==='object'&&!Array.isArray(attempt.answers)?attempt.answers:{};
  res.json({attempt:{id:attempt.id,startedAt:attempt.started_at,expiresAt:attempt.expires_at,answers:savedAnswers},questions:(links||[]).map(l=>byId.get(l.question_id)).filter(Boolean)});
 }));
+router.put('/assessments/attempts/:id/telemetry',wrap(async(req,res)=>{
+ if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
+ const currentQuestionIndex=req.body?.currentQuestionIndex;
+ const event=req.body?.event;
+ if(currentQuestionIndex!==undefined&&(!Number.isInteger(currentQuestionIndex)||currentQuestionIndex<0||currentQuestionIndex>99))return res.status(400).json({error:'Invalid current question index.'});
+ if(event!==undefined&&event!=='tab-focus-lost')return res.status(400).json({error:'Unsupported telemetry event.'});
+ const {data:attempt,error:attemptError}=await db.from('upec_assessment_attempts').select('id,expires_at,submitted_at').eq('id',req.params.id).eq('student_account_id',req.actor.sub).maybeSingle();
+ if(attemptError)throw attemptError;
+ if(!attempt)return res.status(404).json({error:'Attempt not found.'});
+ if(attempt.submitted_at)return res.status(409).json({error:'This examination has already been submitted.'});
+ const now=new Date().toISOString();
+ if(Date.parse(attempt.expires_at)<=Date.now())return res.status(409).json({error:'The examination time has expired.'});
+ const {data:existing,error:telemetryError}=await db.from('upec_assessment_telemetry').select('id,tab_focus_lost_count').eq('attempt_id',attempt.id).maybeSingle();
+ if(telemetryError)throw telemetryError;
+ const update={
+  last_heartbeat_at:now,
+  ...(currentQuestionIndex===undefined?{}:{current_question_index:currentQuestionIndex}),
+  ...(event==='tab-focus-lost'?{tab_focus_lost_count:(existing?.tab_focus_lost_count||0)+1}:{})
+ };
+ if(existing){
+  const {error}=await db.from('upec_assessment_telemetry').update(update).eq('id',existing.id);
+  if(error)throw error;
+ }else{
+  const {error}=await db.from('upec_assessment_telemetry').insert({attempt_id:attempt.id,tab_focus_lost_count:event==='tab-focus-lost'?1:0,...update});
+  if(error)throw error;
+ }
+ res.json({recorded:true,recordedAt:now});
+}));
 router.put('/assessments/attempts/:id/answers',wrap(async(req,res)=>{
  if(!validUuid(req.params.id))return res.status(400).json({error:'Invalid attempt ID.'});
  const answers=req.body?.answers;
