@@ -158,3 +158,21 @@ Database enforcement follow-up:
 - Existing 15 programme rows receive empty provisional requirement structures. None is automatically marked verified; no O-Level or Direct Entry rule was invented.
 
 Migration applied: `jamb_separate_olevel_direct_entry_requirements_20261109`.
+
+
+## Verified-only student eligibility directory (9 November 2026)
+
+- Added authenticated student endpoint `GET /admissions/jamb/directory` (under the student API namespace). It lists only active, institution-identity-verified institutions. Supplying an institution ID returns only active, source-verified programme listings for that institution and selected year. Supplying a programme ID narrows the response to that exact verified programme.
+- The response separates UTME subject combinations from O-Level and Direct Entry requirements. O-Level and Direct Entry JSON is returned only when its independent `entry_requirements_source_verified` flag is true.
+- UTME combinations are returned only when active, source-verified, and linked to the exact institution, programme and year. Unverified, inactive, wrong-course and wrong-year combinations are excluded.
+- Added a pure projection helper and regression tests for verified-only filtering and independent entry-requirement disclosure.
+- Updated the student JAMB checker to use institution and programme selectors populated from the verified directory, instead of free-text names. The UI presents UTME, O-Level and Direct Entry requirements in separate sections and links candidates to the official IBASS checker when verified local data is unavailable.
+- This endpoint is student-authenticated and inherits the student portal's verified-email middleware. It does not expose admin provisional rows.
+- Current database state: four institution identities are verified, but the 15 discovered programme rows remain provisional and there are no verified UTME combinations. Therefore the new student checker should correctly show no verified programme choices until programme records are individually reviewed and verified.
+
+Authoritative references:
+- [JAMB FAQ: IBASS identifies available programmes and course-specific UTME combinations](https://www.jamb.gov.ng/FAQ).
+- [Official JAMB Eligibility Checker](https://eligibility.jamb.gov.ng/), which presents institution and programme selection, O'Level credits/passes, A'Level credits/passes, and UTME subjects with English Language selected by default.
+- [Official IBASS University of Benin programme directory](https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN%2C+BENIN+CITY%2C+EDO+STATE).
+
+These official sources confirm the institution/programme-specific structure and default English selection in the checker; they do not verify the provisional 2027 course rows in this repository.
