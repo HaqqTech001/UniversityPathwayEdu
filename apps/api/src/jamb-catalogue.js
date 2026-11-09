@@ -102,3 +102,19 @@ export function validateJambEntryRequirements(existing,input={},institutionSourc
  if(notes.length<30||notes.length>2000)return {valid:false,error:'Record at least 30 characters describing the exact O-Level and Direct Entry requirements checked.'};
  return {valid:true,sourceUrl,notes,olevel,direct};
 }
+
+
+export function buildStudentJambProgramme(programme,combinations=[]){
+ const exact=(Array.isArray(combinations)?combinations:[]).filter(row=>
+  row&&row.active===true&&row.source_verified===true&&row.institution_id===programme.institution_id&&
+  row.programme_id===programme.id&&row.exam_year===programme.exam_year
+ );
+ const entryVerified=programme.entry_requirements_source_verified===true;
+ return {
+  id:programme.id,name:programme.programme_name,category:programme.programme_category,
+  entryRequirementsVerified:entryVerified,
+  olevelRequirements:entryVerified?programme.olevel_requirements:null,
+  directEntryRequirements:entryVerified?programme.direct_entry_requirements:null,
+  utmeCombinations:exact
+ };
+}
