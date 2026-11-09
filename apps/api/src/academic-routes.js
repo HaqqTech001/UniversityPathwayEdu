@@ -809,11 +809,12 @@ router.post('/jamb/combinations/:id/verify',grant('super_admin','admin'),wrap(as
  const v=req.body||{};
  const check=validateJambVerification(existing,v);
  if(!check.valid)return res.status(400).json({error:check.error});
- const {sourceUrl,notes,required,alternatives}=check;
+ const {sourceUrl,notes,required,alternatives,groups}=check;
  const {data,error}=await db.from('upec_jamb_utme_combinations').update({
   source_reference:sourceUrl,source_verified:true,source_checked_at:new Date().toISOString(),
   source_verified_by:actorId,verification_notes:notes,
-  verified_required_subjects:required,verified_alternative_subjects:alternatives
+  verified_required_subjects:required,verified_alternative_subjects:alternatives,
+  verified_subject_group_rules:groups
  }).eq('id',req.params.id).select('*').single();
  if(error)throw error;
  res.json({combination:data});
