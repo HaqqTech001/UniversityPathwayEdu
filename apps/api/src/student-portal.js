@@ -4,6 +4,7 @@ import guardianRoutes from './guardian-routes.js';
 import {Router} from 'express';
 import {supabaseAdmin as db} from './db.js';
 import {requireRole} from './security.js';
+import {buildStudentJambProgramme} from './jamb-catalogue.js';
 const router=Router();
 router.use(requireRole('student'));
 router.use(async(req,res,next)=>{
@@ -383,13 +384,7 @@ router.get('/admissions/jamb/directory',wrap(async(req,res)=>{
  }
  const byProgramme=new Map();
  for(const combination of combinations){const list=byProgramme.get(combination.programme_id)||[];list.push(combination);byProgramme.set(combination.programme_id,list);}
- res.json({year,institution:institutions[0],programmes:programmes.map(row=>({
-  id:row.id,name:row.programme_name,category:row.programme_category,
-  entryRequirementsVerified:row.entry_requirements_source_verified===true,
-  olevelRequirements:row.entry_requirements_source_verified===true?row.olevel_requirements:null,
-  directEntryRequirements:row.entry_requirements_source_verified===true?row.direct_entry_requirements:null,
-  utmeCombinations:byProgramme.get(row.id)||[]
- }))});
+ res.json({year,institution:institutions[0],programmes:programmes.map(row=>buildStudentJambProgramme(row,byProgramme.get(row.id)||[]))});
 }));
 router.get('/admissions/jamb/catalogue',wrap(async(req,res)=>{
  const year=Number(req.query.year||2027);
