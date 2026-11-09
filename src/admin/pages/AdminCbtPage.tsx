@@ -278,7 +278,10 @@ export default function AdminCbtPage() {
     title: '',
     subjectId: '',
     durationMinutes: 60,
-    questionIds: [] as string[]
+    questionIds: [] as string[],
+    shuffleQuestions: false,
+    shuffleOptions: false,
+    hideScoreUntilClosed: false
   });
 
   const [isSchedulingExam, setIsSchedulingExam] = useState<Exam | null>(null);
@@ -720,7 +723,10 @@ export default function AdminCbtPage() {
           subjectId: examForm.subjectId,
           title: examForm.title.trim(),
           durationMinutes: Number(examForm.durationMinutes),
-          questionIds: examForm.questionIds
+          questionIds: examForm.questionIds,
+          shuffleQuestions: examForm.shuffleQuestions,
+          shuffleOptions: examForm.shuffleOptions,
+          hideScoreUntilClosed: examForm.hideScoreUntilClosed
         })
       });
       notify('Assessment successfully created as draft.', 'success');
@@ -729,7 +735,10 @@ export default function AdminCbtPage() {
         title: '',
         subjectId: '',
         durationMinutes: stationSettings.defaultDurationMinutes || 60,
-        questionIds: []
+        questionIds: [],
+        shuffleQuestions: false,
+        shuffleOptions: false,
+        hideScoreUntilClosed: false
       });
       void fetchAssessments();
     } catch (err: any) {
@@ -1058,7 +1067,10 @@ export default function AdminCbtPage() {
                 title: '',
                 subjectId: subjectsState.data[0]?.id || '',
                 durationMinutes: stationSettings.defaultDurationMinutes || 60,
-                questionIds: []
+                questionIds: [],
+                shuffleQuestions: false,
+                shuffleOptions: false,
+                hideScoreUntilClosed: false
               });
               setIsCreatingExam(true);
             }}
@@ -2821,6 +2833,24 @@ export default function AdminCbtPage() {
                 />
               </label>
             </div>
+
+            <fieldset className="rounded-lg border border-slate-200 p-3">
+              <legend className="px-1 text-xs font-semibold text-slate-700">Examination controls</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-start gap-2 text-xs text-slate-700">
+                  <input type="checkbox" checked={examForm.shuffleQuestions} onChange={e=>setExamForm(v=>({...v,shuffleQuestions:e.target.checked}))} className="mt-0.5 rounded border-slate-300 text-[#111A43]"/>
+                  <span><strong className="block">Shuffle question order</strong><span className="text-slate-500">Each candidate receives a stable question order for their attempt.</span></span>
+                </label>
+                <label className="flex items-start gap-2 text-xs text-slate-700">
+                  <input type="checkbox" checked={examForm.shuffleOptions} onChange={e=>setExamForm(v=>({...v,shuffleOptions:e.target.checked}))} className="mt-0.5 rounded border-slate-300 text-[#111A43]"/>
+                  <span><strong className="block">Shuffle answer options</strong><span className="text-slate-500">Answer choices are rearranged per candidate and graded against the original key.</span></span>
+                </label>
+                <label className="flex items-start gap-2 text-xs text-slate-700 sm:col-span-2">
+                  <input type="checkbox" checked={examForm.hideScoreUntilClosed} onChange={e=>setExamForm(v=>({...v,hideScoreUntilClosed:e.target.checked}))} className="mt-0.5 rounded border-slate-300 text-[#111A43]"/>
+                  <span><strong className="block">Withhold scores until examination closes</strong><span className="text-slate-500">Candidates see a pending-release message until the closing time or manual closure.</span></span>
+                </label>
+              </div>
+            </fieldset>
 
             <fieldset className="rounded-lg border border-slate-200 p-3">
               <legend className="px-1 text-xs font-semibold text-slate-700">
