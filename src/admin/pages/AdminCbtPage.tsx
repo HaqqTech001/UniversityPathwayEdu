@@ -118,6 +118,9 @@ type Attempt = {
   submitted_at: string | null;
   score: number | null;
   total_questions: number | null;
+  last_heartbeat_at?: string | null;
+  tab_focus_lost_count?: number | null;
+  current_question_index?: number | null;
 };
 
 type ResultRecord = {
@@ -2342,7 +2345,11 @@ export default function AdminCbtPage() {
                         <div className="rounded-lg bg-slate-50 p-2"><p className="text-[10px] text-slate-500">Session started</p><p className="text-xs font-semibold text-slate-700">{attempt.started_at ? new Date(attempt.started_at).toLocaleTimeString() : '—'}</p></div>
                         <div className="rounded-lg bg-slate-50 p-2"><p className="text-[10px] text-slate-500">Timer expiry</p><p className="text-xs font-semibold text-slate-700">{attempt.expires_at ? new Date(attempt.expires_at).toLocaleTimeString() : '—'}</p></div>
                       </div>
-                      <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-xs"><span className="text-slate-500">Recorded score</span><strong className="text-[#111A43]">{submitted && attempt.score !== null && attempt.total_questions !== null ? String(attempt.score) + ' / ' + String(attempt.total_questions) : '—'}</strong></div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-xs">
+                        <div><p className="text-slate-500">Last heartbeat</p><strong className="text-slate-700">{attempt.last_heartbeat_at?new Date(attempt.last_heartbeat_at).toLocaleTimeString():'Not received'}</strong></div>
+                        <div><p className="text-slate-500">Focus losses</p><strong className="text-slate-700">{attempt.tab_focus_lost_count??'Not recorded'}</strong></div>
+                        <div className="col-span-2"><p className="text-slate-500">Recorded score</p><strong className="text-[#111A43]">{submitted && attempt.score !== null && attempt.total_questions !== null ? String(attempt.score) + ' / ' + String(attempt.total_questions) : '—'}</strong></div>
+                      </div>
                     </article>;
                   })}
                 </div>
@@ -2354,6 +2361,8 @@ export default function AdminCbtPage() {
                       <th className="py-2.5 px-3">Session Start</th>
                       <th className="py-2.5 px-3">Timer Expiry</th>
                       <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Last heartbeat</th>
+                      <th className="py-2.5 px-3 text-right">Focus losses</th>
                       <th className="py-2.5 px-3 text-right">Score</th>
                     </tr>
                   </thead>
@@ -2400,6 +2409,8 @@ export default function AdminCbtPage() {
                               </span>
                             )}
                           </td>
+                          <td className="py-2.5 px-3 text-slate-600">{attempt.last_heartbeat_at?new Date(attempt.last_heartbeat_at).toLocaleTimeString():'Not received'}</td>
+                          <td className="py-2.5 px-3 text-right text-slate-600">{attempt.tab_focus_lost_count??'—'}</td>
                           <td className="py-2.5 px-3 text-right font-bold text-[#111A43]">
                             {isSubmitted && attempt.score !== null && attempt.total_questions !== null
                               ? `${attempt.score} / ${attempt.total_questions}`
