@@ -1221,7 +1221,7 @@ export default function AdminCbtPage() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-slate-200">
-                    <table className="min-w-[780px] w-full text-left text-xs">
+                    <table className="min-w-[900px] w-full text-left text-xs">
                       <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
                         <tr>
                           <th className="py-2.5 px-3">Title</th>
