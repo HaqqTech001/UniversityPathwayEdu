@@ -11,7 +11,7 @@ export default function InstitutionalAssessments(){
  useEffect(()=>{if(!expires)return;const tick=()=>setSeconds(Math.max(0,Math.ceil((new Date(expires).getTime()-Date.now())/1000)));tick();const timer=setInterval(tick,1000);return()=>clearInterval(timer);},[expires]);
  useEffect(()=>{
   if(!attempt||!expires||result)return;
-  const timer=window.setTimeout(()=>{void upecAuthApi.saveAssessmentAnswers(token(),attempt,answers).catch(e=>setError(e instanceof Error?e.message:'Answers could not be saved.'));},650);
+  const timer=window.setTimeout(()=>{try{void upecAuthApi.saveAssessmentAnswers(token(),attempt,answers).catch(e=>setError(e instanceof Error?e.message:'Answers could not be saved.'));}catch(e){setError(e instanceof Error?e.message:'Please sign in again to save your answers.');}},650);
   return()=>window.clearTimeout(timer);
  },[attempt,expires,result,answers]);
  useEffect(()=>{
