@@ -73,3 +73,24 @@ test('normalizes verified subject order to the saved rule for database evidence 
  assert.equal(result.valid,true);
  assert.deepEqual(result.required,saved.required_subjects);
 });
+
+test('supports official IBASS subject groups within the three remaining subject slots',()=>{
+ const row=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Biological science option',subjects:['Biology','Agricultural Science'],choose:1}]});
+ assert.equal(validateJambCombination(row),true);
+});
+test('rejects subject groups that exceed the three remaining subject slots',()=>{
+ const row=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['Biology','Agricultural Science'],choose:2}]});
+ assert.equal(validateJambCombination(row),false);
+});
+test('rejects duplicate subject-group names and malformed group rules',()=>{
+ const duplicate=jambCombinationPayload({...valid,requiredSubjects:['Mathematics'],subjectGroupRules:[{name:'Options',subjects:['Biology','Agricultural Science'],choose:1},{name:'options',subjects:['Chemistry','Physics'],choose:1}]});
+ const malformed=jambCombinationPayload({...valid,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['Biology'],choose:0}]});
+ assert.equal(validateJambCombination(duplicate),false);
+ assert.equal(validateJambCombination(malformed),false);
+});
+test('requires exact subject-group evidence before recording IBASS verification',()=>{
+ const existing={...saved,required_subjects:['Mathematics','Physics'],subject_group_rules:[{name:'Options',subjects:['Biology','Agricultural Science'],choose:1}]};
+ const checked={...verification,requiredSubjects:['Mathematics','Physics'],subjectGroupRules:[{name:'Options',subjects:['Agricultural Science','Biology'],choose:1}]};
+ assert.equal(validateJambVerification(existing,checked).valid,true);
+ assert.equal(validateJambVerification(existing,{...checked,subjectGroupRules:[{name:'Options',subjects:['Biology','Chemistry'],choose:1}]}).valid,false);
+});
