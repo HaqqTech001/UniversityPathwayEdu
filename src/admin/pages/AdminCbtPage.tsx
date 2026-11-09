@@ -118,6 +118,7 @@ type Attempt = {
   submitted_at: string | null;
   score: number | null;
   total_questions: number | null;
+  status?: 'expired' | 'submitted' | 'time-expired' | 'in-progress';
   last_heartbeat_at?: string | null;
   tab_focus_lost_count?: number | null;
   current_question_index?: number | null;
@@ -2343,9 +2344,9 @@ export default function AdminCbtPage() {
               ) : (
                 <div className="grid gap-2 p-3 sm:hidden">
                   {attemptsState.data.map(attempt => {
-                    const submitted = Boolean(attempt.submitted_at);
-                    const autoFinalized = submitted && attempt.submitted_at === attempt.expires_at;
-                    const expired = !submitted && new Date(attempt.expires_at).getTime() < Date.now();
+                    const autoFinalized = attempt.status === 'expired';
+                    const submitted = attempt.status === 'submitted' || autoFinalized;
+                    const expired = attempt.status === 'time-expired';
                     const status = autoFinalized ? 'Expired (Auto-Finalized)' : submitted ? 'Submitted' : expired ? 'Time Expired (Unsubmitted)' : 'In Progress';
                     const statusClass = autoFinalized ? 'bg-slate-100 text-slate-700' : submitted ? 'bg-emerald-50 text-emerald-700' : expired ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700';
                     return <article key={attempt.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
@@ -2382,11 +2383,9 @@ export default function AdminCbtPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {attemptsState.data.map(attempt => {
-                      const isSubmitted = Boolean(attempt.submitted_at);
-                      const isOverdueFinalized =
-                        isSubmitted &&
-                        attempt.submitted_at === attempt.expires_at;
-                      const isExpired = !isSubmitted && new Date(attempt.expires_at).getTime() < Date.now();
+                      const isOverdueFinalized = attempt.status === 'expired';
+                      const isSubmitted = attempt.status === 'submitted' || isOverdueFinalized;
+                      const isExpired = attempt.status === 'time-expired';
 
                       return (
                         <tr key={attempt.id} className="hover:bg-slate-50">
