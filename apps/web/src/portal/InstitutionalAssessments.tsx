@@ -10,6 +10,23 @@ export default function InstitutionalAssessments(){
  useEffect(()=>{const key=getStudentToken();if(!key)return;Promise.all([upecAuthApi.studentAssessments(key),upecAuthApi.assessmentResults(key)]).then(([a,b])=>{setExams(a.assessments);setHistory(b.results);}).catch(e=>setError(e.message));},[]);
  useEffect(()=>{if(!expires)return;const tick=()=>setSeconds(Math.max(0,Math.ceil((new Date(expires).getTime()-Date.now())/1000)));tick();const timer=setInterval(tick,1000);return()=>clearInterval(timer);},[expires]);
  useEffect(()=>{
+  if(!attempt||!expires||result||seconds!==0)return;
+  let cancelled=false;
+  const timer=window.setTimeout(async()=>{
+   try{
+    const response=await upecAuthApi.assessmentResults(token());
+    if(cancelled)return;
+    setHistory(response.results);
+    const completed=response.results.find(item=>item.id===attempt);
+    if(completed)setResult({score:completed.score??null,totalQuestions:completed.total_questions??null,scorePending:Boolean(completed.scorePending)});
+    else setError('Your examination time has ended. The system is finalising the attempt; refresh your results shortly.');
+    setQuestions([]);
+    setExpires('');
+   }catch(e){if(!cancelled)setError(e instanceof Error?e.message:'The expired attempt could not be finalised yet.');}
+  },35000);
+  return()=>{cancelled=true;window.clearTimeout(timer);};
+ },[attempt,expires,result,seconds]);
+ useEffect(()=>{
   if(!attempt||!expires||result)return;
   const timer=window.setTimeout(()=>{try{void upecAuthApi.saveAssessmentAnswers(token(),attempt,answers).catch(e=>setError(e instanceof Error?e.message:'Answers could not be saved.'));}catch(e){setError(e instanceof Error?e.message:'Please sign in again to save your answers.');}},650);
   return()=>window.clearTimeout(timer);
