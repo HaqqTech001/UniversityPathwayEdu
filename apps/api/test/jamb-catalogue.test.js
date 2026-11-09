@@ -121,3 +121,10 @@ test('rejects non-IBASS programme verification URLs and incomplete evidence',()=
  assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'http://ibass.jamb.gov.ng/brochure-courses?id=21'}).valid,false);
  assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,verificationNotes:'listed'}).valid,false);
 });
+
+test('rejects an IBASS programme page belonging to a different institution',()=>{
+ const otherInstitution='https://ibass.jamb.gov.ng/brochure-courses?id=371&school=GREENFIELD+UNIVERSITY';
+ assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+OF+BENIN').valid,true);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence,'https://ibass.jamb.gov.ng/brochure-courses?id=371&school=GREENFIELD+UNIVERSITY').valid,false);
+ assert.ok(otherInstitution.includes('id=371'));
+});
