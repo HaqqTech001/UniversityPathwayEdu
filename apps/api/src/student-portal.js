@@ -379,7 +379,7 @@ router.get('/admissions/jamb/directory',wrap(async(req,res)=>{
  const ids=programmes.map(row=>row.id);
  let combinations=[];
  if(ids.length){
-  const {data,error}=await db.from('upec_jamb_utme_combinations').select('id,institution_id,programme_id,exam_year,english_language_required,required_subjects,alternative_subjects,alternative_subject_count,subject_group_rules,additional_notes,source_reference,source_checked_at,verification_notes').eq('institution_id',institutionId).eq('exam_year',year).eq('active',true).eq('source_verified',true).in('programme_id',ids).order('programme_id').limit(5000);
+  const {data,error}=await db.from('upec_jamb_utme_combinations').select('id,institution_id,programme_id,exam_year,active,source_verified,english_language_required,required_subjects,alternative_subjects,alternative_subject_count,subject_group_rules,additional_notes,source_reference,source_checked_at,verification_notes').eq('institution_id',institutionId).eq('exam_year',year).eq('active',true).eq('source_verified',true).in('programme_id',ids).order('programme_id').limit(5000);
   if(error)throw error;combinations=data||[];
  }
  const byProgramme=new Map();
