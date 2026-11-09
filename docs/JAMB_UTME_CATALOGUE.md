@@ -139,3 +139,9 @@ Official source references reviewed for this increment:
 - [JAMB IBASS degree-specific requirements](https://ibass.jamb.gov.ng/assets/uploads/degree-specific-requirements.pdf), which includes institution-specific requirements and exceptions.
 
 These brochure sources support the catalogue structure, but no 2027 programme availability or individual subject combination was newly marked verified in this increment. Each course-year row still needs exact review in IBASS.
+
+
+Database enforcement follow-up:
+- The relationship migration was followed by a constraint migration after confirming the combination table contained zero rows. Both `institution_id` and `programme_id` are now NOT NULL, with a unique index on institution + programme + year.
+- The combination list API can filter by institution ID and programme ID.
+- Combination edits preserve the directory-linked institution, programme and year; changing the academic identity requires a separate directory-linked record rather than mutating names on an existing rule.
