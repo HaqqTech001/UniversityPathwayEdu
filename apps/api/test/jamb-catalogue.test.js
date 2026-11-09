@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {jambCombinationPayload,validateJambCombination,validateJambVerification} from '../src/jamb-catalogue.js';
+import {jambCombinationPayload,validateJambCombination,validateJambVerification,validateJambProgrammeVerification} from '../src/jamb-catalogue.js';
 
 const valid={
  examYear:2027,institutionName:'University A',programmeName:'Computer Science',
@@ -106,4 +106,18 @@ test('rejects subject duplication across required, alternative and grouped choic
  assert.equal(validateJambCombination(requiredAlternative),false);
  assert.equal(validateJambCombination(requiredGroup),false);
  assert.equal(validateJambCombination(duplicateGroups),false);
+});
+
+const savedProgramme={id:'programme-1',institution_id:'institution-1',exam_year:2027,programme_name:'Software Engineering'};
+const programmeEvidence={institutionId:'institution-1',examYear:2027,programmeName:'Software Engineering',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=21&school=ADMIRALTY+UNIVERSITY+OF+NIGERIA',verificationNotes:'Checked the exact programme name under the selected institution and confirmed its admission-year applicability in IBASS.'};
+test('accepts programme verification only for the exact institution, programme, year and IBASS page',()=>{
+ assert.equal(validateJambProgrammeVerification(savedProgramme,programmeEvidence).valid,true);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,institutionId:'institution-2'}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,examYear:2026}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,programmeName:'Computer Science'}).valid,false);
+});
+test('rejects non-IBASS programme verification URLs and incomplete evidence',()=>{
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'https://jamb.gov.ng/FAQ'}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,sourceReference:'http://ibass.jamb.gov.ng/brochure-courses?id=21'}).valid,false);
+ assert.equal(validateJambProgrammeVerification(savedProgramme,{...programmeEvidence,verificationNotes:'listed'}).valid,false);
 });
