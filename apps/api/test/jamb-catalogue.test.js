@@ -6,7 +6,7 @@ const valid={
  examYear:2027,institutionName:'University A',programmeName:'Computer Science',
  englishLanguageRequired:true,requiredSubjects:['Mathematics','Physics','Chemistry'],
  alternativeSubjects:[],alternativeSubjectCount:0,
- sourceReference:'https://eligibility.jamb.gov.ng/',additionalNotes:''
+ sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A',additionalNotes:''
 };
 
 test('accepts an institution and course-specific combination with English plus three subjects',()=>{
@@ -42,7 +42,7 @@ test('new combinations are always provisional regardless of client verification 
 });
 
 const saved={exam_year:2027,institution_name:'University A',programme_name:'Computer Science',english_language_required:true,required_subjects:['Mathematics','Physics','Chemistry'],alternative_subjects:[],alternative_subject_count:0};
-const verification={examYear:2027,institutionName:'University A',programmeName:'Computer Science',sourceReference:'https://eligibility.jamb.gov.ng/',verificationNotes:'Checked exact University A Computer Science listing for the 2027 UTME year.',requiredSubjects:['Mathematics','Physics','Chemistry'],alternativeSubjects:[]};
+const verification={examYear:2027,institutionName:'University A',programmeName:'Computer Science',sourceReference:'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A',verificationNotes:'Checked exact University A Computer Science listing for the 2027 UTME year.',requiredSubjects:['Mathematics','Physics','Chemistry'],alternativeSubjects:[]};
 
 test('accepts verification evidence only for the exact saved institution, programme and year',()=>{
  assert.equal(validateJambVerification(saved,verification).valid,true);
@@ -56,6 +56,11 @@ test('rejects non-JAMB, insecure and malformed verification source URLs',()=>{
  assert.equal(validateJambVerification(saved,{...verification,sourceReference:'not-a-url'}).valid,false);
 });
 
+test('rejects UTME verification against another institution IBASS brochure',()=>{
+ const otherSource='https://ibass.jamb.gov.ng/brochure-courses?id=371&school=UNIVERSITY+B';
+ assert.equal(validateJambVerification(saved,verification,'https://ibass.jamb.gov.ng/brochure-courses?id=101&school=UNIVERSITY+A').valid,true);
+ assert.equal(validateJambVerification(saved,verification,otherSource).valid,false);
+});
 test('rejects checked subjects that differ from the saved provisional rule',()=>{
  assert.equal(validateJambVerification(saved,{...verification,requiredSubjects:['Mathematics','Physics','Biology']}).valid,false);
 });
