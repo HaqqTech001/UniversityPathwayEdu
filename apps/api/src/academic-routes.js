@@ -823,7 +823,14 @@ router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manag
  const {data,error}=await query;if(error)throw error;res.json({year,combinations:data||[]});
 }));
 router.post('/jamb/combinations',grant('super_admin','admin'),wrap(async(req,res)=>{
- const row=jambCombinationPayload(req.body||{});
+ const v=req.body||{},row=jambCombinationPayload(v);
+ if(!uuid(v.institutionId)||!uuid(v.programmeId))return res.status(400).json({error:'Select the exact institution and institution-specific programme record.'});
+ const {data:programme,error:programmeError}=await db.from('upec_jamb_programmes').select('id,institution_id,exam_year,programme_name,source_verified,active').eq('id',v.programmeId).maybeSingle();
+ if(programmeError)throw programmeError;
+ if(!programme||programme.institution_id!==v.institutionId||programme.exam_year!==row.exam_year||programme.programme_name.toLowerCase()!==row.programme_name.toLowerCase()||!programme.active)return res.status(400).json({error:'The selected programme does not match this institution, course and year.'});
+ const {data:institution,error:institutionError}=await db.from('upec_jamb_institutions').select('id,institution_name,source_verified,active').eq('id',v.institutionId).maybeSingle();
+ if(institutionError)throw institutionError;if(!institution||!institution.active)return res.status(400).json({error:'Select an active institution directory record.'});
+ row.institution_id=institution.id;row.programme_id=programme.id;row.institution_name=institution.institution_name;row.programme_name=programme.programme_name;
  if(!validateJambCombination(row))return res.status(400).json({error:'A JAMB combination requires English Language and exactly three remaining subjects, valid alternatives, institution, course, year and source.'});
  const {data,error}=await db.from('upec_jamb_utme_combinations').insert(row).select('*').single();
  if(error?.code==='23505')return res.status(409).json({error:'A combination already exists for this institution, course and year.'});
@@ -848,7 +855,13 @@ router.post('/jamb/combinations/:id/verify',grant('super_admin','admin'),wrap(as
  const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
  const v=req.body||{};
- const check=validateJambVerification(existing,v);
+ if(!existing.institution_id||!existing.programme_id)return res.status(409).json({error:'This legacy combination is not linked to the institution programme directory. Relink it before verification.'});
+ const {data:programme,error:programmeError}=await db.from('upec_jamb_programmes').select('id,institution_id,exam_year,programme_name,source_verified,active').eq('id',existing.programme_id).maybeSingle();
+ if(programmeError)throw programmeError;
+ if(!programme||programme.institution_id!==existing.institution_id||programme.exam_year!==existing.exam_year||programme.programme_name.toLowerCase()!==existing.programme_name.toLowerCase()||!programme.source_verified)return res.status(409).json({error:'Verify the exact institution-specific programme listing before verifying its UTME subject combination.'});
+ const {data:institution,error:institutionError}=await db.from('upec_jamb_institutions').select('id,official_source_reference,source_verified,active').eq('id',existing.institution_id).maybeSingle();
+ if(institutionError)throw institutionError;if(!institution||!institution.source_verified||!institution.active)return res.status(409).json({error:'Verify the institution identity before verifying its UTME subject combination.'});
+ const check=validateJambVerification(existing,v,institution.official_source_reference);
  if(!check.valid)return res.status(400).json({error:check.error});
  const {sourceUrl,notes,required,alternatives,groups}=check;
  const {data,error}=await db.from('upec_jamb_utme_combinations').update({
