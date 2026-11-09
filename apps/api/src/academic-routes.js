@@ -817,6 +817,8 @@ router.get('/jamb/combinations',grant('super_admin','admin','teacher','cbt_manag
  const year=Number(req.query.year||2027);if(!examYear(year))return res.status(400).json({error:'Choose a valid JAMB year.'});
  let query=db.from('upec_jamb_utme_combinations').select('*').eq('exam_year',year).order('institution_name').order('programme_name').limit(2000);
  if(req.query.institution)query=query.ilike('institution_name','%'+String(req.query.institution).slice(0,180)+'%');
+ if(req.query.institutionId){if(!uuid(req.query.institutionId))return res.status(400).json({error:'Invalid institution filter.'});query=query.eq('institution_id',req.query.institutionId);}
+ if(req.query.programmeId){if(!uuid(req.query.programmeId))return res.status(400).json({error:'Invalid programme filter.'});query=query.eq('programme_id',req.query.programmeId);}
  if(req.query.programme)query=query.ilike('programme_name','%'+String(req.query.programme).slice(0,180)+'%');
  if(req.query.verified==='true'||req.query.verified==='false')query=query.eq('source_verified',req.query.verified==='true');
  if(req.query.active==='true'||req.query.active==='false')query=query.eq('active',req.query.active==='true');
@@ -840,7 +842,8 @@ router.patch('/jamb/combinations/:id',grant('super_admin','admin'),wrap(async(re
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid combination ID.'});
  const {data:existing,error:readError}=await db.from('upec_jamb_utme_combinations').select('*').eq('id',req.params.id).maybeSingle();
  if(readError)throw readError;if(!existing)return res.status(404).json({error:'JAMB combination not found.'});
- const v=req.body||{},payload={examYear:v.examYear??existing.exam_year,institutionName:v.institutionName??existing.institution_name,institutionCode:v.institutionCode??existing.institution_code,programmeName:v.programmeName??existing.programme_name,programmeCode:v.programmeCode??existing.programme_code,englishLanguageRequired:true,requiredSubjects:v.requiredSubjects??existing.required_subjects,alternativeSubjects:v.alternativeSubjects??existing.alternative_subjects,alternativeSubjectCount:v.alternativeSubjectCount??existing.alternative_subject_count,subjectGroupRules:v.subjectGroupRules??existing.subject_group_rules,additionalNotes:v.additionalNotes??existing.additional_notes,sourceReference:v.sourceReference??existing.source_reference,active:v.active??existing.active};
+ if(!existing.institution_id||!existing.programme_id)return res.status(409).json({error:'This combination is not linked to the JAMB institution programme directory and cannot be edited.'});
+ const v=req.body||{},payload={examYear:existing.exam_year,institutionName:existing.institution_name,institutionCode:existing.institution_code,programmeName:existing.programme_name,programmeCode:existing.programme_code,englishLanguageRequired:true,requiredSubjects:v.requiredSubjects??existing.required_subjects,alternativeSubjects:v.alternativeSubjects??existing.alternative_subjects,alternativeSubjectCount:v.alternativeSubjectCount??existing.alternative_subject_count,subjectGroupRules:v.subjectGroupRules??existing.subject_group_rules,additionalNotes:v.additionalNotes??existing.additional_notes,sourceReference:v.sourceReference??existing.source_reference,active:v.active??existing.active};
  const row=jambCombinationPayload(payload);if(!validateJambCombination(row))return res.status(400).json({error:'Invalid JAMB combination update.'});
  // Any edit invalidates prior source verification; a fresh IBASS review is required.
  row.source_verified=false;row.source_checked_at=null;row.source_verified_by=null;row.verification_notes='';row.verified_required_subjects=[];row.verified_alternative_subjects=[];row.verified_subject_group_rules=[];
