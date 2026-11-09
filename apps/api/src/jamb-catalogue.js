@@ -64,3 +64,15 @@ export function validateJambVerification(existing,input={}){
  if(existing.english_language_required!==true||required.length+(existing.alternative_subject_count||0)+groups.reduce((sum,group)=>sum+group.choose,0)!==3)return {valid:false,error:'The saved combination does not satisfy the JAMB subject structure.'};
  return {valid:true,sourceUrl,notes,required:existing.required_subjects,alternatives:existing.alternative_subjects,groups:existing.subject_group_rules||[]};
 }
+
+
+export function validateJambProgrammeVerification(existing,input={}){
+ const year=Number(input.examYear),name=String(input.programmeName||'').trim(),institutionId=String(input.institutionId||'').trim();
+ if(year!==existing.exam_year||name.toLowerCase()!==String(existing.programme_name||'').toLowerCase()||institutionId!==existing.institution_id)return {valid:false,error:'Verification must match the exact saved institution, programme and admission year.'};
+ const sourceUrl=typeof input.sourceReference==='string'?input.sourceReference.trim():'';
+ let source;try{source=new URL(sourceUrl);}catch{return {valid:false,error:'Provide the official JAMB IBASS programme source URL.'};}
+ if(source.protocol!=='https:'||source.hostname.toLowerCase()!=='ibass.jamb.gov.ng'||!source.pathname.startsWith('/brochure-courses'))return {valid:false,error:'Programme verification requires the official JAMB IBASS brochure course page.'};
+ const notes=typeof input.verificationNotes==='string'?input.verificationNotes.trim():'';
+ if(notes.length<30||notes.length>2000)return {valid:false,error:'Explain how the exact programme and admission year were checked (at least 30 characters).'};
+ return {valid:true,sourceUrl,notes};
+}
