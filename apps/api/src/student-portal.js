@@ -64,7 +64,13 @@ router.get('/assessments/attempts/:id',wrap(async(req,res)=>{
   if(expiryError)throw expiryError;
   return res.status(409).json({error:'Time expired. This attempt was finalized with unanswered questions.'});
  }
- if(attempt.submitted_at)return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:attempt.score,totalQuestions:attempt.total_questions}});
+ if(attempt.submitted_at){
+  const {data:exam,error:examError}=await db.from('upec_assessments').select('status,closes_at,hide_score_until_closed').eq('id',attempt.assessment_id).maybeSingle();
+  if(examError)throw examError;
+  const examEnded=Boolean(exam&&(exam.status==='closed'||(exam.closes_at&&Date.parse(exam.closes_at)<=Date.now())));
+  const scoreHidden=Boolean(exam?.hide_score_until_closed&&!examEnded);
+  return res.json({attempt:{id:attempt.id,submittedAt:attempt.submitted_at,score:scoreHidden?null:attempt.score,totalQuestions:scoreHidden?null:attempt.total_questions,scorePending:scoreHidden}});
+ }
  if(Date.now()>Date.parse(attempt.expires_at))return res.status(409).json({error:'This examination has expired. Answer review is unavailable after the deadline.',expiresAt:attempt.expires_at});
  const {data:links,error:linkError}=await db.from('upec_assessment_questions').select('question_id,position').eq('assessment_id',attempt.assessment_id).order('position').limit(100);
  if(linkError)throw linkError;
