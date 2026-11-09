@@ -660,10 +660,14 @@ router.get('/assessments/:id/attempts',grant(...questionRoles),wrap(async(req,re
   if(telemetryError)throw telemetryError;
   (telemetry||[]).forEach(row=>telemetryByAttempt.set(row.attempt_id,row));
  }
+ const now=Date.now();
  const formatted=(attempts||[]).map(a=>{
   const telemetry=telemetryByAttempt.get(a.id);
+  const expired=!a.submitted_at&&Date.parse(a.expires_at)<=now;
+  const autoFinalized=Boolean(a.submitted_at&&a.submitted_at===a.expires_at);
   return {
    ...a,
+   status:autoFinalized?'expired':a.submitted_at?'submitted':expired?'time-expired':'in-progress',
    student_name:studentsMap[a.student_account_id]||null,
    last_heartbeat_at:telemetry?.last_heartbeat_at||null,
    tab_focus_lost_count:telemetry?.tab_focus_lost_count??null,
