@@ -7,13 +7,13 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(!req.staff?.permissions?.includes('cbt.manage') && req.staff?.role !== 'super_admin' && req.staff?.role !== 'admin')return res.status(403).json({error:'CBT management permission required.'});
  const mode=req.body?.mode;
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['schedule','attendance','performance'].includes(mode))return res.status(400).json({error:'Invalid examination or notification type.'});
- const exam=await db.from('upec_assessments').select('id,title,opens_at,closes_at,status,hide_score_until_closed').eq('id',req.params.id).maybeSingle();
+ const exam=await db.from('upec_assessments').select('id,title,opens_at,closes_at,status,hide_score_until_closed,restricted').eq('id',req.params.id).maybeSingle();
  if(exam.error)throw exam.error;
  if(!exam.data||!['published','closed'].includes(exam.data.status))return res.status(404).json({error:'Published examination not found.'});
  if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
  const examClosed=exam.data.status==='closed'||Boolean(exam.data.closes_at&&Date.parse(exam.data.closes_at)<=Date.now());
  if(mode==='performance'&&exam.data.hide_score_until_closed&&!examClosed)return res.status(409).json({error:'Performance notifications are withheld until this examination closes.'});
- const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(500);
+ const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(501);
  if(eligibility.error)throw eligibility.error;
  let ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
  const attempts=mode!=='schedule'?await db.from('upec_assessment_attempts').select('student_account_id,score,total_questions,submitted_at,started_at').eq('assessment_id',req.params.id).order('submitted_at',{ascending:false,nullsFirst:false}).order('started_at',{ascending:false}).limit(1000):{data:[],error:null};
@@ -21,8 +21,13 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(!ids.length && mode!=='schedule'){
   ids=[...new Set((attempts.data||[]).map(row=>row.student_account_id))];
  }
+ if(!ids.length && mode==='schedule' && !exam.data.restricted){
+  const admitted=await db.from('local_student_applications').select('account_id').eq('status','approved').limit(501);
+  if(admitted.error)throw admitted.error;
+  ids=[...new Set((admitted.data||[]).map(row=>row.account_id))];
+ }
  if(!ids.length)return res.json({queued:0,skipped:0,studentsNotified:0});
- if(ids.length===500)return res.status(409).json({error:'Recipient list may be incomplete. Refine the examination audience before sending.'});
+ if(ids.length>500)return res.status(409).json({error:'Recipient list may be incomplete. Refine the examination audience before sending.'});
  const guardians=await db.from('upec_guardian_contacts').select('student_account_id,guardian_name,email').in('student_account_id',ids).not('verified_at','is',null);
  if(guardians.error)throw guardians.error;
  const students=await db.from('local_accounts').select('id,full_name').in('id',ids);
