@@ -28,7 +28,7 @@ export default function InstitutionalAssessments(){
    }catch(e){if(!cancelled)setError(e instanceof Error?e.message:'The expired attempt could not be finalised yet.');}
   },35000);
   return()=>{cancelled=true;window.clearTimeout(timer);};
- },[attempt,expires,result,seconds]);
+ },[attempt,expires,result,seconds===0]);
  useEffect(()=>{
   if(!attempt||!expires||result)return;
   const timer=window.setTimeout(()=>{try{void upecAuthApi.saveAssessmentAnswers(token(),attempt,answers).catch(e=>setError(e instanceof Error?e.message:'Answers could not be saved.'));}catch(e){setError(e instanceof Error?e.message:'Please sign in again to save your answers.');}},650);
