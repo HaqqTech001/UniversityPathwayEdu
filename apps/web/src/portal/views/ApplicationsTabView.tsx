@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FileCheck,
   CheckCircle2,
@@ -22,6 +22,7 @@ import StudentApplicationRegister from '../StudentApplicationRegister';
 import StudentHostelRequests from '../StudentHostelRequests';
 import CommonApplicationForm from '../CommonApplicationForm';
 import ConductAcknowledgement from '../ConductAcknowledgement';
+import {getStudentToken} from '../../context/AuthContext';
 
 interface ApplicationsTabViewProps {
   currentUser: StudentUser;
@@ -54,7 +55,34 @@ export default function ApplicationsTabView({
 }: ApplicationsTabViewProps) {
   const [showRegisterNew, setShowRegisterNew] = useState(false);
   const [conductAccepted, setConductAccepted] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState<'idle'|'checking'|'ready'|'missing'|'error'>('idle');
+  const [photoCheckVersion, setPhotoCheckVersion] = useState(0);
   const application = currentUser.application;
+
+  useEffect(() => {
+    if (!showRegisterNew || !currentUser.profileCompleted) {
+      setPhotoStatus('idle');
+      return;
+    }
+    let active = true;
+    setPhotoStatus('checking');
+    const token = getStudentToken();
+    if (!token) {
+      setPhotoStatus('error');
+      return () => { active = false; };
+    }
+    const base = (import.meta.env.VITE_API_URL || '').replace(/\\/$/, '');
+    void fetch(base + '/api/student/profile/photo', {
+      headers: { Authorization: 'Bearer ' + token },
+    }).then(async response => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to verify your profile photograph.');
+      if (active) setPhotoStatus(data?.url ? 'ready' : 'missing');
+    }).catch(() => {
+      if (active) setPhotoStatus('error');
+    });
+    return () => { active = false; };
+  }, [showRegisterNew, currentUser.profileCompleted, photoCheckVersion]);
   const isAdmitted = application?.status === 'approved';
 
   return (
@@ -101,6 +129,19 @@ export default function ApplicationsTabView({
               <p className="font-bold">Complete your student biodata first.</p>
               <p className="mt-1">Your application cannot be submitted until your required profile information is complete.</p>
               <button type="button" onClick={() => onNavigateTab('profile')} className="mt-3 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Complete biodata</button>
+            </div>
+          ) : photoStatus === 'checking' || photoStatus === 'idle' ? (
+            <p role="status" className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Checking your required profile photograph…</p>
+          ) : photoStatus === 'missing' ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+              <p className="font-bold">Upload your recent, clear profile photograph.</p>
+              <p className="mt-1">A profile photograph is required before you can submit a programme application.</p>
+              <button type="button" onClick={() => onNavigateTab('profile')} className="mt-3 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Upload photograph in My Profile</button>
+            </div>
+          ) : photoStatus === 'error' ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+              <p className="font-bold">We could not verify your profile photograph.</p>
+              <button type="button" onClick={() => setPhotoCheckVersion(value => value + 1)} className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-bold">Try again</button>
             </div>
           ) : !conductAccepted ? (
             <ConductAcknowledgement
