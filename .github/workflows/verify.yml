@@ -19,7 +19,7 @@ jobs:
       - name: Install web dependencies
         run: npm install --no-audit --no-fund
       - name: Run CBT logic and recovery tests
-        run: node --test src/portal/practiceEngine.test.js src/portal/practiceQuestions.test.js src/portal/practiceSelection.test.js src/portal/practicePaper.test.js src/portal/practiceHistory.test.js src/portal/sampleCbtSession.test.js
+        run: node --test src/portal/practiceEngine.test.js src/portal/practiceQuestions.test.js src/portal/practiceSelection.test.js src/portal/practicePaper.test.js src/portal/practiceHistory.test.js src/portal/sampleCbtSession.test.js src/registration/applicationSchema.test.js
       - run: npm run lint
       - run: npm run build
   ops:
@@ -36,13 +36,22 @@ jobs:
       - run: npm run build
   api:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: |
-          for file in apps/api/src/*.js; do node --check "$file" || exit 1; done
+      - name: Install API dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run API tests
+        run: npm test
+      - name: Check API JavaScript syntax
+        run: |
+          for file in src/*.js; do node --check "$file" || exit 1; done
 
   admin:
     runs-on: ubuntu-latest
