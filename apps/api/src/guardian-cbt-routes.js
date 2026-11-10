@@ -7,10 +7,12 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(!req.staff?.permissions?.includes('cbt.manage') && req.staff?.role !== 'super_admin' && req.staff?.role !== 'admin')return res.status(403).json({error:'CBT management permission required.'});
  const mode=req.body?.mode;
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['schedule','attendance','performance'].includes(mode))return res.status(400).json({error:'Invalid examination or notification type.'});
- const exam=await db.from('upec_assessments').select('id,title,opens_at,status').eq('id',req.params.id).maybeSingle();
+ const exam=await db.from('upec_assessments').select('id,title,opens_at,closes_at,status,hide_score_until_closed').eq('id',req.params.id).maybeSingle();
  if(exam.error)throw exam.error;
  if(!exam.data||exam.data.status!=='published')return res.status(404).json({error:'Published examination not found.'});
  if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
+ const examClosed=exam.data.status==='closed'||Boolean(exam.data.closes_at&&Date.parse(exam.data.closes_at)<=Date.now());
+ if(mode==='performance'&&exam.data.hide_score_until_closed&&!examClosed)return res.status(409).json({error:'Performance notifications are withheld until this examination closes.'});
  const eligibility=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',req.params.id).limit(500);
  if(eligibility.error)throw eligibility.error;
  let ids=[...new Set((eligibility.data||[]).map(row=>row.student_account_id))];
@@ -41,7 +43,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  for(const studentId of ids){
   const attempt=scores.get(studentId);
   if(mode==='attendance'&&!attempt)continue;
-  if(mode==='performance'&&(!attempt||attempt.score==null||!Number.isFinite(Number(attempt.score))||!Number.isFinite(Number(attempt.total_questions))||Number(attempt.total_questions)<=0))continue;
+  if(mode==='performance'&&(!attempt||!attempt.submitted_at||attempt.score==null||!Number.isFinite(Number(attempt.score))||!Number.isFinite(Number(attempt.total_questions))||Number(attempt.total_questions)<=0))continue;
   const title=mode==='performance'?'Your CBT assessment result is available':mode==='attendance'?'Your CBT attendance update':'CBT assessment schedule update';
   const body=mode==='performance'?'Your recorded score for '+exam.data.title+' is '+attempt.score+' out of '+attempt.total_questions+'.':mode==='attendance'?'Your participation in '+exam.data.title+' has been recorded as '+(attempt.submitted_at?'submitted':'started')+'.':'Your assessment '+exam.data.title+' is scheduled to open '+exam.data.opens_at+'.';
   const saved=await db.from('upec_cbt_student_notifications').upsert({student_account_id:studentId,assessment_id:exam.data.id,notification_key:'cbt:'+exam.data.id+':'+mode+':'+(attempt?.submitted_at||attempt?.started_at||'schedule'),title,body},{onConflict:'student_account_id,notification_key',ignoreDuplicates:true}).select('student_account_id');
@@ -50,7 +52,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  }
  for(const guardian of guardians.data||[]){
   const result=scores.get(guardian.student_account_id);
-  if(!guardian.email||(mode==='attendance'&&!result)||(mode==='performance'&&(!result||result.score==null||!Number.isFinite(Number(result.score))||!Number.isFinite(Number(result.total_questions))||Number(result.total_questions)<=0))){skipped++;continue;}
+  if(!guardian.email||(mode==='attendance'&&!result)||(mode==='performance'&&(!result||!result.submitted_at||result.score==null||!Number.isFinite(Number(result.score))||!Number.isFinite(Number(result.total_questions))||Number(result.total_questions)<=0))){skipped++;continue;}
   const name=names.get(guardian.student_account_id)||'your ward';
   const detail=mode==='performance'?'Recorded score: '+result.score+' out of '+result.total_questions+'.':mode==='attendance'?'Participation recorded: '+(result.submitted_at?'assessment submitted':'assessment started')+'.':'Scheduled opening: '+exam.data.opens_at+'.';
   const queuedSuccessfully=await queueEmail({key:'guardian-cbt:'+req.params.id+':'+mode+':'+guardian.student_account_id+':'+(result?.submitted_at||result?.started_at||'schedule'),to:guardian.email,subject:'Your Ward’s '+(mode==='performance'?'Assessment Performance':mode==='attendance'?'Examination Participation':'Examination Schedule')+' — University Pathway Educational Consult',text:'Dear '+(guardian.guardian_name||'Parent/Guardian')+',\n\nWe are writing regarding '+name+' and '+exam.data.title+'.\n'+detail+'\n\nFor enquiries, contact our academic office.\n\nUniversity Pathway Educational Consult'});
