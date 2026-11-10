@@ -9,7 +9,7 @@ router.post('/:id/notify-guardians',wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id)||!['schedule','attendance','performance'].includes(mode))return res.status(400).json({error:'Invalid examination or notification type.'});
  const exam=await db.from('upec_assessments').select('id,title,opens_at,closes_at,status,hide_score_until_closed').eq('id',req.params.id).maybeSingle();
  if(exam.error)throw exam.error;
- if(!exam.data||exam.data.status!=='published')return res.status(404).json({error:'Published examination not found.'});
+ if(!exam.data||!['published','closed'].includes(exam.data.status))return res.status(404).json({error:'Published examination not found.'});
  if(mode==='schedule'&&!exam.data.opens_at)return res.status(409).json({error:'Set the examination opening time before notifying recipients.'});
  const examClosed=exam.data.status==='closed'||Boolean(exam.data.closes_at&&Date.parse(exam.data.closes_at)<=Date.now());
  if(mode==='performance'&&exam.data.hide_score_until_closed&&!examClosed)return res.status(409).json({error:'Performance notifications are withheld until this examination closes.'});
