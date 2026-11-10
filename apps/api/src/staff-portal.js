@@ -72,7 +72,7 @@ router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
   db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at').order('created_at',{ascending:false}).limit(limit),
   
   db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').limit(1000),
-  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').order('created_at',{ascending:false}).limit(1000),
+  db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,student_registration_number,form_data,subjects').order('created_at',{ascending:false}).limit(1000),
   db.from('local_staff_members').select('account_id')
  ]);
  for(const result of [accounts,biodata,applications,staff])if(result.error)throw result.error;
@@ -126,7 +126,7 @@ router.get('/activity',permit('applications.read'),wrap(async(req,res)=>{
  res.json({activities:(data||[]).map(row=>({id:row.id,title:'Application '+String(row.status||'updated').replaceAll('_',' '),body:(names.get(row.account_id)||'Student')+' · '+row.reference_number+' · '+row.programme,created_at:row.submitted_at}))});
 }));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
+ const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,student_registration_number').order('submitted_at',{ascending:false}).limit(100);
  if(error)throw error;
  res.json({applications:data||[]});
 }));
@@ -134,7 +134,7 @@ router.get('/applications/:id',permit('applications.read'),wrap(async(req,res)=>
  const id=req.params.id;
  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'Invalid application ID.'});
  const [application,reviews,resubmissions]=await Promise.all([
-  db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at,form_data,subjects').eq('id',id).maybeSingle(),
+  db.from('local_student_applications').select('id,reference_number,programme,academic_session,status,submitted_at,student_registration_number,form_data,subjects').eq('id',id).maybeSingle(),
   db.from('local_application_reviews').select('id,previous_status,new_status,note,created_at').eq('application_id',id).order('created_at',{ascending:false}).limit(100),
   db.from('local_application_resubmissions').select('id,submitted_at').eq('application_id',id).order('submitted_at',{ascending:false}).limit(100)
  ]);
@@ -173,7 +173,9 @@ router.patch('/applications/:id/status',permit('applications.review'),wrap(async
    }
   }
  }catch(mailError){console.error('Application status notification email failed:',mailError);}
- res.json({application:data[0]});
+ const refreshed=await db.from('local_student_applications').select('id,reference_number,status,student_registration_number').eq('id',req.params.id).maybeSingle();
+ if(refreshed.error)throw refreshed.error;
+ res.json({application:refreshed.data||data[0]});
 }));
 router.get('/students/:id/edit-permissions',permit('students.manage'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_student_edit_grants').select('biodata_edit_allowed,programme_change_allowed,updated_at').eq('student_account_id',req.params.id).maybeSingle();
