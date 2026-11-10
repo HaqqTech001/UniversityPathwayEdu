@@ -568,6 +568,9 @@ router.post('/applications',wrap(async(req,res)=>{
  const {data:profile,error:profileError}=await db.from('local_student_biodata').select('completed_at').eq('account_id',req.actor.sub).maybeSingle();
  if(profileError)throw profileError;
  if(!profile?.completed_at)return res.status(409).json({error:'Complete your student biodata before submitting an application.'});
+ const photo=await db.from('upec_student_photos').select('student_account_id').eq('student_account_id',req.actor.sub).maybeSingle();
+ if(photo.error)throw photo.error;
+ if(!photo.data)return res.status(409).json({error:'Upload your recent clear profile photograph before submitting an application.'});
  const {data:existing,error:existingError}=await db.from('local_student_applications').select('id,status').eq('account_id',req.actor.sub).eq('programme',programme).eq('academic_session',academic_session).limit(1);
  if(existingError)throw existingError;
  if(existing?.length)return res.status(409).json({error:'You have already submitted an application for this programme and session. Check your application status in the student portal.'});
