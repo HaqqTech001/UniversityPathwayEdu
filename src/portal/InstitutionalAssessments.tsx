@@ -92,7 +92,7 @@ export default function InstitutionalAssessments(){
    }
   },35000);
   return()=>{cancelled=true;window.clearTimeout(timer);};
- },[seconds,attempt,expires,result,refreshHistory]);
+ },[seconds===0,attempt,expires,result,refreshHistory]);
 
  const answeredCount=useMemo(()=>questions.filter(q=>Boolean(answers[q.id])).length,[questions,answers]);
  const current=questions[currentIndex];
