@@ -71,7 +71,7 @@ export default function ApplicationsTabView({
       setPhotoStatus('error');
       return () => { active = false; };
     }
-    const base = (import.meta.env.VITE_API_URL || '').replace(/\\/$/, '');
+    const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
     void fetch(base + '/api/student/profile/photo', {
       headers: { Authorization: 'Bearer ' + token },
     }).then(async response => {
