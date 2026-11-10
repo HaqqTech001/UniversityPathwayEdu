@@ -20,6 +20,8 @@ import {
 import { StudentUser } from '../../context/AuthContext';
 import StudentApplicationRegister from '../StudentApplicationRegister';
 import StudentHostelRequests from '../StudentHostelRequests';
+import CommonApplicationForm from '../CommonApplicationForm';
+import ConductAcknowledgement from '../ConductAcknowledgement';
 
 interface ApplicationsTabViewProps {
   currentUser: StudentUser;
@@ -51,6 +53,7 @@ export default function ApplicationsTabView({
   historyError,
 }: ApplicationsTabViewProps) {
   const [showRegisterNew, setShowRegisterNew] = useState(false);
+  const [conductAccepted, setConductAccepted] = useState(false);
   const application = currentUser.application;
   const isAdmitted = application?.status === 'approved';
 
@@ -80,17 +83,37 @@ export default function ApplicationsTabView({
 
       {showRegisterNew && (
         <div className="bg-white rounded-2xl border border-[#dce5f0] p-6 shadow-sm animate-in fade-in">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <h2 className="text-base font-bold text-[#111A43]">Register Another Programme / Cohort</h2>
+          <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-[#111A43]">New Programme Application</h2>
+              <p className="mt-1 text-xs text-slate-500">Complete your application, acknowledge the conduct rules and upload payment evidence before submission.</p>
+            </div>
             <button
               type="button"
-              onClick={() => setShowRegisterNew(false)}
+              onClick={() => { setShowRegisterNew(false); setConductAccepted(false); }}
               className="text-xs font-bold text-slate-400 hover:text-slate-600"
             >
               Close
             </button>
           </div>
-          <StudentApplicationRegister />
+          {!currentUser.profileCompleted ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+              <p className="font-bold">Complete your student biodata first.</p>
+              <p className="mt-1">Your application cannot be submitted until your required profile information is complete.</p>
+              <button type="button" onClick={() => onNavigateTab('profile')} className="mt-3 rounded-lg bg-[#111A43] px-4 py-2 font-bold text-white">Complete biodata</button>
+            </div>
+          ) : !conductAccepted ? (
+            <ConductAcknowledgement
+              programme={application?.programme}
+              onAccepted={() => setConductAccepted(true)}
+              onCancel={() => { setShowRegisterNew(false); setConductAccepted(false); }}
+            />
+          ) : (
+            <CommonApplicationForm />
+          )}
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <StudentApplicationRegister />
+          </div>
         </div>
       )}
 
