@@ -49,14 +49,26 @@ export async function queueExamReminders(){
  for(const exam of exams||[]){
   let accounts;
   if(exam.restricted){
-   const assigned=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',exam.id).limit(200);
+   const assigned=await db.from('upec_assessment_eligibility').select('student_account_id').eq('assessment_id',exam.id).limit(201);
    if(assigned.error)throw assigned.error;
-   const ids=(assigned.data||[]).map(x=>x.student_account_id);
+   if((assigned.data||[]).length>200){
+    console.warn('Skipping CBT reminder because its assigned audience exceeds the 200-recipient safety limit:',exam.id);
+    continue;
+   }
+   const ids=[...new Set((assigned.data||[]).map(x=>x.student_account_id))];
    if(!ids.length)continue;
    accounts=await db.from('local_accounts').select('id,email').in('id',ids).not('verified_at','is',null);
   }else{
-   // Open examination email blasts require an approved enrollment audience.
-   continue;
+   // Unrestricted assessments target approved applicants, not every registered account.
+   const admitted=await db.from('local_student_applications').select('account_id').eq('status','approved').limit(501);
+   if(admitted.error)throw admitted.error;
+   if((admitted.data||[]).length>500){
+    console.warn('Skipping unrestricted CBT reminder because its approved audience exceeds the 500-recipient safety limit:',exam.id);
+    continue;
+   }
+   const ids=[...new Set((admitted.data||[]).map(row=>row.account_id).filter(Boolean))];
+   if(!ids.length)continue;
+   accounts=await db.from('local_accounts').select('id,email').in('id',ids).not('verified_at','is',null);
   }
   if(accounts.error)throw accounts.error;
   for(const account of accounts.data||[]){
