@@ -3,7 +3,6 @@ import {notifyPortal} from '../components/PortalToasts';
 import React,{useEffect,useState} from 'react';
 import './CommonApplicationForm.css';
 import {getStudentToken,useAuth} from '../context/AuthContext';
-import ConductAcknowledgement from './ConductAcknowledgement';
 export default function CommonApplicationForm({selectedProgrammeCode=''}:{selectedProgrammeCode?:string}={}){
  const {refreshStudent}=useAuth();
  const [programme,setProgramme]=useState(selectedProgrammeCode),[session,setSession]=useState('');
