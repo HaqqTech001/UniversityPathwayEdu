@@ -709,6 +709,21 @@ router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
  if(error?.code==='23503')return res.status(404).json({error:'Subject unavailable.'});
  if(error)throw error;res.status(201).json({resource:data});
 }));
+router.get('/resources/:id/open',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ let query=db.from('upec_learning_resources').select('id,author_account_id,resource_url,storage_path,status').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error}=await query.maybeSingle();
+ if(error)throw error;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(resource.status!=='published'&&!['super_admin','admin','cbt_manager'].includes(req.staff.role))return res.status(403).json({error:'This resource is not published.'});
+ if(resource.resource_url){return res.json({url:resource.resource_url});}
+ if(!resource.storage_path)return res.status(404).json({error:'Resource file is unavailable.'});
+ const {data,error:signError}=await db.storage.from('upec-learning').createSignedUrl(resource.storage_path,120);
+ if(signError)throw signError;
+ if(!data?.signedUrl)return res.status(404).json({error:'Unable to create a resource access link.'});
+ res.json({url:data.signedUrl});
+}));
 router.patch('/resources/:id/status',grant('super_admin','admin','cbt_manager'),wrap(async(req,res)=>{
  if(!uuid(req.params.id)||!['draft','published'].includes(req.body?.status))return res.status(400).json({error:'Invalid publication request.'});
  const {data:resource,error:lookupError}=await db.from('upec_learning_resources').select('id,storage_path,status').eq('id',req.params.id).maybeSingle();
