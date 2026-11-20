@@ -3,6 +3,7 @@ import ReceiptReviewPanel from '../components/ReceiptReviewPanel';
 import FeeRateManager from '../components/FeeRateManager';
 import InvoiceManager from '../components/InvoiceManager';
 import RegistrationInvoiceManager from '../components/RegistrationInvoiceManager';
+import BankAccountManager from '../components/BankAccountManager';
 import {
   CreditCard,
   DollarSign,
@@ -40,8 +41,8 @@ interface Transaction {
 }
 
 
-type FinanceTab = 'Overview' | 'Transactions' | 'Fee Structure' | 'Invoices & Receipts' | 'Pending Payments' | 'Refunds' | 'Financial Reports';
-const financeTabs: FinanceTab[] = ['Overview','Transactions','Fee Structure','Invoices & Receipts','Pending Payments','Refunds','Financial Reports'];
+type FinanceTab = 'Overview' | 'University Bank Accounts' | 'Transactions' | 'Fee Structure' | 'Invoices & Receipts' | 'Pending Payments' | 'Refunds' | 'Financial Reports';
+const financeTabs: FinanceTab[] = ['Overview','University Bank Accounts','Transactions','Fee Structure','Invoices & Receipts','Pending Payments','Refunds','Financial Reports'];
 export default function AdminFinancePage() {
   const [activeTab,setActiveTab]=useState<FinanceTab>('Overview');
   const [selectedType, setSelectedType] = useState('All Types');
@@ -149,6 +150,7 @@ export default function AdminFinancePage() {
       <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
       <nav aria-label="Finance sections" className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{financeTabs.map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} aria-current={activeTab===tab?'page':undefined} className={activeTab===tab?'rounded-lg bg-[#111A43] px-4 py-2 text-xs font-bold text-white':'rounded-lg border bg-white px-4 py-2 text-xs font-semibold text-slate-600'}>{tab}</button>)}</nav>
       {activeTab==='Overview'&&<section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6"><h2 className="text-lg font-bold text-[#111A43]">Finance workspace</h2><p className="mt-1 text-sm text-slate-600">Choose a financial task below. Payment records and management tools stay in their dedicated sections.</p><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{financeTabs.filter(tab=>tab!=='Overview').map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">{tab} <span aria-hidden="true" className="float-right text-[#C62839]">→</span></button>)}</div></section>}
+      {activeTab==='University Bank Accounts'&&<BankAccountManager />}
       {activeTab==='Fee Structure'&&<FeeRateManager />}
       {activeTab==='Invoices & Receipts'&&<><InvoiceManager /><RegistrationInvoiceManager /><ReceiptReviewPanel /></>}
       {activeTab==='Pending Payments'&&<><p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">Pending receipts are not confirmed payments. Review evidence below.</p><ReceiptReviewPanel /></>}

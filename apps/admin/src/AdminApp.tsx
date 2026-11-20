@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import AdminPortalApp from '../../../src/admin/AdminPortalApp';
+import AdminPortalApp from './admin/AdminPortalApp';
 
 // Reuse the existing Admin Desk sign-in UI and its existing staff-auth API.
 // @ts-ignore -- this shared component is maintained as JavaScript in apps/ops.
-import StaffLogin from '../../../apps/ops/src/StaffLogin.jsx';
+import StaffLogin from './auth/StaffLogin.jsx';
 // @ts-ignore -- shared JavaScript auth client used by the existing Admin Desk.
-import { clearOpsToken, getOpsToken, opsRequest } from '../../../apps/ops/src/api.js';
+import { clearOpsToken, getOpsToken, opsRequest } from './auth/api.js';
 import './admin-login.css';
 
 type StaffProfile = {
@@ -90,6 +90,7 @@ export default function AdminApp() {
         window.location.assign(publicUrl.toString());
       }}
       onLogout={handleLogout}
+      permissions={profile.permissions}
     />
   );
 }

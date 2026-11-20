@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { AdminTabId } from './types';
+import { AdminTabId, ADMIN_NAV_ITEMS } from './types';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminStudentsPage from './pages/AdminStudentsPage';
 import AdminAcademicPage from './pages/AdminAcademicPage';
@@ -17,9 +17,11 @@ interface AdminPortalAppProps {
   onNavigate?: (path: string) => void;
   initialTab?: AdminTabId;
   onLogout?: () => void;
+  permissions?: string[];
 }
 
-export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard', onLogout }: AdminPortalAppProps) {
+export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard', onLogout, permissions = [] }: AdminPortalAppProps) {
+  const canManageFinance = permissions.includes('finance.manage');
   const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '').toLowerCase();
@@ -35,7 +37,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
         'notifications',
         'staff',
       ];
-      if (validTabs.includes(hash as AdminTabId)) {
+      if (validTabs.includes(hash as AdminTabId) && (hash !== 'finance' || canManageFinance)) {
         return hash as AdminTabId;
       }
     }
@@ -74,8 +76,11 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
         'notifications',
         'staff',
       ];
-      if (validTabs.includes(hash as AdminTabId)) {
+      if (validTabs.includes(hash as AdminTabId) && (hash !== 'finance' || canManageFinance)) {
         setActiveTab(hash as AdminTabId);
+      } else if (hash === 'finance' && !canManageFinance) {
+        setActiveTab('dashboard');
+        window.location.hash = 'dashboard';
       }
     };
 
@@ -84,6 +89,10 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
   }, []);
 
   const handleTabChange = (tab: AdminTabId) => {
+    if (tab === 'finance' && !canManageFinance) {
+      window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message: 'You do not have permission to access Finance & Payments.', kind: 'error' } }));
+      return;
+    }
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       window.location.hash = tab;
@@ -121,6 +130,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
   return (
     <AdminLayout
       activeTab={activeTab}
+      allowedTabs={ADMIN_NAV_ITEMS.filter(item => canManageFinance || item.id !== 'finance').map(item => item.id)}
       onTabChange={handleTabChange}
       onNavigate={onNavigate}
       onLogout={onLogout}

@@ -37,6 +37,7 @@ interface AdminLayoutProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onLogout?: () => void;
+  allowedTabs?: AdminTabId[];
   children: React.ReactNode;
 }
 
@@ -47,8 +48,10 @@ export default function AdminLayout({
   searchQuery,
   onSearchChange,
   onLogout,
+  allowedTabs = ADMIN_NAV_ITEMS.map(item => item.id),
   children,
 }: AdminLayoutProps) {
+  const visibleNavItems = ADMIN_NAV_ITEMS.filter(item => allowedTabs.includes(item.id));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState('2025/2026');
@@ -288,7 +291,7 @@ export default function AdminLayout({
             <p className="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#D5A75B]/80">
               Navigation Menu
             </p>
-            {ADMIN_NAV_ITEMS.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
                 <button
@@ -349,7 +352,7 @@ export default function AdminLayout({
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
-                {ADMIN_NAV_ITEMS.map((item) => {
+                {visibleNavItems.map((item) => {
                   const isActive = activeTab === item.id;
                   return (
                     <button
