@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const TOKEN_KEY = 'upec_ops_session';
 export function getOpsToken(){return sessionStorage.getItem(TOKEN_KEY);}
 export function clearOpsToken(){
