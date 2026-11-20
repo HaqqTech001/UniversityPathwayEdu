@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   BookOpen, FileText, Video, Globe, ClipboardList, Search, Plus, Upload,
-  Download, Eye, RefreshCw, X, CheckCircle2, AlertCircle, Loader2,
+  Eye, RefreshCw, X, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
 
 type ResourceType = 'document' | 'video' | 'website' | 'exercise';
@@ -154,7 +154,6 @@ export default function AdminResourcesPage() {
   const selected = resources.find((item) => item.id === selectedId) || null;
   const publishedCount = resources.filter((item) => item.status === 'published').length;
   const draftCount = resources.length - publishedCount;
-  const documentCount = resources.filter((item) => item.resource_type === 'document').length;
   const linkCount = resources.filter((item) => item.resource_type !== 'document').length;
 
   useEffect(() => { setPage(1); }, [query, programmeFilter, subjectFilter, typeFilter, statusFilter, pageSize]);
@@ -287,7 +286,7 @@ export default function AdminResourcesPage() {
           { label: 'Total resources', value: resources.length, icon: <BookOpen size={18} />, tone: 'bg-[#111A43]' },
           { label: 'Published', value: publishedCount, icon: <CheckCircle2 size={18} />, tone: 'bg-emerald-600' },
           { label: 'Drafts', value: draftCount, icon: <FileText size={18} />, tone: 'bg-amber-500' },
-          { label: 'Documents & links', value: documentCount + linkCount, icon: <Globe size={18} />, tone: 'bg-blue-600' },
+          { label: 'External resources', value: linkCount, icon: <Globe size={18} />, tone: 'bg-blue-600' },
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className={'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white ' + item.tone}>{item.icon}</div>
