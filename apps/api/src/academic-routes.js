@@ -716,7 +716,6 @@ router.get('/resources/:id/open',grant(...questionRoles),wrap(async(req,res)=>{
  const {data:resource,error}=await query.maybeSingle();
  if(error)throw error;
  if(!resource)return res.status(404).json({error:'Resource not found.'});
- if(resource.status!=='published'&&!['super_admin','admin','cbt_manager'].includes(req.staff.role))return res.status(403).json({error:'This resource is not published.'});
  if(resource.resource_url){return res.json({url:resource.resource_url});}
  if(!resource.storage_path)return res.status(404).json({error:'Resource file is unavailable.'});
  const {data,error:signError}=await db.storage.from('upec-learning').createSignedUrl(resource.storage_path,120);
