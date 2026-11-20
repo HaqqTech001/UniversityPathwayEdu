@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AdminPortalApp from './admin/AdminPortalApp';
 
-// Reuse the existing Admin Desk sign-in UI and its existing staff-auth API.
-// @ts-ignore -- this shared component is maintained as JavaScript in apps/ops.
+// Admin-owned sign-in and staff API client; no source imports from apps/ops.
+// @ts-ignore -- login remains a small JSX component.
 import StaffLogin from './auth/StaffLogin.jsx';
-// @ts-ignore -- shared JavaScript auth client used by the existing Admin Desk.
-import { clearOpsToken, getOpsToken, opsRequest } from './auth/api.js';
+// @ts-ignore -- JavaScript API helper used by the admin authentication boundary.
+import { clearStaffToken, getStaffToken, staffRequest } from './auth/api.js';
 import './admin-login.css';
 
 type StaffProfile = {
@@ -15,7 +15,7 @@ type StaffProfile = {
 };
 
 function clearAdminSession() {
-  clearOpsToken();
+  clearStaffToken();
   for (const key of ['upec_staff_token', 'upec_admin_token', 'upec_ops_session']) {
     sessionStorage.removeItem(key);
     localStorage.removeItem(key);
@@ -24,16 +24,16 @@ function clearAdminSession() {
 
 export default function AdminApp() {
   const [profile, setProfile] = useState<StaffProfile | null>(null);
-  const [checking, setChecking] = useState<boolean>(() => Boolean(getOpsToken()));
+  const [checking, setChecking] = useState<boolean>(() => Boolean(getStaffToken()));
 
   const verifyStaffSession = useCallback(async () => {
     setChecking(true);
     try {
-      const token = getOpsToken();
+      const token = getStaffToken();
       if (!token) throw new Error('No staff session found.');
 
       // Validate the same token with the same staff endpoint used by Admin Desk.
-      const result = await opsRequest('/me');
+      const result = await staffRequest('/me');
       if (!result?.role || !Array.isArray(result.permissions)) {
         throw new Error('The staff service returned an invalid profile.');
       }
@@ -53,7 +53,7 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    if (getOpsToken()) {
+    if (getStaffToken()) {
       void verifyStaffSession();
     } else {
       setChecking(false);
