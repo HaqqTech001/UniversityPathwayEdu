@@ -1,8 +1,14 @@
-# UPEC Operations Application
+# Legacy Operations Application
 
-Independent React/Vite staff workspace for University Pathway Educational Consult. This is separate from the public website and student portal.
+This is the legacy React/Vite staff workspace retained for compatibility with existing deployments and workflows. It is **not** the source of truth for new administration UI work.
 
-## Development
+## Official administration application
+
+Use `apps/admin/` for all new staff/admin interface development. Its source tree is self-contained under `apps/admin/src/`; the admin application owns its sign-in UI and API client while using the shared staff API in `apps/api/`.
+
+Do not add new admin pages or finance features here. Do not remove this legacy app until its deployment target, links, and any remaining consumers have been migrated and verified.
+
+## Legacy development
 
 Install dependencies with `npm install` in this directory, then run `npm run dev` (port 5174). Start the API in `apps/api` separately, with its required secrets and Supabase environment configuration.
 
@@ -10,16 +16,8 @@ Set `VITE_API_URL` to the API origin (defaults to `http://localhost:4000`). Set 
 
 ## Staff access and admissions
 
-Staff sign in through `POST /api/staff/auth/login`. The API checks staff membership and permissions; student sessions do not provide staff access.
-
-- `GET /api/staff/me` — role and permissions.
-- `GET /api/staff/applications` — up to 100 recent records; requires `applications.read`.
-- `GET /api/staff/applications/metrics` — institution-wide exact counts by status; requires `applications.read`.
-- `PATCH /api/staff/applications/:id/status` — review workflow with transactional audit logging; requires `applications.review`.
-- `GET /api/staff/members` — read-only staff memberships; requires `staff.manage`.
-
-The dashboard shows database-wide metrics separately from the 100-record review table. Status changes refresh both datasets.
+The legacy app uses the shared staff API. The API checks staff membership and permissions; student sessions do not provide staff access. Backend authorization remains authoritative even when a page is hidden in the frontend.
 
 ## Production readiness
 
-Before production rollout, configure secure secrets and mail delivery, apply and verify Supabase migrations/RPC permissions, test review transitions and authorization, and implement distributed rate limiting and account lockout for staff authentication. The current staff directory is intentionally read-only. Do not treat an unverified frontend build or untested deployment as production-ready.
+Before retiring this application, verify that no production deployment, DNS route, redirect, scheduled workflow, or external link still depends on it. Do not treat an unverified frontend build or untested deployment as production-ready.
