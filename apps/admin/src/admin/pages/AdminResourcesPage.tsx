@@ -1,706 +1,412 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
-  BookOpen,
-  FileText,
-  Video,
-  Download,
-  Users,
-  HardDrive,
-  Plus,
-  Upload,
-  Search,
-  Filter,
-  RotateCcw,
-  MoreVertical,
-  MoreHorizontal,
-  Eye,
-  Edit2,
-  X,
-  FileCode,
-  Image as ImageIcon,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  ZoomIn,
-  ZoomOut,
+  BookOpen, FileText, Video, Globe, ClipboardList, Search, Plus, Upload,
+  Download, Eye, RefreshCw, X, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
 
-interface ResourceItem {
-  id: number;
+type ResourceType = 'document' | 'video' | 'website' | 'exercise';
+type ResourceStatus = 'draft' | 'published';
+type Resource = {
+  id: string;
+  subject_id: string;
+  author_account_id: string;
   title: string;
-  subject: string;
-  programme: 'JAMB' | 'IJMB' | 'WAEC';
-  type: 'PDF' | 'Video' | 'Document' | 'Image';
-  uploadedBy: string;
-  date: string;
-  downloads: string;
-  status: 'Published' | 'Draft';
-  fileSize: string;
-  pages?: number;
+  description: string;
+  resource_url: string | null;
+  storage_path: string | null;
+  resource_type: ResourceType;
+  status: ResourceStatus;
+  created_at: string;
+};
+type Subject = { id: string; programme_id: string; name: string; code: string | null; active: boolean };
+type Programme = { id: string; name: string; code: string; active: boolean };
+type Catalogue = { subjects?: Subject[]; programmes?: Programme[] };
+type ResourceForm = {
+  subjectId: string;
+  title: string;
+  description: string;
+  resourceType: 'video' | 'website' | 'exercise';
+  resourceUrl: string;
+};
+
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_ROOT = '/api/staff/academic';
+const FILE_LIMIT = 8 * 1024 * 1024;
+const FILE_TYPES = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+].join(',');
+
+function authHeaders(): HeadersInit {
+  const token = sessionStorage.getItem('upec_staff_token');
+  if (!token) throw new Error('Your staff session has expired. Please sign in again.');
+  return { Authorization: 'Bearer ' + token };
 }
 
-const mockResources: ResourceItem[] = [
-  {
-    id: 1,
-    title: 'JAMB 2024 Mathematics Past Questions',
-    subject: 'Mathematics',
-    programme: 'JAMB',
-    type: 'PDF',
-    uploadedBy: 'Dr. Ahmed',
-    date: '12 Jul 2025',
-    downloads: '1,245',
-    status: 'Published',
-    fileSize: '8.4 MB',
-    pages: 124,
-  },
-  {
-    id: 2,
-    title: 'IJMB Economics Lecture Notes',
-    subject: 'Economics',
-    programme: 'IJMB',
-    type: 'PDF',
-    uploadedBy: 'Mrs. Bello',
-    date: '10 Jul 2025',
-    downloads: '892',
-    status: 'Published',
-    fileSize: '5.2 MB',
-    pages: 64,
-  },
-  {
-    id: 3,
-    title: 'WAEC English Language Past Questions',
-    subject: 'English',
-    programme: 'WAEC',
-    type: 'PDF',
-    uploadedBy: 'Mr. Yusuf',
-    date: '08 Jul 2025',
-    downloads: '1,632',
-    status: 'Published',
-    fileSize: '11.0 MB',
-    pages: 140,
-  },
-  {
-    id: 4,
-    title: 'Introduction to Physics (Full Lecture)',
-    subject: 'Physics',
-    programme: 'IJMB',
-    type: 'Video',
-    uploadedBy: 'Dr. Salim',
-    date: '06 Jul 2025',
-    downloads: '980',
-    status: 'Published',
-    fileSize: '185 MB',
-  },
-  {
-    id: 5,
-    title: 'Chemical Reactions Summary Notes',
-    subject: 'Chemistry',
-    programme: 'JAMB',
-    type: 'PDF',
-    uploadedBy: 'Dr. Ibrahim',
-    date: '05 Jul 2025',
-    downloads: '756',
-    status: 'Published',
-    fileSize: '4.1 MB',
-    pages: 38,
-  },
-  {
-    id: 6,
-    title: 'Biology Practical Guide',
-    subject: 'Biology',
-    programme: 'WAEC',
-    type: 'Document',
-    uploadedBy: 'Mrs. Ahmed',
-    date: '03 Jul 2025',
-    downloads: '621',
-    status: 'Published',
-    fileSize: '3.6 MB',
-    pages: 45,
-  },
-  {
-    id: 7,
-    title: 'Economics Charts & Diagrams',
-    subject: 'Economics',
-    programme: 'JAMB',
-    type: 'Image',
-    uploadedBy: 'Mr. Lawal',
-    date: '01 Jul 2025',
-    downloads: '435',
-    status: 'Published',
-    fileSize: '2.8 MB',
-  },
-];
+async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(authHeaders());
+  new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const response = await fetch(API_BASE + API_ROOT + path, { ...init, headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'The resource request could not be completed.');
+  return data as T;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(date);
+}
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '—';
+  if (value < 1024 * 1024) return (value / 1024).toFixed(0) + ' KB';
+  return (value / (1024 * 1024)).toFixed(1) + ' MB';
+}
+function typeLabel(type: ResourceType) {
+  return ({ document: 'Document', video: 'Video', website: 'Website', exercise: 'Exercise' })[type];
+}
+function typeIcon(type: ResourceType) {
+  if (type === 'video') return <Video size={16} />;
+  if (type === 'website') return <Globe size={16} />;
+  if (type === 'exercise') return <ClipboardList size={16} />;
+  return <FileText size={16} />;
+}
 
 export default function AdminResourcesPage() {
-  const [activeTab, setActiveTab] = useState('All Resources');
-  const [selectedProgramme, setSelectedProgramme] = useState('All Programmes');
-  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
-  const [selectedType, setSelectedType] = useState('All Types');
-  const [searchFilter, setSearchFilter] = useState('');
-  const [selectedResource, setSelectedResource] = useState<ResourceItem>(mockResources[0]);
-  const [previewOpen, setPreviewOpen] = useState(true);
-
-  const filteredResources = mockResources.filter((r) => {
-    if (selectedProgramme !== 'All Programmes' && r.programme !== selectedProgramme) return false;
-    if (selectedSubject !== 'All Subjects' && r.subject !== selectedSubject) return false;
-    if (selectedType !== 'All Types' && r.type !== selectedType) return false;
-    if (
-      searchFilter &&
-      !r.title.toLowerCase().includes(searchFilter.toLowerCase()) &&
-      !r.subject.toLowerCase().includes(searchFilter.toLowerCase()) &&
-      !r.uploadedBy.toLowerCase().includes(searchFilter.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [query, setQuery] = useState('');
+  const [programmeFilter, setProgrammeFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
+  const [file, setFile] = useState<File | null>(null);
+  const [form, setForm] = useState<ResourceForm>({
+    subjectId: '', title: '', description: '', resourceType: 'website', resourceUrl: '',
   });
+  const [saving, setSaving] = useState(false);
+  const [uploadStep, setUploadStep] = useState('');
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
 
-  const getTypeBadge = (type: ResourceItem['type']) => {
-    switch (type) {
-      case 'PDF':
-        return <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">PDF</span>;
-      case 'Video':
-        return <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">Video</span>;
-      case 'Document':
-        return <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Document</span>;
-      case 'Image':
-        return <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Image</span>;
-      default:
-        return null;
+  const load = useCallback(async (quiet = false) => {
+    if (quiet) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+    try {
+      const [resourceData, catalogue] = await Promise.all([
+        api<{ resources?: Resource[] }>('/resources'),
+        api<Catalogue>('/catalogue'),
+      ]);
+      const nextResources = resourceData.resources || [];
+      setResources(nextResources);
+      setSubjects((catalogue.subjects || []).filter((item) => item.active));
+      setProgrammes((catalogue.programmes || []).filter((item) => item.active));
+      setSelectedId((current) => current && nextResources.some((item) => item.id === current)
+        ? current
+        : nextResources[0]?.id || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load learning resources.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const subjectMap = useMemo(() => new Map(subjects.map((item) => [item.id, item])), [subjects]);
+  const programmeMap = useMemo(() => new Map(programmes.map((item) => [item.id, item])), [programmes]);
+  const getProgramme = (resource: Resource) => {
+    const subject = subjectMap.get(resource.subject_id);
+    return subject ? programmeMap.get(subject.programme_id) : undefined;
+  };
+  const filtered = useMemo(() => resources.filter((resource) => {
+    const subject = subjectMap.get(resource.subject_id);
+    const programme = subject ? programmeMap.get(subject.programme_id) : undefined;
+    const term = query.trim().toLowerCase();
+    if (programmeFilter !== 'all' && programme?.id !== programmeFilter) return false;
+    if (subjectFilter !== 'all' && resource.subject_id !== subjectFilter) return false;
+    if (typeFilter !== 'all' && resource.resource_type !== typeFilter) return false;
+    if (statusFilter !== 'all' && resource.status !== statusFilter) return false;
+    if (term && ![resource.title, resource.description, subject?.name, programme?.name]
+      .some((value) => (value || '').toLowerCase().includes(term))) return false;
+    return true;
+  }), [resources, subjectMap, programmeMap, query, programmeFilter, subjectFilter, typeFilter, statusFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const selected = resources.find((item) => item.id === selectedId) || null;
+  const publishedCount = resources.filter((item) => item.status === 'published').length;
+  const draftCount = resources.length - publishedCount;
+  const documentCount = resources.filter((item) => item.resource_type === 'document').length;
+  const linkCount = resources.filter((item) => item.resource_type !== 'document').length;
+
+  useEffect(() => { setPage(1); }, [query, programmeFilter, subjectFilter, typeFilter, statusFilter, pageSize]);
+
+  const notify = (message: string, kind: 'success' | 'error' = 'success') => {
+    window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
+  };
+
+  const resetUpload = () => {
+    setUploadOpen(false);
+    setUploadMode('file');
+    setFile(null);
+    setForm({ subjectId: '', title: '', description: '', resourceType: 'website', resourceUrl: '' });
+    setUploadStep('');
+  };
+
+  const submitResource = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (saving) return;
+    if (!form.subjectId) { setError('Choose the subject this resource belongs to.'); return; }
+    if (uploadMode === 'file' && !file) { setError('Choose a file to upload.'); return; }
+    if (uploadMode === 'file' && file && file.size > FILE_LIMIT) { setError('The selected file exceeds the 8 MB upload limit.'); return; }
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      if (uploadMode === 'link') {
+        setUploadStep('Saving resource link…');
+        await api('/resources', {
+          method: 'POST',
+          body: JSON.stringify({
+            subjectId: form.subjectId,
+            title: form.title,
+            description: form.description,
+            resourceUrl: form.resourceUrl,
+            resourceType: form.resourceType,
+          }),
+        });
+      } else if (file) {
+        setUploadStep('Preparing secure upload…');
+        const initialized = await api<{ resourceId: string; uploadUrl: string; maxBytes: number }>('/resources/upload-init', {
+          method: 'POST',
+          body: JSON.stringify({
+            subjectId: form.subjectId,
+            title: form.title,
+            description: form.description,
+            mimeType: file.type,
+            fileSize: file.size,
+          }),
+        });
+        setUploadStep('Uploading ' + file.name + '…');
+        const uploadResponse = await fetch(initialized.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!uploadResponse.ok) throw new Error('File transfer failed. The draft upload record may need attention; retry after refreshing.');
+        setUploadStep('Verifying uploaded file…');
+        await api('/resources/' + encodeURIComponent(initialized.resourceId) + '/upload-verify', { method: 'POST', body: JSON.stringify({}) });
+      }
+      resetUpload();
+      notify('Learning resource saved as a draft. Review it before publishing.');
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save this resource.');
+    } finally {
+      setSaving(false);
+      setUploadStep('');
     }
   };
 
+  const changeStatus = async (resource: Resource) => {
+    if (statusBusyId) return;
+    const nextStatus: ResourceStatus = resource.status === 'published' ? 'draft' : 'published';
+    if (nextStatus === 'published' && !window.confirm('Publish this resource? Approved students will be able to access it.')) return;
+    setStatusBusyId(resource.id);
+    setError('');
+    try {
+      await api('/resources/' + encodeURIComponent(resource.id) + '/status', {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      notify(nextStatus === 'published' ? 'Resource published for eligible students.' : 'Resource moved back to draft.');
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update resource status.');
+    } finally {
+      setStatusBusyId(null);
+    }
+  };
+
+  const openResource = async (resource: Resource) => {
+    setOpeningId(resource.id);
+    setError('');
+    try {
+      const result = await api<{ url: string }>('/resources/' + encodeURIComponent(resource.id) + '/open');
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to open this resource.');
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const activeSubject = selected ? subjectMap.get(selected.subject_id) : undefined;
+  const activeProgramme = selected ? getProgramme(selected) : undefined;
+
   return (
     <div className="min-w-0 space-y-4 sm:space-y-5">
-      {/* Page Header */}
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight text-[#111A43] tracking-tight">Learning Resources</h1>
-          <p className="max-w-full truncate text-[10px] leading-tight text-slate-500 sm:text-xs">Manage study materials, past questions, lecture notes, videos and other learning resources.</p>
+          <h1 className="text-xl font-extrabold tracking-tight text-[#111A43] sm:text-2xl">Learning Resources</h1>
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">Manage study materials and publish verified resources to approved students.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm text-xs">
-            <BookOpen size={15} className="text-[#111A43]" />
-            <div>
-              <p className="font-bold text-[#111A43]">All Programmes</p>
-              <p className="text-[10px] text-slate-400">View Resources</p>
-            </div>
-          </div>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-[#C62839] hover:bg-[#b02232] text-white rounded-xl shadow-md transition-all">
-            <Plus size={15} />
-            Upload Resource &gt;
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => void load(true)} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button type="button" onClick={() => { setError(''); setUploadOpen(true); }} className="inline-flex items-center gap-2 rounded-xl bg-[#C62839] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#ad2030]">
+            <Plus size={15} /> Upload Resource
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Subtabs Bar */}
-      <div className="border-b border-slate-200 bg-white px-3 rounded-t-2xl shadow-sm">
-        <div className="flex items-center gap-6 overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
-          {['All Resources', 'Past Questions', 'Lecture Notes', 'Video Lectures', 'Assignments', 'Books & References'].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3.5 whitespace-nowrap transition-colors relative ${
-                  isActive ? 'text-[#C62839] font-bold' : 'hover:text-slate-800'
-                }`}
-              >
-                {tab}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C62839] rounded-full" />
-                )}
-              </button>
-            );
-          })}
+      {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><AlertCircle size={17} className="mt-0.5 shrink-0" /> <span>{error}</span></div>}
+      {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>}
+
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[
+          { label: 'Total resources', value: resources.length, icon: <BookOpen size={18} />, tone: 'bg-[#111A43]' },
+          { label: 'Published', value: publishedCount, icon: <CheckCircle2 size={18} />, tone: 'bg-emerald-600' },
+          { label: 'Drafts', value: draftCount, icon: <FileText size={18} />, tone: 'bg-amber-500' },
+          { label: 'Documents & links', value: documentCount + linkCount, icon: <Globe size={18} />, tone: 'bg-blue-600' },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className={'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white ' + item.tone}>{item.icon}</div>
+            <div><p className="text-xl font-black leading-none text-[#111A43]">{item.value}</p><p className="mt-1 text-[11px] font-semibold text-slate-500">{item.label}</p></div>
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
+          <label className="relative xl:col-span-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search resources…" className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-[#111A43]" />
+          </label>
+          <select value={programmeFilter} onChange={(event) => { setProgrammeFilter(event.target.value); setSubjectFilter('all'); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700">
+            <option value="all">All programmes</option>
+            {programmes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700">
+            <option value="all">All subjects</option>
+            {subjects.filter((item) => programmeFilter === 'all' || item.programme_id === programmeFilter).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700">
+            <option value="all">All resource types</option>
+            <option value="document">Documents</option><option value="video">Videos</option><option value="website">Websites</option><option value="exercise">Exercises</option>
+          </select>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700">
+            <option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option>
+          </select>
         </div>
-      </div>
+      </section>
 
-      {activeTab === 'All Resources' && (
-        <div className="space-y-4">
-          <p className="text-xs text-amber-700">Summary figures below are design previews, not live institutional records.</p>
-      {/* 6 KPI Cards */}
-      <div className="grid grid-cols-1 min-[460px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#111A43] flex items-center justify-center text-white shrink-0">
-            <FileText size={20} />
+      <section className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-12">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <div><h2 className="text-sm font-bold text-[#111A43]">Resource library</h2><p className="mt-0.5 text-[11px] text-slate-500">{filtered.length} matching records</p></div>
+            <span className="text-[11px] text-slate-400">Live records</span>
           </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">1,842</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Total Resources</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 12% <span className="font-normal text-slate-400">All Programmes</span></p>
-          </div>
+          {loading ? (
+            <div className="space-y-3 p-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-12 animate-pulse rounded-lg bg-slate-100" />)}</div>
+          ) : pageItems.length === 0 ? (
+            <div className="px-5 py-14 text-center"><BookOpen size={28} className="mx-auto text-slate-300" /><h3 className="mt-3 text-sm font-bold text-slate-700">No resources found</h3><p className="mt-1 text-xs text-slate-500">{resources.length ? 'Try changing your filters.' : 'Upload the first learning resource to get started.'}</p></div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-xs">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Resource</th><th className="px-3 py-3">Subject / Programme</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Created</th><th className="px-3 py-3">Status</th><th className="px-3 py-3 text-right">Action</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pageItems.map((resource) => {
+                      const subject = subjectMap.get(resource.subject_id);
+                      const programme = getProgramme(resource);
+                      const isSelected = selectedId === resource.id;
+                      return (
+                        <tr key={resource.id} onClick={() => setSelectedId(resource.id)} className={'cursor-pointer transition-colors ' + (isSelected ? 'bg-rose-50/60' : 'hover:bg-slate-50')}>
+                          <td className="max-w-[260px] px-3 py-3"><div className="flex items-start gap-2"><span className="mt-0.5 text-[#111A43]">{typeIcon(resource.resource_type)}</span><div className="min-w-0"><p className="truncate font-semibold text-[#111A43]">{resource.title}</p><p className="mt-0.5 truncate text-[10px] text-slate-500">{resource.description || 'No description provided'}</p></div></div></td>
+                          <td className="px-3 py-3"><p className="font-semibold text-slate-700">{subject?.name || 'Subject unavailable'}</p><p className="mt-0.5 text-[10px] text-slate-500">{programme?.name || 'Programme unavailable'}</p></td>
+                          <td className="px-3 py-3 text-slate-600">{typeLabel(resource.resource_type)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-slate-500">{formatDate(resource.created_at)}</td>
+                          <td className="px-3 py-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (resource.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700')}>{resource.status === 'published' ? 'Published' : 'Draft'}</span></td>
+                          <td className="px-3 py-3 text-right"><button type="button" disabled={statusBusyId === resource.id} onClick={(event) => { event.stopPropagation(); void changeStatus(resource); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{statusBusyId === resource.id ? 'Saving…' : resource.status === 'published' ? 'Unpublish' : 'Publish'}</button></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}</span>
+                <div className="flex items-center gap-2"><select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="rounded border border-slate-200 bg-white px-2 py-1.5"><option value={15}>15 per page</option><option value={30}>30 per page</option><option value={50}>50 per page</option></select><button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Next</button></div>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#C62839] flex items-center justify-center text-white shrink-0">
-            <FileText size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">256</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Past Questions</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 8% <span className="font-normal text-slate-400">Across Subjects</span></p>
-          </div>
-        </div>
+        <aside className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-4">
+          <div className="flex items-center justify-between"><h2 className="text-sm font-bold text-[#111A43]">Resource details</h2>{selected && <button type="button" onClick={() => setSelectedId(null)} aria-label="Clear selection" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={15} /></button>}</div>
+          {!selected ? <div className="py-12 text-center text-xs text-slate-500">Select a resource to inspect its details.</div> : (
+            <div className="mt-4 space-y-4">
+              <div className="flex h-32 items-center justify-center rounded-xl bg-[#111A43] text-white"><div className="text-center"><div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-[#D5A75B]">{typeIcon(selected.resource_type)}</div><p className="mt-2 text-xs font-bold">{typeLabel(selected.resource_type)}</p><p className="mt-1 max-w-[220px] truncate text-[10px] text-slate-300">{selected.storage_path ? selected.storage_path.split('/').pop() : selected.resource_url}</p></div></div>
+              <div><h3 className="break-words text-sm font-bold text-[#111A43]">{selected.title}</h3><p className="mt-1 text-xs leading-relaxed text-slate-500">{selected.description || 'No description provided.'}</p></div>
+              <dl className="grid grid-cols-2 gap-3 border-y border-slate-100 py-3 text-xs">
+                <div><dt className="text-[10px] text-slate-400">Subject</dt><dd className="mt-0.5 font-semibold text-slate-700">{activeSubject?.name || 'Unavailable'}</dd></div>
+                <div><dt className="text-[10px] text-slate-400">Programme</dt><dd className="mt-0.5 font-semibold text-slate-700">{activeProgramme?.name || 'Unavailable'}</dd></div>
+                <div><dt className="text-[10px] text-slate-400">Uploaded</dt><dd className="mt-0.5 font-semibold text-slate-700">{formatDate(selected.created_at)}</dd></div>
+                <div><dt className="text-[10px] text-slate-400">Status</dt><dd className="mt-0.5 font-semibold capitalize text-slate-700">{selected.status}</dd></div>
+                <div className="col-span-2"><dt className="text-[10px] text-slate-400">Contributor account</dt><dd className="mt-0.5 break-all font-mono text-[10px] text-slate-600">{selected.author_account_id}</dd></div>
+              </dl>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => void openResource(selected)} disabled={openingId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#111A43] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#1b285c] disabled:opacity-50">{openingId === selected.id ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Open resource</button>
+                <button type="button" onClick={() => void changeStatus(selected)} disabled={statusBusyId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{selected.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+              </div>
+              <p className="text-[10px] leading-relaxed text-slate-400">Download counts and storage analytics are not currently exposed by the backend, so they are intentionally not displayed as fabricated figures.</p>
+            </div>
+          )}
+        </aside>
+      </section>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0">
-            <Video size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">348</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Lecture Videos</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 15% <span className="font-normal text-slate-400">Total Videos</span></p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center text-white shrink-0">
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">782</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Notes &amp; PDFs</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 10% <span className="font-normal text-slate-400">Study Materials</span></p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0">
-            <Users size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">24</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Contributors</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Active Lecturers</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
-            <Download size={20} />
-          </div>
-          <div>
-            <p className="text-xl font-black text-[#111A43] leading-none">12.6K</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Total Downloads</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">↑ 18% <span className="font-normal text-slate-400">This Session</span></p>
-          </div>
-        </div>
-      </div>
-
+      {uploadOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) resetUpload(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="resource-upload-title" className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 p-5"><div><h2 id="resource-upload-title" className="text-lg font-bold text-[#111A43]">Add learning resource</h2><p className="mt-1 text-xs text-slate-500">New resources are saved as drafts and require review before publication.</p></div><button type="button" disabled={saving} onClick={resetUpload} aria-label="Close upload dialog" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={18} /></button></div>
+            <form onSubmit={submitResource} className="space-y-4 p-5">
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setUploadMode('file')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'file' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Upload a file</button><button type="button" onClick={() => setUploadMode('link')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'link' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Add a link</button></div>
+              <label className="block text-xs font-semibold text-slate-700">Subject<select required value={form.subjectId} onChange={(event) => setForm((value) => ({ ...value, subjectId: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="">Choose subject</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name} — {programmeMap.get(subject.programme_id)?.name || 'Programme'}</option>)}</select></label>
+              <label className="block text-xs font-semibold text-slate-700">Resource title<input required minLength={5} maxLength={180} value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="e.g. Introduction to Mechanics" /></label>
+              <label className="block text-xs font-semibold text-slate-700">Description<textarea maxLength={3000} rows={3} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="Briefly describe what students will learn…" /></label>
+              {uploadMode === 'file' ? (
+                <div><label className="block text-xs font-semibold text-slate-700">Choose file <input required type="file" accept={FILE_TYPES} onChange={(event) => setFile(event.target.files?.[0] || null)} className="mt-1.5 block w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-[#111A43] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white" /></label><p className="mt-1.5 text-[11px] text-slate-500">PDF, PNG, JPG, DOCX or PPTX. Maximum size: 8 MB. {file ? 'Selected: ' + file.name + ' (' + formatBytes(file.size) + ')' : ''}</p></div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="block text-xs font-semibold text-slate-700">Link type<select value={form.resourceType} onChange={(event) => setForm((value) => ({ ...value, resourceType: event.target.value as ResourceForm['resourceType'] }))} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="website">Website / reference</option><option value="video">Video lecture</option><option value="exercise">Online exercise</option></select></label><label className="block text-xs font-semibold text-slate-700">HTTPS resource URL<input required type="url" value={form.resourceUrl} onChange={(event) => setForm((value) => ({ ...value, resourceUrl: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="https://…" /></label></div>
+              )}
+              {uploadStep && <div role="status" className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-xs font-semibold text-blue-800"><Loader2 size={15} className="animate-spin" />{uploadStep}</div>}
+              {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-xs text-rose-800">{error}</p>}
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={resetUpload} className="rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 disabled:opacity-50">Cancel</button><button type="submit" disabled={saving || subjects.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C62839] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}{saving ? 'Saving resource…' : 'Save as draft'}</button></div>
+              {subjects.length === 0 && <p className="text-[11px] text-amber-700">No active subjects are available. Add or activate a subject in Academic Management first.</p>}
+            </form>
+          </section>
         </div>
       )}
-
-      {activeTab==='All Resources'?<>
-      {/* Search & Filters */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by title, subject, programme or uploader..."
-            value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <select
-            value={selectedProgramme}
-            onChange={(e) => setSelectedProgramme(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
-          >
-            <option value="All Programmes">Programme: All Programmes</option>
-            <option value="JAMB">JAMB</option>
-            <option value="IJMB">IJMB</option>
-            <option value="WAEC">WAEC</option>
-          </select>
-
-          <select
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
-          >
-            <option value="All Subjects">Subject: All Subjects</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="English">English</option>
-            <option value="Physics">Physics</option>
-            <option value="Chemistry">Chemistry</option>
-            <option value="Economics">Economics</option>
-            <option value="Biology">Biology</option>
-          </select>
-
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none"
-          >
-            <option value="All Types">Resource Type: All Types</option>
-            <option value="PDF">PDF</option>
-            <option value="Video">Video</option>
-            <option value="Document">Document</option>
-            <option value="Image">Image</option>
-          </select>
-
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#111A43] text-white rounded-xl hover:bg-[#1a275e]">
-            <Filter size={13} />
-            Filter
-          </button>
-
-          <button
-            onClick={() => {
-              setSelectedProgramme('All Programmes');
-              setSelectedSubject('All Subjects');
-              setSelectedType('All Types');
-              setSearchFilter('');
-            }}
-            className="px-3 py-2 text-xs font-semibold bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Mid Section: Resources Table + Resource Preview Card */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Resources Table */}
-        <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${previewOpen ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="py-3 px-3 w-8 text-center">#</th>
-                  <th className="py-3 px-3">Title</th>
-                  <th className="py-3 px-3">Subject</th>
-                  <th className="py-3 px-2">Programme</th>
-                  <th className="py-3 px-2 text-center">Type</th>
-                  <th className="py-3 px-3">Uploaded By</th>
-                  <th className="py-3 px-2">Date</th>
-                  <th className="py-3 px-2 text-center">Downloads</th>
-                  <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredResources.map((r, idx) => {
-                  const isSelected = selectedResource.id === r.id;
-                  return (
-                    <tr
-                      key={r.id}
-                      onClick={() => {
-                        setSelectedResource(r);
-                        setPreviewOpen(true);
-                      }}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-rose-50/40' : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
-                      <td className="py-3 px-3 font-semibold text-[#111A43] whitespace-nowrap">{r.title}</td>
-                      <td className="py-3 px-3 text-slate-600">{r.subject}</td>
-                      <td className="py-3 px-2 font-bold text-slate-700">{r.programme}</td>
-                      <td className="py-3 px-2 text-center">{getTypeBadge(r.type)}</td>
-                      <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{r.uploadedBy}</td>
-                      <td className="py-3 px-2 text-slate-500 whitespace-nowrap">{r.date}</td>
-                      <td className="py-3 px-2 text-center font-bold text-[#111A43]">{r.downloads}</td>
-                      <td className="py-3 px-2">
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button className="p-1 text-slate-400 hover:text-slate-600 rounded">
-                          <MoreVertical size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Table Pagination */}
-          <div className="p-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <div>
-              Showing <span className="font-semibold text-slate-700">1 - 7</span> of <span className="font-semibold text-slate-700">1,842</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronLeft size={14} />
-              </button>
-              <button className="w-6 h-6 rounded-lg bg-[#111A43] text-white font-bold text-xs flex items-center justify-center">1</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">2</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">3</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">4</button>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">5</button>
-              <span className="text-slate-400">...</span>
-              <button className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-600 text-xs flex items-center justify-center">264</button>
-              <button className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <select className="border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white text-slate-600">
-                <option>7 per page</option>
-                <option>15 per page</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Resource Preview Card */}
-        {previewOpen && selectedResource && (
-          <div className="xl:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 relative space-y-4">
-            <button
-              onClick={() => setPreviewOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <BookOpen size={16} className="text-[#111A43]" />
-              <h3 className="text-sm font-bold text-[#111A43]">Resource Preview</h3>
-            </div>
-
-            {/* Document Cover / Canvas Mockup */}
-            <div className="relative bg-[#08163B] rounded-xl overflow-hidden p-6 text-white text-center shadow-inner flex flex-col items-center justify-between min-h-[220px]">
-              <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                PDF
-              </div>
-              <div className="text-center pt-2">
-                <div className="w-10 h-10 mx-auto rounded-lg bg-white/10 flex items-center justify-center border border-white/20 mb-2">
-                  <span className="font-serif font-black text-xs text-[#D5A75B]">UPEC</span>
-                </div>
-                <p className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">University Pathway Educational Consult</p>
-                <h4 className="text-base font-black tracking-tight mt-2 text-white leading-tight uppercase max-w-xs">
-                  {selectedResource.title}
-                </h4>
-                <p className="text-[10px] text-amber-300 font-semibold mt-1">WITH COMPLETE SOLUTIONS &amp; EXPLANATIONS</p>
-              </div>
-
-              {/* Bottom Viewer Toolbar */}
-              <div className="w-full flex items-center justify-between pt-4 border-t border-white/10 text-xs text-slate-300">
-                <span className="text-[11px] font-mono">1 / {selectedResource.pages || 124}</span>
-                <div className="flex items-center gap-3">
-                  <button className="hover:text-white"><ZoomOut size={14} /></button>
-                  <button className="hover:text-white"><ZoomIn size={14} /></button>
-                  <button className="hover:text-white"><Maximize2 size={14} /></button>
-                </div>
-              </div>
-            </div>
-
-            {/* Title and Badge */}
-            <div className="flex items-start justify-between gap-3 pt-1">
-              <div>
-                <h4 className="text-sm font-bold text-[#111A43] leading-snug">{selectedResource.title}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">{selectedResource.programme} Academic Resource</p>
-              </div>
-              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {selectedResource.status}
-              </span>
-            </div>
-
-            {/* Metadata Grid */}
-            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs pt-1 border-t border-slate-100">
-              <div>
-                <span className="text-slate-400 text-[11px]">Subject</span>
-                <p className="font-semibold text-slate-700">{selectedResource.subject}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">Programme</span>
-                <p className="font-semibold text-slate-700">{selectedResource.programme}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">Resource Type</span>
-                <p className="font-semibold text-slate-700">{selectedResource.type} Document</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">Uploaded By</span>
-                <p className="font-semibold text-slate-700">{selectedResource.uploadedBy}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">Date Uploaded</span>
-                <p className="font-semibold text-slate-700">{selectedResource.date}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">Downloads</span>
-                <p className="font-bold text-[#111A43]">{selectedResource.downloads}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px]">File Size</span>
-                <p className="font-semibold text-slate-700">{selectedResource.fileSize}</p>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-2 pt-2">
-              <button className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-colors">
-                <Download size={13} />
-                Download
-              </button>
-              <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-colors">
-                <Eye size={13} />
-                View
-              </button>
-              <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-colors">
-                <Edit2 size={13} />
-                Edit
-              </button>
-              <button className="p-2 text-slate-400 hover:text-slate-600 rounded-xl border border-slate-200">
-                <MoreHorizontal size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Row: Recent Uploads + Most Downloaded + Storage Usage */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Recent Uploads */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#111A43]">Recent Uploads</h3>
-            <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All</button>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            {[
-              { title: 'Physics Problem Set', type: 'PDF', subject: 'Physics', date: '14 Jul 2025' },
-              { title: 'English Essay Guide', type: 'Document', subject: 'English', date: '13 Jul 2025' },
-              { title: 'Chemistry Video Lecture', type: 'Video', subject: 'Chemistry', date: '12 Jul 2025' },
-              { title: 'Economics Notes', type: 'PDF', subject: 'Economics', date: '11 Jul 2025' },
-              { title: 'Biology Diagrams', type: 'Image', subject: 'Biology', date: '10 Jul 2025' },
-            ].map((u, i) => (
-              <div key={i} className="flex items-center justify-between pb-2.5 border-b border-slate-100 last:border-0 last:pb-0">
-                <div className="min-w-0 pr-2">
-                  <p className="font-semibold text-[#111A43] truncate">{u.title}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{u.subject}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">{u.type}</span>
-                  <span className="text-[10px] text-slate-400">{u.date}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Most Downloaded Resources */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#111A43]">Most Downloaded Resources</h3>
-            <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All</button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="py-2 px-2 w-6">#</th>
-                  <th className="py-2 px-3">Title</th>
-                  <th className="py-2 px-3">Subject</th>
-                  <th className="py-2 px-3 text-right">Downloads</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {[
-                  { title: 'JAMB 2024 Mathematics', subject: 'Mathematics', downloads: '1,245' },
-                  { title: 'WAEC English Past Questions', subject: 'English', downloads: '1,632' },
-                  { title: 'IJMB Chemistry Notes', subject: 'Chemistry', downloads: '1,102' },
-                  { title: 'Physics Full Lecture', subject: 'Physics', downloads: '980' },
-                  { title: 'Economics Summary', subject: 'Economics', downloads: '892' },
-                ].map((item, i) => (
-                  <tr key={i} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-2 text-slate-400">{i + 1}</td>
-                    <td className="py-2.5 px-3 font-semibold text-[#111A43] whitespace-nowrap">{item.title}</td>
-                    <td className="py-2.5 px-3 text-slate-600">{item.subject}</td>
-                    <td className="py-2.5 px-3 text-right font-bold text-[#111A43]">{item.downloads}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Storage Usage */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <HardDrive size={16} className="text-[#111A43]" />
-              <h3 className="text-sm font-bold text-[#111A43]">Storage Usage</h3>
-            </div>
-            <button className="text-[11px] font-semibold text-blue-600 hover:text-blue-700">Manage</button>
-          </div>
-
-          {/* Donut representation */}
-          <div className="flex flex-col items-center justify-center pt-2">
-            <div className="relative w-28 h-28 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-slate-100"
-                  strokeWidth="4"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-emerald-500"
-                  strokeDasharray="42, 100"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-base font-black text-[#111A43]">4.2 GB</span>
-                <p className="text-[9px] text-slate-400">of 10 GB Used</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1.5 text-xs pt-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                <span className="text-slate-600">PDF Documents</span>
-              </div>
-              <span className="font-semibold text-slate-700">1.8 GB (43%)</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                <span className="text-slate-600">Videos</span>
-              </div>
-              <span className="font-semibold text-slate-700">1.2 GB (29%)</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span className="text-slate-600">Images</span>
-              </div>
-              <span className="font-semibold text-slate-700">0.6 GB (14%)</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-slate-600">Other Files</span>
-              </div>
-              <span className="font-semibold text-slate-700">0.6 GB (14%)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      </>:<section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
-        <h2 className="text-lg font-bold text-[#111A43]">{activeTab}</h2>
-        <p className="mt-2 text-sm text-slate-600">This resource category is awaiting live file retrieval, upload and access-control integration.</p>
-        <p className="mt-2 text-xs text-amber-700">All Resources currently contains design-preview files and statistics, not verified library records.</p>
-      </section>}
     </div>
   );
 }
