@@ -696,9 +696,13 @@ router.get('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manag
  res.json({restricted:exam.data.restricted,status:exam.data.status,studentIds:(eligible.data||[]).map(row=>row.student_account_id)});
 }));
 router.get('/resources',grant(...questionRoles),wrap(async(req,res)=>{
- let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,storage_path,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
+ const limit=100,rawOffset=Number(req.query.offset||0);
+ if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>49900)return res.status(400).json({error:'Resource offset must be between 0 and 49900.'});
+ let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,storage_path,resource_type,status,created_at').order('created_at',{ascending:false}).range(rawOffset,rawOffset+limit);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
- const {data,error}=await query;if(error)throw error;res.json({resources:data||[]});
+ const {data,error}=await query;if(error)throw error;
+ const rows=data||[],hasMore=rows.length>limit;
+ res.json({resources:rows.slice(0,limit),offset:rawOffset,nextOffset:rawOffset+Math.min(rows.length,limit),hasMore});
 }));
 router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,title,description='',resourceUrl,resourceType}=req.body||{};
