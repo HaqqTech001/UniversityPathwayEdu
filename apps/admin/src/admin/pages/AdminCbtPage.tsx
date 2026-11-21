@@ -408,6 +408,15 @@ export default function AdminCbtPage() {
     }
   }, [selectedExamForResults, activeSection]);
 
+  // Keep the results view current while staff are monitoring a recently closed exam.
+  useEffect(() => {
+    if (!selectedExamForResults || activeSection !== 'Results & Analytics') return;
+    const refreshInterval = window.setInterval(() => {
+      void fetchResults(selectedExamForResults);
+    }, 30000);
+    return () => window.clearInterval(refreshInterval);
+  }, [selectedExamForResults, activeSection]);
+
   // Fetch Attempts for Live Monitoring Desk (Strictly using /assessments/:id/attempts)
   const fetchLiveAttempts = async (examId: string) => {
     if (!examId) return;
