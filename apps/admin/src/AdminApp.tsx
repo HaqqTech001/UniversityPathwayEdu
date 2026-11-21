@@ -91,6 +91,7 @@ export default function AdminApp() {
       }}
       onLogout={handleLogout}
       permissions={profile.permissions}
+      role={profile.role}
     />
   );
 }
