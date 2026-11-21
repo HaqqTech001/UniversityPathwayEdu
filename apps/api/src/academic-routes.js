@@ -749,14 +749,14 @@ router.delete('/resources/:id',grant('super_admin','admin','cbt_manager','teache
  if(lookupError)throw lookupError;
  if(!resource)return res.status(404).json({error:'Resource not found.'});
  if(resource.status!=='draft')return res.status(409).json({error:'Unpublish this resource before deleting it.'});
- if(resource.storage_path){
-  const {error:storageError}=await db.storage.from('upec-learning').remove([resource.storage_path]);
-  if(storageError)throw storageError;
- }
- const {data,error}=await db.from('upec_learning_resources').delete().eq('id',resource.id).eq('status','draft').select('id').maybeSingle();
+ const {data,error}=await db.from('upec_learning_resources').delete().eq('id',resource.id).eq('status','draft').select('id,storage_path').maybeSingle();
  if(error)throw error;
  if(!data)return res.status(409).json({error:'Resource changed while deletion was in progress. Refresh and try again.'});
- res.json({deleted:true,id:data.id});
+ if(data.storage_path){
+  const {error:storageError}=await db.storage.from('upec-learning').remove([data.storage_path]);
+  if(storageError)return res.status(200).json({deleted:true,id:data.id,storageCleanupPending:true,message:'Resource record deleted, but its stored file needs cleanup.'});
+ }
+ res.json({deleted:true,id:data.id,storageCleanupPending:false});
 }));
 router.get('/resources/:id/open',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
