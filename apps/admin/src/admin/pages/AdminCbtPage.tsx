@@ -2034,6 +2034,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-2 p-3 sm:hidden">
                   {resultsState.data.results.map((r, i) => {
                     const hasQuestions = r.total_questions !== null && r.total_questions > 0;
@@ -2108,6 +2109,7 @@ export default function AdminCbtPage() {
                   </tbody>
                 </table>
                 </div>
+                </>
               )}
             </div>
           </div>
