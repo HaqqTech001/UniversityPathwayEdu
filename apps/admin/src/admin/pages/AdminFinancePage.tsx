@@ -41,6 +41,21 @@ interface Transaction {
   proofValid: boolean;
   avatar: string;
 }
+type LedgerEntry = {
+  id:string;type:string;amount_ngn:number;reference:string;recorded_at:string;
+  invoice?:{id?:string;student_account_id?:string;programme_code?:string;billing_month?:string;academic_session?:string}|null;
+};
+const mapLedgerEntry=(entry:LedgerEntry):Transaction=>({
+  id:entry.id,
+  name:entry.invoice?.student_account_id||'Student account unavailable',
+  appId:entry.invoice?.id||'—',
+  reference:entry.reference||'—',
+  billingPeriod:entry.invoice?.billing_month||entry.invoice?.academic_session||'—',
+  programme:(entry.invoice?.programme_code||'—') as Transaction['programme'],
+  paymentType:entry.type==='registration'?'Registration Fee':'Lesson Fee',
+  amount:new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(entry.amount_ngn),
+  date:new Date(entry.recorded_at).toLocaleDateString('en-NG'),status:'Paid',proofValid:false,avatar:''
+});
 
 
 type FinanceTab = 'Overview' | 'University Bank Accounts' | 'Transactions' | 'Fee Structure' | 'Invoices & Receipts' | 'Pending Payments' | 'Refunds' | 'Financial Reports';
@@ -73,26 +88,15 @@ export default function AdminFinancePage() {
   const [transactions,setTransactions]=useState<Transaction[]>([]);
   const [ledgerError,setLedgerError]=useState('');
   const [ledgerLoading,setLedgerLoading]=useState(true);
+  const [ledgerHasMore,setLedgerHasMore]=useState(false);
+  const [ledgerMoreLoading,setLedgerMoreLoading]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token){setLedgerError('Staff login required.');setLedgerLoading(false);return;}
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
-      .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{
-        id:string;type:string;amount_ngn:number;reference:string;recorded_at:string;
-        invoice?:{id?:string;student_account_id?:string;programme_code?:string;billing_month?:string;academic_session?:string}|null
-      })=>({
-        id:entry.id,
-        name:entry.invoice?.student_account_id||'Student account unavailable',
-        appId:entry.invoice?.id||'—',
-        reference:entry.reference||'—',
-        billingPeriod:entry.invoice?.billing_month||entry.invoice?.academic_session||'—',
-        programme:(entry.invoice?.programme_code||'—') as Transaction['programme'],
-        paymentType:entry.type==='registration'?'Registration Fee':'Lesson Fee',
-        amount:new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(entry.amount_ngn),
-        date:new Date(entry.recorded_at).toLocaleDateString('en-NG'),status:'Paid',proofValid:false,avatar:''
-      })));})
+      .then(data=>{if(!controller.signal.aborted){setTransactions((data.entries||[]).map(mapLedgerEntry));setLedgerHasMore(Boolean(data.hasMore));}})
       .catch(error=>{if(!controller.signal.aborted)setLedgerError(error instanceof Error?error.message:'Unable to load payments.');})
       .finally(()=>{if(!controller.signal.aborted)setLedgerLoading(false);});
     return()=>controller.abort();
@@ -121,6 +125,20 @@ export default function AdminFinancePage() {
     const csv=rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const a=document.createElement('a');a.href=url;a.download='recorded-payments.csv';a.click();URL.revokeObjectURL(url);
+  };
+  const loadMoreLedger=async()=>{
+    if(ledgerMoreLoading||!ledgerHasMore)return;
+    const token=sessionStorage.getItem('upec_staff_token');
+    if(!token){setLedgerError('Staff login required.');return;}
+    setLedgerMoreLoading(true);setLedgerError('');
+    try{
+      const response=await fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/payment-ledger?offset='+transactions.length,{headers:{Authorization:'Bearer '+token}});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Unable to load more payment records.');
+      setTransactions(current=>[...current,...(data.entries||[]).map(mapLedgerEntry)]);
+      setLedgerHasMore(Boolean(data.hasMore));
+    }catch(error){setLedgerError(error instanceof Error?error.message:'Unable to load more payment records.');}
+    finally{setLedgerMoreLoading(false);}
   };
   const getPaymentTypeBadge = (type: Transaction['paymentType']) => {
     switch (type) {
@@ -321,8 +339,9 @@ export default function AdminFinancePage() {
             </table>
           </div>
 
+          {ledgerHasMore&&<div className="flex justify-center border-t border-slate-100 p-3"><button type="button" onClick={()=>void loadMoreLedger()} disabled={ledgerMoreLoading} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">{ledgerMoreLoading?'Loading more payments…':'Load more payment records'}</button></div>}
           <div className="p-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-            <span>Showing {filtered.length===0?0:(safePage-1)*pageSize+1}–{Math.min(safePage*pageSize,filtered.length)} of {filtered.length} recorded payments (latest 100 returned by API)</span>
+            <span>Showing {filtered.length===0?0:(safePage-1)*pageSize+1}–{Math.min(safePage*pageSize,filtered.length)} of {filtered.length} recorded payments loaded from the payment ledger</span>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" disabled={safePage===1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="rounded-lg border px-2 py-1 disabled:opacity-40" aria-label="Previous page">Previous</button>
               <span>Page {safePage} of {pageCount}</span>
