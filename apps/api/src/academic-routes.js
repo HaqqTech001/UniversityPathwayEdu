@@ -709,6 +709,51 @@ router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
  if(error?.code==='23503')return res.status(404).json({error:'Subject unavailable.'});
  if(error)throw error;res.status(201).json({resource:data});
 }));
+router.patch('/resources/:id',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ const {subjectId,title,description='',resourceUrl,resourceType}=req.body||{};
+ if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!['document','video','website','exercise'].includes(resourceType))return res.status(400).json({error:'Invalid learning resource details.'});
+ let query=db.from('upec_learning_resources').select('id,author_account_id,status,storage_path').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error:lookupError}=await query.maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(resource.status!=='draft')return res.status(409).json({error:'Unpublish this resource before editing it.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;
+ if(!subject)return res.status(404).json({error:'Choose an active subject.'});
+ let url=null;
+ if(resource.storage_path){
+  if(resourceType!=='document'||resourceUrl)return res.status(400).json({error:'Uploaded files must remain document resources. Replace the file by creating a new resource.'});
+ }else{
+  try{url=new URL(resourceUrl);}catch{return res.status(400).json({error:'A valid HTTPS resource link is required.'});}
+  if(resourceType==='document'||url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return res.status(400).json({error:'Provide a valid HTTPS link resource.'});
+ }
+ const {data,error}=await db.from('upec_learning_resources').update({
+  subject_id:subjectId,title:title.trim(),description:description.trim(),
+  resource_url:url?.href||null,resource_type:resourceType
+ }).eq('id',resource.id).eq('status','draft').select('id,title,description,subject_id,resource_type,status').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Resource changed while you were editing. Refresh and try again.'});
+ res.json({resource:data});
+}));
+router.delete('/resources/:id',grant('super_admin','admin','cbt_manager','teacher'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ let query=db.from('upec_learning_resources').select('id,author_account_id,status,storage_path').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error:lookupError}=await query.maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(resource.status!=='draft')return res.status(409).json({error:'Unpublish this resource before deleting it.'});
+ if(resource.storage_path){
+  const {error:storageError}=await db.storage.from('upec-learning').remove([resource.storage_path]);
+  if(storageError)throw storageError;
+ }
+ const {data,error}=await db.from('upec_learning_resources').delete().eq('id',resource.id).eq('status','draft').select('id').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Resource changed while deletion was in progress. Refresh and try again.'});
+ res.json({deleted:true,id:data.id});
+}));
 router.get('/resources/:id/open',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
  let query=db.from('upec_learning_resources').select('id,author_account_id,resource_url,storage_path,status').eq('id',req.params.id);
