@@ -28,9 +28,11 @@ import {
 } from 'lucide-react';
 
 interface Transaction {
-  id: number;
+  id: string;
   name: string;
   appId: string;
+  reference: string;
+  billingPeriod: string;
   programme: 'IJMB' | 'JAMB' | 'WAEC' | '—';
   paymentType: 'Registration Fee' | 'Lesson Fee' | 'Hostel Fee' | 'Exam Fee' | 'Other Fee';
   amount: string;
@@ -51,7 +53,11 @@ export default function AdminFinancePage() {
   const [page,setPage]=useState(1);
   const [pageSize,setPageSize]=useState(10);
 
-  const [summary,setSummary]=useState<{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;unpaid:number;partial:number;settled:number}|null>(null);
+  const [summary,setSummary]=useState<{
+    invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;
+    unpaid:number;partial:number;settled:number;waived?:number;
+    registration?:{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number};
+  }|null>(null);
   const [summaryError,setSummaryError]=useState('');
   useEffect(()=>{
     const controller=new AbortController();
@@ -73,8 +79,15 @@ export default function AdminFinancePage() {
     if(!token){setLedgerError('Staff login required.');setLedgerLoading(false);return;}
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
-      .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{id:string;type:string;amount_ngn:number;recorded_at:string;invoice?:{programme_code?:string}},index:number)=>({
-        id:index+1,name:'Verified payment',appId:entry.id,
+      .then(data=>{if(!controller.signal.aborted)setTransactions((data.entries||[]).map((entry:{
+        id:string;type:string;amount_ngn:number;reference:string;recorded_at:string;
+        invoice?:{id?:string;student_account_id?:string;programme_code?:string;billing_month?:string;academic_session?:string}|null
+      })=>({
+        id:entry.id,
+        name:entry.invoice?.student_account_id||'Student account unavailable',
+        appId:entry.invoice?.id||'—',
+        reference:entry.reference||'—',
+        billingPeriod:entry.invoice?.billing_month||entry.invoice?.academic_session||'—',
         programme:(entry.invoice?.programme_code||'—') as Transaction['programme'],
         paymentType:entry.type==='registration'?'Registration Fee':'Lesson Fee',
         amount:new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(entry.amount_ngn),
@@ -90,7 +103,8 @@ export default function AdminFinancePage() {
     if (
       searchFilter &&
       !t.name.toLowerCase().includes(searchFilter.toLowerCase()) &&
-      !t.appId.toLowerCase().includes(searchFilter.toLowerCase())
+      !t.appId.toLowerCase().includes(searchFilter.toLowerCase()) &&
+      !t.reference.toLowerCase().includes(searchFilter.toLowerCase())
     ) {
       return false;
     }
@@ -102,8 +116,8 @@ export default function AdminFinancePage() {
   const pageRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize);
   useEffect(()=>{setPage(1);},[selectedType,selectedProgramme,searchFilter,pageSize]);
   const exportLedger=()=>{
-    const rows=[['Payment record ID','Programme','Payment type','Amount (NGN)','Date','Status'],
-      ...filtered.map(t=>[t.appId,t.programme,t.paymentType,t.amount,t.date,t.status])];
+    const rows=[['Payment ID','Student account','Invoice ID','Bank transaction reference','Programme','Billing period','Payment type','Amount (NGN)','Date','Status'],
+      ...filtered.map(t=>[t.id,t.name,t.appId,t.reference,t.programme,t.billingPeriod,t.paymentType,t.amount,t.date,t.status])];
     const csv=rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const a=document.createElement('a');a.href=url;a.download='recorded-payments.csv';a.click();URL.revokeObjectURL(url);
@@ -175,9 +189,9 @@ export default function AdminFinancePage() {
             <Receipt size={20} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#111A43] leading-none">—</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">Registration Fees</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Not included in monthly summary</p>
+            <p className="text-lg font-black text-[#111A43] leading-none">{summary?.registration?money(summary.registration.billedNgn):'—'}</p>
+            <p className="text-xs font-bold text-slate-700 mt-1">Registration Fees Billed</p>
+            <p className="text-[10px] font-semibold text-slate-500 mt-0.5">{summary?.registration?summary.registration.invoiceCount+' registration invoices':'Registration summary unavailable'}</p>
           </div>
         </div>
 
@@ -278,9 +292,10 @@ export default function AdminFinancePage() {
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-3 w-8 text-center">#</th>
-                  <th className="py-3 px-3">Record</th>
-                  <th className="py-3 px-3">Payment record ID</th>
-                  <th className="py-3 px-2">Programme</th>
+                  <th className="py-3 px-3">Student account</th>
+                  <th className="py-3 px-3">Invoice ID</th>
+                  <th className="py-3 px-3">Bank reference</th>
+                  <th className="py-3 px-2">Programme / Period</th>
                   <th className="py-3 px-3">Payment Type</th>
                   <th className="py-3 px-3">Amount</th>
                   <th className="py-3 px-2">Date</th>
@@ -292,13 +307,10 @@ export default function AdminFinancePage() {
                 {pageRows.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 text-center text-slate-400 font-medium">{(safePage-1)*pageSize+idx+1}</td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-[#111A43] whitespace-nowrap">{t.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">{t.appId}</td>
-                    <td className="py-3 px-2 font-bold text-slate-700">{t.programme}</td>
+                    <td className="py-3 px-3 font-mono text-[11px] text-slate-600">{t.name}</td>
+                    <td className="py-3 px-3 font-mono text-[11px] text-slate-500">{t.appId}</td>
+                    <td className="py-3 px-3 font-mono text-[11px] text-slate-700">{t.reference}</td>
+                    <td className="py-3 px-2"><p className="font-bold text-slate-700">{t.programme}</p><p className="text-[10px] text-slate-500">{t.billingPeriod}</p></td>
                     <td className="py-3 px-3">{getPaymentTypeBadge(t.paymentType)}</td>
                     <td className="py-3 px-3 font-bold text-[#111A43]">{t.amount}</td>
                     <td className="py-3 px-2 text-slate-500 whitespace-nowrap">{t.date}</td>
@@ -340,7 +352,12 @@ export default function AdminFinancePage() {
             <p className="text-lg font-bold text-[#111A43]">{summary?money(summary.billedNgn):'—'} billed</p>
             <p className="text-emerald-700">{summary?money(summary.paidNgn):'—'} received</p>
             <p className="text-amber-700">{summary?money(summary.outstandingNgn):'—'} outstanding</p>
-            <p className="text-slate-600">{summary?summary.settled:'—'} paid · {summary?summary.partial:'—'} partial · {summary?summary.unpaid:'—'} unpaid</p>
+            <p className="text-slate-600">{summary?summary.settled:'—'} paid · {summary?summary.partial:'—'} partial · {summary?summary.unpaid:'—'} unpaid · {summary?summary.waived||0:'—'} waived</p>
+            <hr className="border-slate-100"/>
+            <p className="text-slate-500">Registration invoices · separate ledger</p>
+            <p className="font-semibold text-[#111A43]">{summary?.registration?money(summary.registration.billedNgn):'—'} billed</p>
+            <p className="text-emerald-700">{summary?.registration?money(summary.registration.paidNgn):'—'} received</p>
+            <p className="text-amber-700">{summary?.registration?money(summary.registration.outstandingNgn):'—'} outstanding</p>
           </div>
         </div>
 
