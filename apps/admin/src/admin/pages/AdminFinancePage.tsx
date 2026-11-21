@@ -71,19 +71,21 @@ export default function AdminFinancePage() {
   const [summary,setSummary]=useState<{
     invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;
     unpaid:number;partial:number;settled:number;waived?:number;
-    registration?:{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number};
+    programmes?:{programmeCode:string;invoices:number;billedNgn:number;paidNgn:number}[];
+    registration?:{invoiceCount:number;billedNgn:number;paidNgn:number;outstandingNgn:number;programmes?:{programmeCode:string;invoices:number;billedNgn:number;paidNgn:number}[]};
   }|null>(null);
   const [summaryError,setSummaryError]=useState('');
+  const [reportMonth,setReportMonth]=useState('');
   useEffect(()=>{
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token)return;
-    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
+    fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary'+(reportMonth?'?month='+encodeURIComponent(reportMonth):''),{headers:{Authorization:'Bearer '+token},signal:controller.signal})
     .then(async res=>{const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not load summary');return data;})
     .then(data=>{if(!controller.signal.aborted)setSummary({...data.report,registration:data.registration});})
     .catch(err=>{if(!controller.signal.aborted)setSummaryError(err instanceof Error?err.message:'Summary unavailable');});
     return()=>controller.abort();
-  },[]);
+  },[reportMonth]);
   const money=(value:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(value);
   const [transactions,setTransactions]=useState<Transaction[]>([]);
   const [ledgerError,setLedgerError]=useState('');
@@ -187,7 +189,10 @@ export default function AdminFinancePage() {
       {activeTab==='Invoices & Receipts'&&<><InvoiceManager /><RegistrationInvoiceManager /><ReceiptReviewPanel /></>}
       {activeTab==='Pending Payments'&&<><p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">Pending receipts are not confirmed payments. Review evidence below.</p><ReceiptReviewPanel /></>}
       {activeTab==='Refunds'&&<section className="rounded-xl border bg-white p-5"><h2 className="font-bold">Refunds</h2><p className="text-sm text-slate-600">Refund processing is not yet implemented. No refund actions are enabled.</p></section>}
-      {activeTab==='Financial Reports'&&<p className="rounded-lg bg-slate-50 p-4 text-sm">Monthly invoice summaries are available below. Full institutional reporting is not yet implemented.</p>}
+      {activeTab==='Financial Reports'&&<section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="font-bold text-[#111A43]">Financial reports</h2><p className="mt-1 text-xs text-slate-500">Choose a billing month to review monthly lesson invoices and registration invoices separately.</p></div>
+        <label className="text-xs font-semibold text-slate-700">Reporting month<input type="month" value={reportMonth} onChange={event=>setReportMonth(event.target.value)} className="mt-1 block rounded-lg border border-slate-200 px-3 py-2"/></label>
+      </section>}
       {(activeTab==='Overview'||activeTab==='Financial Reports')&&<>
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3.5">
@@ -258,6 +263,22 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
+      {activeTab==='Financial Reports'&&<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="font-bold text-[#111A43]">Monthly lesson fees by programme</h3>
+          <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-slate-500"><th className="py-2">Programme</th><th className="py-2">Invoices</th><th className="py-2">Billed</th><th className="py-2">Received</th></tr></thead><tbody>
+            {(summary?.programmes||[]).map(item=><tr key={item.programmeCode} className="border-b border-slate-100"><td className="py-2 font-semibold">{item.programmeCode}</td><td className="py-2">{item.invoices}</td><td className="py-2">{money(item.billedNgn)}</td><td className="py-2 text-emerald-700">{money(item.paidNgn)}</td></tr>)}
+            {!(summary?.programmes||[]).length&&<tr><td colSpan={4} className="py-4 text-slate-500">No monthly invoice totals for this period.</td></tr>}
+          </tbody></table></div>
+        </section>
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="font-bold text-[#111A43]">Registration fees by programme</h3>
+          <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-slate-500"><th className="py-2">Programme</th><th className="py-2">Invoices</th><th className="py-2">Billed</th><th className="py-2">Received</th></tr></thead><tbody>
+            {(summary?.registration?.programmes||[]).map(item=><tr key={item.programmeCode} className="border-b border-slate-100"><td className="py-2 font-semibold">{item.programmeCode}</td><td className="py-2">{item.invoices}</td><td className="py-2">{money(item.billedNgn)}</td><td className="py-2 text-emerald-700">{money(item.paidNgn)}</td></tr>)}
+            {!(summary?.registration?.programmes||[]).length&&<tr><td colSpan={4} className="py-4 text-slate-500">No registration invoice totals for this period.</td></tr>}
+          </tbody></table></div>
+        </section>
+      </div>}
       <div className="flex justify-end"><button type="button" onClick={exportLedger} disabled={ledgerLoading||Boolean(ledgerError)||filtered.length===0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Export filtered payments (CSV)</button></div>
       </>}
       {activeTab==='Transactions'&&<>
