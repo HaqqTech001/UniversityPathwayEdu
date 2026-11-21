@@ -80,7 +80,7 @@ export default function AdminFinancePage() {
     if(!token)return;
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
     .then(async res=>{const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not load summary');return data;})
-    .then(data=>{if(!controller.signal.aborted)setSummary(data);})
+    .then(data=>{if(!controller.signal.aborted)setSummary({...data.report,registration:data.registration});})
     .catch(err=>{if(!controller.signal.aborted)setSummaryError(err instanceof Error?err.message:'Summary unavailable');});
     return()=>controller.abort();
   },[]);
@@ -179,7 +179,7 @@ export default function AdminFinancePage() {
       </div>
 
       {summaryError&&<p role="alert" className="text-sm text-rose-700">{summaryError}</p>}
-      <p className="text-xs text-slate-500">Summary figures cover monthly lesson invoices only, across all available billing months.</p>
+      <p className="text-xs text-slate-500">Summary separates monthly lesson invoices from registration invoices; payment records below reflect verified bank payments only.</p>
       <nav aria-label="Finance sections" className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{financeTabs.map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} aria-current={activeTab===tab?'page':undefined} className={activeTab===tab?'rounded-lg bg-[#111A43] px-4 py-2 text-xs font-bold text-white':'rounded-lg border bg-white px-4 py-2 text-xs font-semibold text-slate-600'}>{tab}</button>)}</nav>
       {activeTab==='Overview'&&<section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6"><h2 className="text-lg font-bold text-[#111A43]">Finance workspace</h2><p className="mt-1 text-sm text-slate-600">Choose a financial task below. Payment records and management tools stay in their dedicated sections.</p><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{financeTabs.filter(tab=>tab!=='Overview').map(tab=><button key={tab} type="button" onClick={()=>setActiveTab(tab)} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] px-4 py-4 text-left text-sm font-semibold text-[#111A43] transition hover:border-[#C62839] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62839]">{tab} <span aria-hidden="true" className="float-right text-[#C62839]">→</span></button>)}</div></section>}
       {activeTab==='University Bank Accounts'&&<BankAccountManager />}
@@ -321,7 +321,7 @@ export default function AdminFinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {ledgerLoading&&Array.from({length:6},(_,i)=><tr key={`payment-skeleton-${i}`} aria-label="Loading payment"><td colSpan={8} className="px-3 py-4"><div className="flex animate-pulse items-center gap-4"><div className="h-3 w-6 rounded bg-slate-200"/><div className="h-3 w-1/4 rounded bg-slate-200"/><div className="h-3 w-1/3 rounded bg-slate-100"/><div className="h-3 flex-1 rounded bg-slate-100"/></div></td></tr>)}
+                {ledgerLoading&&Array.from({length:6},(_,i)=><tr key={`payment-skeleton-${i}`} aria-label="Loading payment"><td colSpan={9} className="px-3 py-4"><div className="flex animate-pulse items-center gap-4"><div className="h-3 w-6 rounded bg-slate-200"/><div className="h-3 w-1/4 rounded bg-slate-200"/><div className="h-3 w-1/3 rounded bg-slate-100"/><div className="h-3 flex-1 rounded bg-slate-100"/></div></td></tr>)}
                 {pageRows.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 text-center text-slate-400 font-medium">{(safePage-1)*pageSize+idx+1}</td>
