@@ -629,7 +629,8 @@ router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res
  const studentIds=[...new Set((data||[]).map(r=>r.student_account_id))];
  let studentsMap={};
  if(studentIds.length>0){
-  const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  const {data:accounts,error:accountsError}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  if(accountsError)throw accountsError;
   (accounts||[]).forEach(acc=>{if(acc.full_name)studentsMap[acc.id]=acc.full_name;});
  }
  const formatted=(data||[]).map(r=>({
