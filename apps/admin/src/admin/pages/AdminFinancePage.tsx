@@ -129,6 +129,26 @@ export default function AdminFinancePage() {
     const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const a=document.createElement('a');a.href=url;a.download='recorded-payments.csv';a.click();URL.revokeObjectURL(url);
   };
+  const exportFinanceReport=()=>{
+    const monthLabel=reportMonth||'all-periods';
+    const rows=[
+      ['University Pathway Educational Consult — Finance Report'],
+      ['Reporting month',reportMonth||'All available months'],
+      [],
+      ['Monthly lesson fees by programme'],
+      ['Programme','Invoices','Billed (NGN)','Received (NGN)','Outstanding (NGN)'],
+      ...(summary?.programmes||[]).map(item=>[item.programmeCode,item.invoices,item.billedNgn,item.paidNgn,Math.max(0,item.billedNgn-item.paidNgn)]),
+      ['TOTAL',summary?.invoiceCount||0,summary?.billedNgn||0,summary?.paidNgn||0,summary?.outstandingNgn||0],
+      [],
+      ['Registration fees by programme'],
+      ['Programme','Invoices','Billed (NGN)','Received (NGN)','Outstanding (NGN)'],
+      ...(summary?.registration?.programmes||[]).map(item=>[item.programmeCode,item.invoices,item.billedNgn,item.paidNgn,Math.max(0,item.billedNgn-item.paidNgn)]),
+      ['TOTAL',summary?.registration?.invoiceCount||0,summary?.registration?.billedNgn||0,summary?.registration?.paidNgn||0,summary?.registration?.outstandingNgn||0],
+    ];
+    const csv=rows.map(row=>row.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='finance-report-'+monthLabel+'.csv';a.click();URL.revokeObjectURL(url);
+  };
   const loadMoreLedger=async()=>{
     if(ledgerMoreLoading||!ledgerHasMore)return;
     const token=sessionStorage.getItem('upec_staff_token');
@@ -192,7 +212,7 @@ export default function AdminFinancePage() {
       {activeTab==='Refunds'&&<section className="rounded-xl border bg-white p-5"><h2 className="font-bold">Refunds</h2><p className="text-sm text-slate-600">Refund processing is not yet implemented. No refund actions are enabled.</p></section>}
       {activeTab==='Financial Reports'&&<section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
         <div><h2 className="font-bold text-[#111A43]">Financial reports</h2><p className="mt-1 text-xs text-slate-500">Choose a billing month to review monthly lesson invoices and registration invoices separately.</p></div>
-        <label className="text-xs font-semibold text-slate-700">Reporting month<input type="month" value={reportMonth} onChange={event=>setReportMonth(event.target.value)} className="mt-1 block rounded-lg border border-slate-200 px-3 py-2"/></label>
+        <div className="flex flex-wrap items-end gap-2"><label className="text-xs font-semibold text-slate-700">Reporting month<input type="month" value={reportMonth} onChange={event=>setReportMonth(event.target.value)} className="mt-1 block rounded-lg border border-slate-200 px-3 py-2"/></label><button type="button" onClick={exportFinanceReport} disabled={!summary} className="rounded-lg bg-[#111A43] px-3 py-2.5 text-xs font-bold text-white disabled:opacity-50">Export report CSV</button></div>
       </section>}
       {(activeTab==='Overview'||activeTab==='Financial Reports')&&<>
       {/* 6 KPI Cards */}
