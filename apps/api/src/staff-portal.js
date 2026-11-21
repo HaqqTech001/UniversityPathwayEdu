@@ -277,7 +277,7 @@ router.post('/finance/monthly-receipts/:id/record-payment',permit('finance.manag
 router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res)=>{
  const limit=100;
  const rawOffset=Number(req.query.offset||0);
- if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>899)return res.status(400).json({error:'Ledger offset must be between 0 and 899.'});
+ if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>900)return res.status(400).json({error:'Ledger offset must be between 0 and 900.'});
  // Fetch enough rows from both independent ledgers to merge them in true chronological order.
  const end=rawOffset+limit-1;
  const [monthly,registration]=await Promise.all([
@@ -297,7 +297,7 @@ router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res
   ...(registration.data||[]).map(x=>({...x,type:'registration',invoice:g.get(x.invoice_id)||null}))
  ].sort((a,b)=>Date.parse(b.recorded_at)-Date.parse(a.recorded_at));
  const entries=merged.slice(rawOffset,rawOffset+limit);
- res.json({entries,limit,offset:rawOffset,nextOffset:rawOffset+entries.length,hasMore:merged.length>rawOffset+limit});
+ res.json({entries,limit,offset:rawOffset,nextOffset:rawOffset+entries.length,hasMore:merged.length>rawOffset+limit && rawOffset+entries.length<1000});
 }));
 router.get('/finance/application-search',permit('finance.manage'),wrap(async(req,res)=>{
  const q=String(req.query.q||'').trim();
