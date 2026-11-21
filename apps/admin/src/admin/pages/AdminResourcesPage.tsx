@@ -77,7 +77,7 @@ function typeIcon(type: ResourceType) {
   return <FileText size={16} />;
 }
 
-export default function AdminResourcesPage() {
+export default function AdminResourcesPage({ canPublish = false }: { canPublish?: boolean }) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [hasMoreResources, setHasMoreResources] = useState(false);
   const [loadingMoreResources, setLoadingMoreResources] = useState(false);
@@ -425,7 +425,7 @@ export default function AdminResourcesPage() {
                           <td className="px-3 py-3 text-slate-600">{typeLabel(resource.resource_type)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-slate-500">{formatDate(resource.created_at)}</td>
                           <td className="px-3 py-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (resource.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700')}>{resource.status === 'published' ? 'Published' : 'Draft'}</span></td>
-                          <td className="px-3 py-3 text-right"><button type="button" disabled={statusBusyId === resource.id} onClick={(event) => { event.stopPropagation(); void changeStatus(resource); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{statusBusyId === resource.id ? 'Saving…' : resource.status === 'published' ? 'Unpublish' : 'Publish'}</button></td>
+                          <td className="px-3 py-3 text-right">{canPublish && <button type="button" disabled={statusBusyId === resource.id} onClick={(event) => { event.stopPropagation(); void changeStatus(resource); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{statusBusyId === resource.id ? 'Saving…' : resource.status === 'published' ? 'Unpublish' : 'Publish'}</button>}</td>
                         </tr>
                       );
                     })}
@@ -458,7 +458,7 @@ export default function AdminResourcesPage() {
                 <button type="button" onClick={() => editResource(selected)} disabled={selected.status !== 'draft' || saving} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 disabled:opacity-40">Edit details</button>
                 <button type="button" onClick={() => void deleteResource(selected)} disabled={selected.status !== 'draft' || deletingId === selected.id} className="rounded-lg border border-rose-200 px-3 py-2.5 text-xs font-bold text-rose-700 disabled:opacity-40">{deletingId === selected.id ? 'Deleting…' : 'Delete draft'}</button>
                 <button type="button" onClick={() => void openResource(selected)} disabled={openingId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#111A43] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#1b285c] disabled:opacity-50">{openingId === selected.id ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Open resource</button>
-                <button type="button" onClick={() => void changeStatus(selected)} disabled={statusBusyId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{selected.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+                {canPublish && <button type="button" onClick={() => void changeStatus(selected)} disabled={statusBusyId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{selected.status === 'published' ? 'Unpublish' : 'Publish'}</button>}
               </div>
               <p className="text-[10px] leading-relaxed text-slate-400">Only drafts can be edited or deleted. Unpublish a resource before changing its details. Download counts and storage analytics are not currently exposed by the backend, so they are intentionally not displayed as fabricated figures.</p>
             </div>
