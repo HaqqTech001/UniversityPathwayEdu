@@ -325,12 +325,18 @@ export default function AdminResourcesPage({ canPublish = false }: { canPublish?
   };
 
   const openResource = async (resource: Resource) => {
+    // Open the tab synchronously from the click so popup blockers do not reject
+    // the signed URL navigation after the API request completes.
+    const popup = window.open('about:blank', '_blank');
+    if (popup) popup.opener = null;
     setOpeningId(resource.id);
     setError('');
     try {
       const result = await api<{ url: string }>('/resources/' + encodeURIComponent(resource.id) + '/open');
-      window.open(result.url, '_blank', 'noopener,noreferrer');
+      if (!popup) throw new Error('Your browser blocked the new tab. Allow pop-ups for this site and try again.');
+      popup.location.href = result.url;
     } catch (err) {
+      popup?.close();
       setError(err instanceof Error ? err.message : 'Unable to open this resource.');
     } finally {
       setOpeningId(null);
