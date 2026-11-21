@@ -79,6 +79,8 @@ function typeIcon(type: ResourceType) {
 
 export default function AdminResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [hasMoreResources, setHasMoreResources] = useState(false);
+  const [loadingMoreResources, setLoadingMoreResources] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,11 +114,12 @@ export default function AdminResourcesPage() {
     setError('');
     try {
       const [resourceData, catalogue] = await Promise.all([
-        api<{ resources?: Resource[] }>('/resources'),
+        api<{ resources?: Resource[]; hasMore?: boolean }>('/resources'),
         api<Catalogue>('/catalogue'),
       ]);
       const nextResources = resourceData.resources || [];
       setResources(nextResources);
+      setHasMoreResources(Boolean(resourceData.hasMore));
       setSubjects((catalogue.subjects || []).filter((item) => item.active));
       setProgrammes((catalogue.programmes || []).filter((item) => item.active));
       setSelectedId((current) => current && nextResources.some((item) => item.id === current)
@@ -131,6 +134,25 @@ export default function AdminResourcesPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const loadMoreResources = async () => {
+    if (loadingMoreResources || !hasMoreResources) return;
+    setLoadingMoreResources(true);
+    setError('');
+    try {
+      const result = await api<{ resources?: Resource[]; hasMore?: boolean }>('/resources?offset=' + resources.length);
+      const incoming = result.resources || [];
+      setResources(current => {
+        const known = new Set(current.map(item => item.id));
+        return [...current, ...incoming.filter(item => !known.has(item.id))];
+      });
+      setHasMoreResources(Boolean(result.hasMore));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load more resources.');
+    } finally {
+      setLoadingMoreResources(false);
+    }
+  };
 
   const subjectMap = useMemo(() => new Map(subjects.map((item) => [item.id, item])), [subjects]);
   const programmeMap = useMemo(() => new Map(programmes.map((item) => [item.id, item])), [programmes]);
@@ -192,7 +214,7 @@ export default function AdminResourcesPage() {
             title: form.title,
             description: form.description,
             resourceUrl: editingResource.storage_path ? undefined : form.resourceUrl,
-            resourceType: editingResource.resource_type,
+            resourceType: editingResource.storage_path ? 'document' : form.resourceType,
           }),
         });
         notify('Resource details updated.');
@@ -412,6 +434,7 @@ export default function AdminResourcesPage() {
                 <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}</span>
                 <div className="flex items-center gap-2"><select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="rounded border border-slate-200 bg-white px-2 py-1.5"><option value={15}>15 per page</option><option value={30}>30 per page</option><option value={50}>50 per page</option></select><button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Next</button></div>
               </div>
+              {hasMoreResources && <div className="flex justify-center border-t border-slate-100 p-3"><button type="button" onClick={() => void loadMoreResources()} disabled={loadingMoreResources} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">{loadingMoreResources ? 'Loading resources…' : 'Load more resources'}</button></div>}
             </>
           )}
         </div>
