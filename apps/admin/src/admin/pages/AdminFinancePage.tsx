@@ -43,11 +43,11 @@ interface Transaction {
 }
 type LedgerEntry = {
   id:string;type:string;amount_ngn:number;reference:string;recorded_at:string;
-  invoice?:{id?:string;student_account_id?:string;programme_code?:string;billing_month?:string;academic_session?:string}|null;
+  invoice?:{id?:string;student_account_id?:string;student_name?:string|null;programme_code?:string;billing_month?:string;academic_session?:string}|null;
 };
 const mapLedgerEntry=(entry:LedgerEntry):Transaction=>({
   id:entry.id,
-  name:entry.invoice?.student_account_id||'Student account unavailable',
+  name:entry.invoice?.student_name||entry.invoice?.student_account_id||'Student account unavailable',
   appId:entry.invoice?.id||'—',
   reference:entry.reference||'—',
   billingPeriod:entry.invoice?.billing_month||entry.invoice?.academic_session||'—',
@@ -80,6 +80,7 @@ export default function AdminFinancePage() {
     const controller=new AbortController();
     const token=sessionStorage.getItem('upec_staff_token');
     if(!token)return;
+    setSummaryError('');
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary'+(reportMonth?'?month='+encodeURIComponent(reportMonth):''),{headers:{Authorization:'Bearer '+token},signal:controller.signal})
     .then(async res=>{const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not load summary');return data;})
     .then(data=>{if(!controller.signal.aborted)setSummary({...data.report,registration:data.registration});})
@@ -279,7 +280,7 @@ export default function AdminFinancePage() {
           </tbody></table></div>
         </section>
       </div>}
-      <div className="flex justify-end"><button type="button" onClick={exportLedger} disabled={ledgerLoading||Boolean(ledgerError)||filtered.length===0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Export filtered payments (CSV)</button></div>
+      <div className="flex justify-end"><button type="button" onClick={exportLedger} disabled={ledgerLoading||Boolean(ledgerError)||filtered.length===0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">Export loaded filtered payments (CSV)</button></div>
       </>}
       {activeTab==='Transactions'&&<>
       {/* Search & Filter Bar */}
