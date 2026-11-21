@@ -18,9 +18,10 @@ interface AdminPortalAppProps {
   initialTab?: AdminTabId;
   onLogout?: () => void;
   permissions?: string[];
+  role?: string;
 }
 
-export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard', onLogout, permissions = [] }: AdminPortalAppProps) {
+export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'dashboard', onLogout, permissions = [], role = '' }: AdminPortalAppProps) {
   const canManageFinance = permissions.includes('finance.manage');
   const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
     if (typeof window !== 'undefined') {
@@ -111,7 +112,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       case 'cbt':
         return <AdminCbtPage />;
       case 'resources':
-        return <AdminResourcesPage />;
+        return <AdminResourcesPage canPublish={['super_admin', 'admin', 'cbt_manager'].includes(role)} />;
       case 'finance':
         return <AdminFinancePage />;
       case 'notices':
