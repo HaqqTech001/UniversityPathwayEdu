@@ -311,9 +311,11 @@ export default function AdminResourcesPage() {
     setDeletingId(resource.id);
     setError('');
     try {
-      await api('/resources/' + encodeURIComponent(resource.id), { method: 'DELETE' });
+      const result = await api<{ storageCleanupPending?: boolean }>('/resources/' + encodeURIComponent(resource.id), { method: 'DELETE' });
       setSelectedId(current => current === resource.id ? null : current);
-      notify('Draft resource deleted.');
+      notify(result.storageCleanupPending
+        ? 'Draft deleted, but its stored file needs administrator cleanup.'
+        : 'Draft resource deleted.', result.storageCleanupPending ? 'error' : 'success');
       await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to delete this resource.');
