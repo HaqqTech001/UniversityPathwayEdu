@@ -709,6 +709,8 @@ router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
  let url;
  try{url=new URL(resourceUrl);}catch{return res.status(400).json({error:'A valid HTTPS resource link is required.'});}
  if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!['document','video','website','exercise'].includes(resourceType)||url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return res.status(400).json({error:'Invalid learning resource.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;if(!subject)return res.status(404).json({error:'Choose an active subject.'});
  const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_url:url.href,resource_type:resourceType,status:'draft'}).select('id,title,status').single();
  if(error?.code==='23503')return res.status(404).json({error:'Subject unavailable.'});
  if(error)throw error;res.status(201).json({resource:data});
@@ -825,6 +827,8 @@ const allowedUploadTypes=new Set(['application/pdf','image/png','image/jpeg','ap
 router.post('/resources/upload-init',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,title,description='',mimeType,fileSize}=req.body||{};
  if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||(!Number.isInteger(fileSize)||fileSize<1||fileSize>8388608)||!allowedUploadTypes.has(mimeType))return res.status(400).json({error:'Invalid resource or file type.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;if(!subject)return res.status(404).json({error:'Choose an active subject.'});
  const ext=({'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx'})[mimeType];
  const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+ext;
  const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_type:'document',storage_path:path,status:'draft'}).select('id').single();
@@ -845,7 +849,17 @@ router.post('/resources/:id/upload-verify',grant(...questionRoles),wrap(async(re
  if(storageError)throw storageError;
  const file=(files||[]).find(f=>f.name===path.slice(slash+1));
  if(!file?.metadata||!(Number(file.metadata.size)>0))return res.status(409).json({error:'File upload is incomplete.'});
- res.json({complete:true,resourceId:resource.id,size:Number(file.metadata.size)});
+ const actualSize=Number(file.metadata.size);
+ if(actualSize>8388608){
+  await db.storage.from('upec-learning').remove([path]);
+  return res.status(413).json({error:'Uploaded file exceeds the 8 MB limit and was removed.'});
+ }
+ const expectedMime=({pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'})[path.slice(path.lastIndexOf('.')+1)];
+ if(file.metadata.mimetype&&file.metadata.mimetype!==expectedMime){
+  await db.storage.from('upec-learning').remove([path]);
+  return res.status(415).json({error:'Uploaded file type does not match the permitted file type.'});
+ }
+ res.json({complete:true,resourceId:resource.id,size:actualSize});
 }));
 router.get('/subject-combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_subject_combinations').select('id,programme_id,name,subject_codes,active').order('name').limit(500);
