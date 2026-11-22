@@ -2353,6 +2353,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-2 p-3 sm:hidden">
                   {attemptsState.data.map(attempt => {
                     const autoFinalized = attempt.status === 'expired';
@@ -2446,6 +2447,7 @@ export default function AdminCbtPage() {
                   </tbody>
                 </table>
                 </div>
+                </>
               )}
             </div>
           </div>
