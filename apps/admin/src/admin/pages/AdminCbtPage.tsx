@@ -297,6 +297,7 @@ export default function AdminCbtPage() {
   const [studentSearchInput, setStudentSearchInput] = useState('');
   const [searchedStudents, setSearchedStudents] = useState<CandidateStudent[]>([]);
   const [searchingStudents, setSearchingStudents] = useState(false);
+  const [studentSearchError, setStudentSearchError] = useState('');
 
   const [isNotifyingGuardians, setIsNotifyingGuardians] = useState<Exam | null>(null);
   const [notificationMode, setNotificationMode] = useState<'schedule' | 'attendance' | 'performance'>('schedule');
@@ -446,20 +447,33 @@ export default function AdminCbtPage() {
     return () => window.clearInterval(refreshInterval);
   }, [monitoringExamId, activeSection]);
 
-  // Student Search for Eligibility
+  // Student Search for Eligibility. Preserve API errors instead of presenting
+  // a failed request as a successful search with zero matching candidates.
   useEffect(() => {
-    if (!studentSearchInput.trim() || studentSearchInput.trim().length < 2) {
+    const query = studentSearchInput.trim();
+    if (query.length < 2) {
       setSearchedStudents([]);
+      setStudentSearchError('');
+      setSearchingStudents(false);
       return;
     }
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
       setSearchingStudents(true);
-      api(`/api/staff/academic/students/search?q=${encodeURIComponent(studentSearchInput.trim())}`)
-        .then(data => setSearchedStudents(data.students || []))
-        .catch(() => setSearchedStudents([]))
-        .finally(() => setSearchingStudents(false));
+      setStudentSearchError('');
+      try {
+        const data = await api(`/api/staff/academic/students/search?q=${encodeURIComponent(query)}`);
+        if (!cancelled) setSearchedStudents(data.students || []);
+      } catch (err: any) {
+        if (!cancelled) {
+          setSearchedStudents([]);
+          setStudentSearchError(err.message || 'Candidate search failed. Retry the search.');
+        }
+      } finally {
+        if (!cancelled) setSearchingStudents(false);
+      }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [studentSearchInput]);
 
   // Create Question
@@ -1889,6 +1903,7 @@ export default function AdminCbtPage() {
               </div>
 
               {searchingStudents && <p className="text-xs text-slate-400">Searching verified accounts...</p>}
+              {studentSearchError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{studentSearchError}</p>}
 
               {searchedStudents.length > 0 && (
                 <>
@@ -1931,7 +1946,7 @@ export default function AdminCbtPage() {
                 </>
               )}
 
-              {!searchingStudents && studentSearchInput.length >= 2 && !searchedStudents.length && (
+              {!searchingStudents && !studentSearchError && studentSearchInput.trim().length >= 2 && !searchedStudents.length && (
                 <p className="text-xs text-slate-400">No verified candidates found matching "{studentSearchInput}".</p>
               )}
             </div>
