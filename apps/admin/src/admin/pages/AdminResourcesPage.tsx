@@ -182,6 +182,12 @@ export default function AdminResourcesPage({ canPublish = false }: { canPublish?
 
   useEffect(() => { setPage(1); }, [query, programmeFilter, subjectFilter, typeFilter, statusFilter, pageSize]);
 
+  useEffect(() => {
+    if (selectedId && !filtered.some((resource) => resource.id === selectedId)) {
+      setSelectedId(filtered[0]?.id || null);
+    }
+  }, [filtered, selectedId]);
+
   const notify = (message: string, kind: 'success' | 'error' = 'success') => {
     window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
   };
@@ -413,7 +419,16 @@ export default function AdminResourcesPage({ canPublish = false }: { canPublish?
           {loading ? (
             <div className="space-y-3 p-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-12 animate-pulse rounded-lg bg-slate-100" />)}</div>
           ) : pageItems.length === 0 ? (
-            <div className="px-5 py-14 text-center"><BookOpen size={28} className="mx-auto text-slate-300" /><h3 className="mt-3 text-sm font-bold text-slate-700">No resources found</h3><p className="mt-1 text-xs text-slate-500">{resources.length ? 'Try changing your filters.' : 'Upload the first learning resource to get started.'}</p></div>
+            <div className="px-5 py-14 text-center">
+              <BookOpen size={28} className="mx-auto text-slate-300" />
+              <h3 className="mt-3 text-sm font-bold text-slate-700">{resources.length ? 'No matching resources' : 'Your resource library is empty'}</h3>
+              <p className="mt-1 text-xs text-slate-500">{resources.length ? 'No resources match the current search and filters. Clear them to see the full library.' : 'Add a study document, video lecture, website or exercise to get started.'}</p>
+              {resources.length ? (
+                <button type="button" onClick={() => { setQuery(''); setProgrammeFilter('all'); setSubjectFilter('all'); setTypeFilter('all'); setStatusFilter('all'); }} className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#111A43] hover:bg-slate-50">Clear all filters</button>
+              ) : (
+                <button type="button" onClick={() => { setError(''); setUploadOpen(true); }} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#C62839] px-3 py-2 text-xs font-bold text-white hover:bg-[#ad2030]"><Plus size={13} /> Upload first resource</button>
+              )}
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">
