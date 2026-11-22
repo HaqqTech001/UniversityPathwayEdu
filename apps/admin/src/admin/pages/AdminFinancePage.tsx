@@ -364,6 +364,7 @@ export default function AdminFinancePage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {ledgerLoading&&Array.from({length:6},(_,i)=><tr key={`payment-skeleton-${i}`} aria-label="Loading payment"><td colSpan={9} className="px-3 py-4"><div className="flex animate-pulse items-center gap-4"><div className="h-3 w-6 rounded bg-slate-200"/><div className="h-3 w-1/4 rounded bg-slate-200"/><div className="h-3 w-1/3 rounded bg-slate-100"/><div className="h-3 flex-1 rounded bg-slate-100"/></div></td></tr>)}
+                {!ledgerLoading && !ledgerError && pageRows.length === 0 && <tr><td colSpan={9} className="px-4 py-12 text-center"><div className="mx-auto flex max-w-sm flex-col items-center gap-2"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><Receipt size={18} /></span><p className="text-sm font-semibold text-[#111A43]">No recorded payments found</p><p className="text-xs text-slate-500">Try changing your search or filters, or review pending receipts in Invoices &amp; Receipts.</p><button type="button" onClick={() => { setSearchFilter(''); setSelectedType('All Types'); setSelectedProgramme('All Programmes'); }} className="mt-1 text-xs font-semibold text-[#C62839] hover:underline">Clear filters</button></div></td></tr>}
                 {pageRows.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 text-center text-slate-400 font-medium">{(safePage-1)*pageSize+idx+1}</td>
@@ -403,9 +404,7 @@ export default function AdminFinancePage() {
         <div className="min-w-0 lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#111A43]">Payment Status</h3>
-            <select className="text-xs bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">
-              <option>This Session</option>
-            </select>
+            <span className="text-[10px] font-medium text-slate-500">{reportMonth ? 'Selected month' : 'All available months'}</span>
           </div>
 
           <div className="space-y-2 text-xs">
@@ -426,7 +425,7 @@ export default function AdminFinancePage() {
         <div className="min-w-0 lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#111A43]">Recent Activities</h3>
-            <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All</button>
+            <button type="button" onClick={() => setActiveTab('Transactions')} className="text-xs font-semibold text-[#C62839] hover:underline">View transactions</button>
           </div>
 
           <div className="space-y-2 text-xs">
