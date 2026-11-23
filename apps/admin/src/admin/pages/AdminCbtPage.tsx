@@ -985,6 +985,15 @@ export default function AdminCbtPage() {
     Math.ceil((activeSection === 'Question Bank' ? filteredQuestions.length : filteredExams.length) / pageSize)
   );
 
+  // Keep pagination predictable when staff change sections or narrow a list.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSection, searchQuery, selectedSubjectFilter, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
   // Results Analytics Calculation (Honest, verified denominators)
   const resultsAnalytics = useMemo(() => {
     if (!resultsState.data?.results) return null;
