@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Award,
@@ -221,6 +221,8 @@ export default function AdminCbtPage() {
     error: null
   });
   const [attemptsState, setAttemptsState] = useState<SectionState<Attempt[]>>({ data: [], loading: false, error: null });
+  const resultsRequestRef = useRef(0);
+  const attemptsRequestRef = useRef(0);
 
   // Filtering & Pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -386,11 +388,14 @@ export default function AdminCbtPage() {
   // Fetch Results for Selected Examination
   const fetchResults = async (examId: string) => {
     if (!examId) return;
+    const requestId = ++resultsRequestRef.current;
     setResultsState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const res = await api(`/api/staff/academic/assessments/${examId}/results`);
+      if (requestId !== resultsRequestRef.current) return;
       setResultsState({ data: res, loading: false, error: null, statusCode: 200 });
     } catch (err: any) {
+      if (requestId !== resultsRequestRef.current) return;
       setResultsState({
         data: null,
         loading: false,
@@ -421,11 +426,14 @@ export default function AdminCbtPage() {
   // Fetch Attempts for Live Monitoring Desk (Strictly using /assessments/:id/attempts)
   const fetchLiveAttempts = async (examId: string) => {
     if (!examId) return;
+    const requestId = ++attemptsRequestRef.current;
     setAttemptsState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const res = await api(`/api/staff/academic/assessments/${examId}/attempts`);
+      if (requestId !== attemptsRequestRef.current) return;
       setAttemptsState({ data: res.attempts || [], loading: false, error: null, statusCode: 200 });
     } catch (err: any) {
+      if (requestId !== attemptsRequestRef.current) return;
       setAttemptsState({
         data: [],
         loading: false,
