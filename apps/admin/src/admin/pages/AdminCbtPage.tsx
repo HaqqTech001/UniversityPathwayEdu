@@ -147,7 +147,7 @@ type SectionState<T> = {
 const notify = (message: string, kind: 'success' | 'error' | 'info' = 'info') =>
   window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
 
-const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const base = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:4000`).replace(/\/$/, '');
 
 class ApiError extends Error {
   status: number;
@@ -159,7 +159,7 @@ class ApiError extends Error {
 }
 
 async function api(path: string, init: RequestInit = {}) {
-  const token = sessionStorage.getItem('upec_staff_token');
+  const token = sessionStorage.getItem('upec_admin_session');
   if (!token) throw new ApiError('Staff authentication token required. Please sign in to the staff portal.', 401);
   const response = await fetch(base + path, {
     ...init,
