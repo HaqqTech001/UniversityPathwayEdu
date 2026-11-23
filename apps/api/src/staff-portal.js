@@ -279,7 +279,7 @@ router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res
  const rawOffset=Number(req.query.offset||0);
  if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>900)return res.status(400).json({error:'Ledger offset must be between 0 and 900.'});
  // Fetch enough rows from both independent ledgers to merge them in true chronological order.
- const end=rawOffset+limit-1;
+ const end=rawOffset+limit;
  const [monthly,registration]=await Promise.all([
   db.from('upec_fee_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).range(0,end),
   db.from('upec_registration_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).range(0,end)
