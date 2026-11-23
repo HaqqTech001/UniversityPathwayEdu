@@ -994,6 +994,11 @@ export default function AdminCbtPage() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
+  const activeSessionCount = useMemo(
+    () => attemptsState.data.filter(attempt => attempt.status === 'in-progress').length,
+    [attemptsState.data]
+  );
+
   // Results Analytics Calculation (Honest, verified denominators)
   const resultsAnalytics = useMemo(() => {
     if (!resultsState.data?.results) return null;
@@ -2335,9 +2340,9 @@ export default function AdminCbtPage() {
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className={`h-2 w-2 rounded-full ${activeSessionCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
                 <span className="text-xs font-medium text-slate-600">
-                  {attemptsState.data.length} Session(s) Recorded
+                  {activeSessionCount} active · {attemptsState.data.length} total attempts
                 </span>
               </div>
             </div>
