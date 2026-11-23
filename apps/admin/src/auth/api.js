@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+// Match the working Ops API origin so Admin Desk calls the staff API directly.\nconst API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 // The standalone Admin Desk must never reuse the legacy Ops application's session.
 const TOKEN_KEY = 'upec_admin_session';
 const LEGACY_TOKEN_KEYS = ['upec_ops_session', 'upec_staff_token', 'upec_admin_token'];
