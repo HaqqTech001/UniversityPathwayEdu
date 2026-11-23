@@ -409,9 +409,16 @@ export default function AdminCbtPage() {
   };
 
   useEffect(() => {
-    if (selectedExamForResults && activeSection === 'Results & Analytics') {
-      void fetchResults(selectedExamForResults);
+    if (activeSection !== 'Results & Analytics') return;
+    if (!selectedExamForResults) {
+      resultsRequestRef.current += 1;
+      setResultsState({ data: null, loading: false, error: null });
+      return;
     }
+    // Never leave the previous examination's scores visible while the new
+    // examination's result request is in flight.
+    setResultsState({ data: null, loading: true, error: null });
+    void fetchResults(selectedExamForResults);
   }, [selectedExamForResults, activeSection]);
 
   // Keep the results view current while staff are monitoring a recently closed exam.
@@ -447,7 +454,14 @@ export default function AdminCbtPage() {
   };
 
   useEffect(() => {
-    if (!monitoringExamId || activeSection !== 'Live Monitoring Desk') return;
+    if (activeSection !== 'Live Monitoring Desk') return;
+    if (!monitoringExamId) {
+      attemptsRequestRef.current += 1;
+      setAttemptsState({ data: [], loading: false, error: null });
+      return;
+    }
+    // Clear the prior examination's sessions immediately on selection change.
+    setAttemptsState({ data: [], loading: true, error: null });
     void fetchLiveAttempts(monitoringExamId);
     const refreshInterval = window.setInterval(() => {
       void fetchLiveAttempts(monitoringExamId);
