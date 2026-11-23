@@ -492,7 +492,8 @@ export default function AdminCbtPage() {
         optionC: '',
         optionD: '',
         correctOption: 'A',
-        explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice'
+        explanation: '', solutionSteps: '', topic: '', subtopic: '', difficulty: 'medium', examType: '', examYear: '', questionType: 'single_choice',
+        sourceName: '', sourceReference: '', sourceLicense: ''
       });
       void fetchQuestions();
     } catch (err: any) {
@@ -2025,6 +2026,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-2 p-3 sm:hidden">
                   {resultsState.data.results.map((r, i) => {
                     const hasQuestions = r.total_questions !== null && r.total_questions > 0;
@@ -2052,6 +2054,7 @@ export default function AdminCbtPage() {
                     );
                   })}
                 </div>
+
                 <div className="hidden overflow-x-auto sm:block">
                 <table className="min-w-[620px] w-full text-left text-xs">
                   <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase">
@@ -2099,6 +2102,7 @@ export default function AdminCbtPage() {
                   </tbody>
                 </table>
                 </div>
+                </>
               )}
             </div>
           </div>
@@ -2342,6 +2346,7 @@ export default function AdminCbtPage() {
                   </p>
                 </div>
               ) : (
+                <>
                 <div className="grid gap-2 p-3 sm:hidden">
                   {attemptsState.data.map(attempt => {
                     const autoFinalized = attempt.status === 'expired';
@@ -2435,8 +2440,10 @@ export default function AdminCbtPage() {
                   </tbody>
                 </table>
                 </div>
+                </>
               )}
             </div>
+          
           </div>
         )}
       </main>

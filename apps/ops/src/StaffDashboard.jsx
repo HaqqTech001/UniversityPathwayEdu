@@ -1,8 +1,5 @@
 import {notifyPortal} from './PortalToasts';
-import PaymentLedger from './PaymentLedger';
-import RegistrationBilling from './RegistrationBilling';
-import FinanceSummary from './FinanceSummary';
-import BankAccounts from './BankAccounts';
+import FinanceWorkspace from './FinanceWorkspace';
 import ExamRegistrations from './ExamRegistrations';
 import SupportInbox from './SupportInbox';
 import BlogManager from './BlogManager';
@@ -10,8 +7,6 @@ import ServiceRequests from './ServiceRequests';
 import ServiceFees from './ServiceFees';
 import HostelRequests from './HostelRequests';
 import HostelBeds from './HostelBeds';
-import ProgrammeFees from './ProgrammeFees';
-import FeeBilling from './FeeBilling';
 import StudentEditPermissions from './StudentEditPermissions';
 import NoticeBoard from './NoticeBoard';
 import LearningResources from './LearningResources';
@@ -101,7 +96,7 @@ export default function StaffDashboard({profile,onLogout}){
    {['admin','super_admin','content_editor'].includes(profile.role)&&<NoticeBoard role={profile.role}/>}
    {['super_admin','admin','content_editor'].includes(profile.role)&&<BlogManager role={profile.role}/>}
    {profile.permissions?.includes('students.manage')&&<StudentEditPermissions/>}
-   {profile.permissions?.includes('finance.manage')&&<><FinanceSummary/><PaymentLedger/><BankAccounts/><ProgrammeFees/><RegistrationBilling/><FeeBilling/></>}
+   {profile.permissions?.includes('finance.manage')&&<FinanceWorkspace/>}
    {canRead&&<ServiceRequests/>}
    {canRead&&<HostelRequests/>}
    {canReview&&<HostelBeds/>}
