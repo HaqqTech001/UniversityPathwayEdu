@@ -276,9 +276,13 @@ router.post('/finance/monthly-receipts/:id/record-payment',permit('finance.manag
 }));
 router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res)=>{
  const limit=100;
+ const rawOffset=Number(req.query.offset||0);
+ if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>900)return res.status(400).json({error:'Ledger offset must be between 0 and 900.'});
+ // Fetch enough rows from both independent ledgers to merge them in true chronological order.
+ const end=rawOffset+limit;
  const [monthly,registration]=await Promise.all([
-  db.from('upec_fee_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).limit(limit),
-  db.from('upec_registration_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).limit(limit)
+  db.from('upec_fee_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).range(0,end),
+  db.from('upec_registration_payments').select('id,invoice_id,amount_ngn,reference,recorded_at,recorded_by').order('recorded_at',{ascending:false}).range(0,end)
  ]);
  if(monthly.error)throw monthly.error;if(registration.error)throw registration.error;
  const monthlyIds=[...new Set((monthly.data||[]).map(p=>p.invoice_id))],registrationIds=[...new Set((registration.data||[]).map(p=>p.invoice_id))];
@@ -288,11 +292,17 @@ router.get('/finance/payment-ledger',permit('finance.manage'),wrap(async(req,res
  ]);
  if(monthlyInvoices.error)throw monthlyInvoices.error;if(registrationInvoices.error)throw registrationInvoices.error;
  const m=new Map((monthlyInvoices.data||[]).map(x=>[x.id,x])),g=new Map((registrationInvoices.data||[]).map(x=>[x.id,x]));
- const entries=[
-  ...(monthly.data||[]).map(x=>({...x,type:'monthly',invoice:m.get(x.invoice_id)||null})),
-  ...(registration.data||[]).map(x=>({...x,type:'registration',invoice:g.get(x.invoice_id)||null}))
- ].sort((a,b)=>Date.parse(b.recorded_at)-Date.parse(a.recorded_at)).slice(0,limit);
- res.json({entries,limit,hasMore:(monthly.data||[]).length===limit||(registration.data||[]).length===limit});
+ const studentIds=[...new Set([...m.values(),...g.values()].map(invoice=>invoice.student_account_id).filter(Boolean))];
+ const students=studentIds.length?await db.from('local_accounts').select('id,full_name').in('id',studentIds):{data:[],error:null};
+ if(students.error)throw students.error;
+ const studentNames=new Map((students.data||[]).map(student=>[student.id,student.full_name]));
+ const attachStudent=invoice=>invoice?{...invoice,student_name:studentNames.get(invoice.student_account_id)||null}:null;
+ const merged=[
+  ...(monthly.data||[]).map(x=>({...x,type:'monthly',invoice:attachStudent(m.get(x.invoice_id)||null)})),
+  ...(registration.data||[]).map(x=>({...x,type:'registration',invoice:attachStudent(g.get(x.invoice_id)||null)}))
+ ].sort((a,b)=>Date.parse(b.recorded_at)-Date.parse(a.recorded_at));
+ const entries=merged.slice(rawOffset,rawOffset+limit);
+ res.json({entries,limit,offset:rawOffset,nextOffset:rawOffset+entries.length,hasMore:merged.length>rawOffset+limit && rawOffset+entries.length<1000});
 }));
 router.get('/finance/application-search',permit('finance.manage'),wrap(async(req,res)=>{
  const q=String(req.query.q||'').trim();

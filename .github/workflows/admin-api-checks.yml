@@ -1,0 +1,51 @@
+name: Admin and API validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/admin/**"
+      - "apps/api/**"
+      - ".github/workflows/admin-api-checks.yml"
+  pull_request:
+    paths:
+      - "apps/admin/**"
+      - "apps/api/**"
+      - ".github/workflows/admin-api-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  admin:
+    name: Admin typecheck and production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install admin dependencies
+        working-directory: apps/admin
+        run: npm install
+      - name: TypeScript check
+        working-directory: apps/admin
+        run: npm run lint
+      - name: Production build
+        working-directory: apps/admin
+        run: npm run build
+
+  api:
+    name: API automated tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: npm install
+      - name: Run API tests
+        working-directory: apps/api
+        run: npm test

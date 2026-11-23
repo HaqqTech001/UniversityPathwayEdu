@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Award,
@@ -221,6 +221,8 @@ export default function AdminCbtPage() {
     error: null
   });
   const [attemptsState, setAttemptsState] = useState<SectionState<Attempt[]>>({ data: [], loading: false, error: null });
+  const resultsRequestRef = useRef(0);
+  const attemptsRequestRef = useRef(0);
 
   // Filtering & Pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -297,6 +299,7 @@ export default function AdminCbtPage() {
   const [studentSearchInput, setStudentSearchInput] = useState('');
   const [searchedStudents, setSearchedStudents] = useState<CandidateStudent[]>([]);
   const [searchingStudents, setSearchingStudents] = useState(false);
+  const [studentSearchError, setStudentSearchError] = useState('');
 
   const [isNotifyingGuardians, setIsNotifyingGuardians] = useState<Exam | null>(null);
   const [notificationMode, setNotificationMode] = useState<'schedule' | 'attendance' | 'performance'>('schedule');
@@ -385,11 +388,14 @@ export default function AdminCbtPage() {
   // Fetch Results for Selected Examination
   const fetchResults = async (examId: string) => {
     if (!examId) return;
+    const requestId = ++resultsRequestRef.current;
     setResultsState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const res = await api(`/api/staff/academic/assessments/${examId}/results`);
+      if (requestId !== resultsRequestRef.current) return;
       setResultsState({ data: res, loading: false, error: null, statusCode: 200 });
     } catch (err: any) {
+      if (requestId !== resultsRequestRef.current) return;
       setResultsState({
         data: null,
         loading: false,
@@ -403,19 +409,38 @@ export default function AdminCbtPage() {
   };
 
   useEffect(() => {
-    if (selectedExamForResults && activeSection === 'Results & Analytics') {
-      void fetchResults(selectedExamForResults);
+    if (activeSection !== 'Results & Analytics') return;
+    if (!selectedExamForResults) {
+      resultsRequestRef.current += 1;
+      setResultsState({ data: null, loading: false, error: null });
+      return;
     }
+    // Never leave the previous examination's scores visible while the new
+    // examination's result request is in flight.
+    setResultsState({ data: null, loading: true, error: null });
+    void fetchResults(selectedExamForResults);
+  }, [selectedExamForResults, activeSection]);
+
+  // Keep the results view current while staff are monitoring a recently closed exam.
+  useEffect(() => {
+    if (!selectedExamForResults || activeSection !== 'Results & Analytics') return;
+    const refreshInterval = window.setInterval(() => {
+      void fetchResults(selectedExamForResults);
+    }, 30000);
+    return () => window.clearInterval(refreshInterval);
   }, [selectedExamForResults, activeSection]);
 
   // Fetch Attempts for Live Monitoring Desk (Strictly using /assessments/:id/attempts)
   const fetchLiveAttempts = async (examId: string) => {
     if (!examId) return;
+    const requestId = ++attemptsRequestRef.current;
     setAttemptsState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const res = await api(`/api/staff/academic/assessments/${examId}/attempts`);
+      if (requestId !== attemptsRequestRef.current) return;
       setAttemptsState({ data: res.attempts || [], loading: false, error: null, statusCode: 200 });
     } catch (err: any) {
+      if (requestId !== attemptsRequestRef.current) return;
       setAttemptsState({
         data: [],
         loading: false,
@@ -429,7 +454,14 @@ export default function AdminCbtPage() {
   };
 
   useEffect(() => {
-    if (!monitoringExamId || activeSection !== 'Live Monitoring Desk') return;
+    if (activeSection !== 'Live Monitoring Desk') return;
+    if (!monitoringExamId) {
+      attemptsRequestRef.current += 1;
+      setAttemptsState({ data: [], loading: false, error: null });
+      return;
+    }
+    // Clear the prior examination's sessions immediately on selection change.
+    setAttemptsState({ data: [], loading: true, error: null });
     void fetchLiveAttempts(monitoringExamId);
     const refreshInterval = window.setInterval(() => {
       void fetchLiveAttempts(monitoringExamId);
@@ -437,20 +469,33 @@ export default function AdminCbtPage() {
     return () => window.clearInterval(refreshInterval);
   }, [monitoringExamId, activeSection]);
 
-  // Student Search for Eligibility
+  // Student Search for Eligibility. Preserve API errors instead of presenting
+  // a failed request as a successful search with zero matching candidates.
   useEffect(() => {
-    if (!studentSearchInput.trim() || studentSearchInput.trim().length < 2) {
+    const query = studentSearchInput.trim();
+    if (query.length < 2) {
       setSearchedStudents([]);
+      setStudentSearchError('');
+      setSearchingStudents(false);
       return;
     }
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
       setSearchingStudents(true);
-      api(`/api/staff/academic/students/search?q=${encodeURIComponent(studentSearchInput.trim())}`)
-        .then(data => setSearchedStudents(data.students || []))
-        .catch(() => setSearchedStudents([]))
-        .finally(() => setSearchingStudents(false));
+      setStudentSearchError('');
+      try {
+        const data = await api(`/api/staff/academic/students/search?q=${encodeURIComponent(query)}`);
+        if (!cancelled) setSearchedStudents(data.students || []);
+      } catch (err: any) {
+        if (!cancelled) {
+          setSearchedStudents([]);
+          setStudentSearchError(err.message || 'Candidate search failed. Retry the search.');
+        }
+      } finally {
+        if (!cancelled) setSearchingStudents(false);
+      }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [studentSearchInput]);
 
   // Create Question
@@ -953,6 +998,20 @@ export default function AdminCbtPage() {
   const totalPages = Math.max(
     1,
     Math.ceil((activeSection === 'Question Bank' ? filteredQuestions.length : filteredExams.length) / pageSize)
+  );
+
+  // Keep pagination predictable when staff change sections or narrow a list.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSection, searchQuery, selectedSubjectFilter, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const activeSessionCount = useMemo(
+    () => attemptsState.data.filter(attempt => attempt.status === 'in-progress').length,
+    [attemptsState.data]
   );
 
   // Results Analytics Calculation (Honest, verified denominators)
@@ -1881,6 +1940,7 @@ export default function AdminCbtPage() {
               </div>
 
               {searchingStudents && <p className="text-xs text-slate-400">Searching verified accounts...</p>}
+              {studentSearchError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{studentSearchError}</p>}
 
               {searchedStudents.length > 0 && (
                 <>
@@ -1923,7 +1983,7 @@ export default function AdminCbtPage() {
                 </>
               )}
 
-              {!searchingStudents && studentSearchInput.length >= 2 && !searchedStudents.length && (
+              {!searchingStudents && !studentSearchError && studentSearchInput.trim().length >= 2 && !searchedStudents.length && (
                 <p className="text-xs text-slate-400">No verified candidates found matching "{studentSearchInput}".</p>
               )}
             </div>
@@ -2296,9 +2356,9 @@ export default function AdminCbtPage() {
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className={`h-2 w-2 rounded-full ${activeSessionCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
                 <span className="text-xs font-medium text-slate-600">
-                  {attemptsState.data.length} Session(s) Recorded
+                  {activeSessionCount} active · {attemptsState.data.length} total attempts
                 </span>
               </div>
             </div>

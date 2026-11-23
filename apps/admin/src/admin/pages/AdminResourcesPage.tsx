@@ -77,8 +77,10 @@ function typeIcon(type: ResourceType) {
   return <FileText size={16} />;
 }
 
-export default function AdminResourcesPage() {
+export default function AdminResourcesPage({ canPublish = false }: { canPublish?: boolean }) {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [hasMoreResources, setHasMoreResources] = useState(false);
+  const [loadingMoreResources, setLoadingMoreResources] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,8 @@ export default function AdminResourcesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState<ResourceForm>({
@@ -110,11 +114,12 @@ export default function AdminResourcesPage() {
     setError('');
     try {
       const [resourceData, catalogue] = await Promise.all([
-        api<{ resources?: Resource[] }>('/resources'),
+        api<{ resources?: Resource[]; hasMore?: boolean }>('/resources'),
         api<Catalogue>('/catalogue'),
       ]);
       const nextResources = resourceData.resources || [];
       setResources(nextResources);
+      setHasMoreResources(Boolean(resourceData.hasMore));
       setSubjects((catalogue.subjects || []).filter((item) => item.active));
       setProgrammes((catalogue.programmes || []).filter((item) => item.active));
       setSelectedId((current) => current && nextResources.some((item) => item.id === current)
@@ -129,6 +134,25 @@ export default function AdminResourcesPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const loadMoreResources = async () => {
+    if (loadingMoreResources || !hasMoreResources) return;
+    setLoadingMoreResources(true);
+    setError('');
+    try {
+      const result = await api<{ resources?: Resource[]; hasMore?: boolean }>('/resources?offset=' + resources.length);
+      const incoming = result.resources || [];
+      setResources(current => {
+        const known = new Set(current.map(item => item.id));
+        return [...current, ...incoming.filter(item => !known.has(item.id))];
+      });
+      setHasMoreResources(Boolean(result.hasMore));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load more resources.');
+    } finally {
+      setLoadingMoreResources(false);
+    }
+  };
 
   const subjectMap = useMemo(() => new Map(subjects.map((item) => [item.id, item])), [subjects]);
   const programmeMap = useMemo(() => new Map(programmes.map((item) => [item.id, item])), [programmes]);
@@ -158,12 +182,19 @@ export default function AdminResourcesPage() {
 
   useEffect(() => { setPage(1); }, [query, programmeFilter, subjectFilter, typeFilter, statusFilter, pageSize]);
 
+  useEffect(() => {
+    if (selectedId && !filtered.some((resource) => resource.id === selectedId)) {
+      setSelectedId(filtered[0]?.id || null);
+    }
+  }, [filtered, selectedId]);
+
   const notify = (message: string, kind: 'success' | 'error' = 'success') => {
     window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
   };
 
   const resetUpload = () => {
     setUploadOpen(false);
+    setEditingResource(null);
     setUploadMode('file');
     setFile(null);
     setForm({ subjectId: '', title: '', description: '', resourceType: 'website', resourceUrl: '' });
@@ -174,13 +205,26 @@ export default function AdminResourcesPage() {
     event.preventDefault();
     if (saving) return;
     if (!form.subjectId) { setError('Choose the subject this resource belongs to.'); return; }
-    if (uploadMode === 'file' && !file) { setError('Choose a file to upload.'); return; }
+    if (!editingResource && uploadMode === 'file' && !file) { setError('Choose a file to upload.'); return; }
     if (uploadMode === 'file' && file && file.size > FILE_LIMIT) { setError('The selected file exceeds the 8 MB upload limit.'); return; }
     setSaving(true);
     setError('');
     setNotice('');
     try {
-      if (uploadMode === 'link') {
+      if (editingResource) {
+        setUploadStep('Saving resource changes…');
+        await api('/resources/' + encodeURIComponent(editingResource.id), {
+          method: 'PATCH',
+          body: JSON.stringify({
+            subjectId: form.subjectId,
+            title: form.title,
+            description: form.description,
+            resourceUrl: editingResource.storage_path ? undefined : form.resourceUrl,
+            resourceType: editingResource.storage_path ? 'document' : form.resourceType,
+          }),
+        });
+        notify('Resource details updated.');
+      } else if (uploadMode === 'link') {
         setUploadStep('Saving resource link…');
         await api('/resources', {
           method: 'POST',
@@ -215,7 +259,7 @@ export default function AdminResourcesPage() {
         await api('/resources/' + encodeURIComponent(initialized.resourceId) + '/upload-verify', { method: 'POST', body: JSON.stringify({}) });
       }
       resetUpload();
-      notify('Learning resource saved as a draft. Review it before publishing.');
+      if (!editingResource) notify('Learning resource saved as a draft. Review it before publishing.');
       await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save this resource.');
@@ -245,13 +289,60 @@ export default function AdminResourcesPage() {
     }
   };
 
+  const editResource = (resource: Resource) => {
+    if (resource.status !== 'draft') {
+      notify('Unpublish this resource before editing it.', 'error');
+      return;
+    }
+    setError('');
+    setEditingResource(resource);
+    setUploadMode(resource.storage_path ? 'file' : 'link');
+    setFile(null);
+    setForm({
+      subjectId: resource.subject_id,
+      title: resource.title,
+      description: resource.description || '',
+      resourceType: resource.resource_type === 'document' ? 'website' : resource.resource_type,
+      resourceUrl: resource.resource_url || '',
+    });
+    setUploadOpen(true);
+  };
+
+  const deleteResource = async (resource: Resource) => {
+    if (resource.status !== 'draft') {
+      notify('Unpublish this resource before deleting it.', 'error');
+      return;
+    }
+    if (!window.confirm('Permanently delete "' + resource.title + '" and its stored file, if any? This cannot be undone.')) return;
+    setDeletingId(resource.id);
+    setError('');
+    try {
+      const result = await api<{ storageCleanupPending?: boolean }>('/resources/' + encodeURIComponent(resource.id), { method: 'DELETE' });
+      setSelectedId(current => current === resource.id ? null : current);
+      notify(result.storageCleanupPending
+        ? 'Draft deleted, but its stored file needs administrator cleanup.'
+        : 'Draft resource deleted.', result.storageCleanupPending ? 'error' : 'success');
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete this resource.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const openResource = async (resource: Resource) => {
+    // Open the tab synchronously from the click so popup blockers do not reject
+    // the signed URL navigation after the API request completes.
+    const popup = window.open('about:blank', '_blank');
+    if (popup) popup.opener = null;
     setOpeningId(resource.id);
     setError('');
     try {
       const result = await api<{ url: string }>('/resources/' + encodeURIComponent(resource.id) + '/open');
-      window.open(result.url, '_blank', 'noopener,noreferrer');
+      if (!popup) throw new Error('Your browser blocked the new tab. Allow pop-ups for this site and try again.');
+      popup.location.href = result.url;
     } catch (err) {
+      popup?.close();
       setError(err instanceof Error ? err.message : 'Unable to open this resource.');
     } finally {
       setOpeningId(null);
@@ -328,7 +419,16 @@ export default function AdminResourcesPage() {
           {loading ? (
             <div className="space-y-3 p-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-12 animate-pulse rounded-lg bg-slate-100" />)}</div>
           ) : pageItems.length === 0 ? (
-            <div className="px-5 py-14 text-center"><BookOpen size={28} className="mx-auto text-slate-300" /><h3 className="mt-3 text-sm font-bold text-slate-700">No resources found</h3><p className="mt-1 text-xs text-slate-500">{resources.length ? 'Try changing your filters.' : 'Upload the first learning resource to get started.'}</p></div>
+            <div className="px-5 py-14 text-center">
+              <BookOpen size={28} className="mx-auto text-slate-300" />
+              <h3 className="mt-3 text-sm font-bold text-slate-700">{resources.length ? 'No matching resources' : 'Your resource library is empty'}</h3>
+              <p className="mt-1 text-xs text-slate-500">{resources.length ? 'No resources match the current search and filters. Clear them to see the full library.' : 'Add a study document, video lecture, website or exercise to get started.'}</p>
+              {resources.length ? (
+                <button type="button" onClick={() => { setQuery(''); setProgrammeFilter('all'); setSubjectFilter('all'); setTypeFilter('all'); setStatusFilter('all'); }} className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#111A43] hover:bg-slate-50">Clear all filters</button>
+              ) : (
+                <button type="button" onClick={() => { setError(''); setUploadOpen(true); }} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#C62839] px-3 py-2 text-xs font-bold text-white hover:bg-[#ad2030]"><Plus size={13} /> Upload first resource</button>
+              )}
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -346,7 +446,7 @@ export default function AdminResourcesPage() {
                           <td className="px-3 py-3 text-slate-600">{typeLabel(resource.resource_type)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-slate-500">{formatDate(resource.created_at)}</td>
                           <td className="px-3 py-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (resource.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700')}>{resource.status === 'published' ? 'Published' : 'Draft'}</span></td>
-                          <td className="px-3 py-3 text-right"><button type="button" disabled={statusBusyId === resource.id} onClick={(event) => { event.stopPropagation(); void changeStatus(resource); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{statusBusyId === resource.id ? 'Saving…' : resource.status === 'published' ? 'Unpublish' : 'Publish'}</button></td>
+                          <td className="px-3 py-3 text-right">{canPublish && <button type="button" disabled={statusBusyId === resource.id} onClick={(event) => { event.stopPropagation(); void changeStatus(resource); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{statusBusyId === resource.id ? 'Saving…' : resource.status === 'published' ? 'Unpublish' : 'Publish'}</button>}</td>
                         </tr>
                       );
                     })}
@@ -357,6 +457,7 @@ export default function AdminResourcesPage() {
                 <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}</span>
                 <div className="flex items-center gap-2"><select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="rounded border border-slate-200 bg-white px-2 py-1.5"><option value={15}>15 per page</option><option value={30}>30 per page</option><option value={50}>50 per page</option></select><button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="rounded border border-slate-200 px-3 py-1.5 disabled:opacity-40">Next</button></div>
               </div>
+              {hasMoreResources && <div className="flex justify-center border-t border-slate-100 p-3"><button type="button" onClick={() => void loadMoreResources()} disabled={loadingMoreResources} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-[#111A43] disabled:opacity-50">{loadingMoreResources ? 'Loading resources…' : 'Load more resources'}</button></div>}
             </>
           )}
         </div>
@@ -375,10 +476,12 @@ export default function AdminResourcesPage() {
                 <div className="col-span-2"><dt className="text-[10px] text-slate-400">Contributor account</dt><dd className="mt-0.5 break-all font-mono text-[10px] text-slate-600">{selected.author_account_id}</dd></div>
               </dl>
               <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => editResource(selected)} disabled={selected.status !== 'draft' || saving} className="rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 disabled:opacity-40">Edit details</button>
+                <button type="button" onClick={() => void deleteResource(selected)} disabled={selected.status !== 'draft' || deletingId === selected.id} className="rounded-lg border border-rose-200 px-3 py-2.5 text-xs font-bold text-rose-700 disabled:opacity-40">{deletingId === selected.id ? 'Deleting…' : 'Delete draft'}</button>
                 <button type="button" onClick={() => void openResource(selected)} disabled={openingId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#111A43] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#1b285c] disabled:opacity-50">{openingId === selected.id ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Open resource</button>
-                <button type="button" onClick={() => void changeStatus(selected)} disabled={statusBusyId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{selected.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+                {canPublish && <button type="button" onClick={() => void changeStatus(selected)} disabled={statusBusyId === selected.id} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{selected.status === 'published' ? 'Unpublish' : 'Publish'}</button>}
               </div>
-              <p className="text-[10px] leading-relaxed text-slate-400">Download counts and storage analytics are not currently exposed by the backend, so they are intentionally not displayed as fabricated figures.</p>
+              <p className="text-[10px] leading-relaxed text-slate-400">Only drafts can be edited or deleted. Unpublish a resource before changing its details. Download counts and storage analytics are not currently exposed by the backend, so they are intentionally not displayed as fabricated figures.</p>
             </div>
           )}
         </aside>
@@ -387,20 +490,20 @@ export default function AdminResourcesPage() {
       {uploadOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/50 p-3 sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) resetUpload(); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="resource-upload-title" className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 p-5"><div><h2 id="resource-upload-title" className="text-lg font-bold text-[#111A43]">Add learning resource</h2><p className="mt-1 text-xs text-slate-500">New resources are saved as drafts and require review before publication.</p></div><button type="button" disabled={saving} onClick={resetUpload} aria-label="Close upload dialog" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={18} /></button></div>
+            <div className="flex items-start justify-between border-b border-slate-100 p-5"><div><h2 id="resource-upload-title" className="text-lg font-bold text-[#111A43]">{editingResource ? 'Edit learning resource' : 'Add learning resource'}</h2><p className="mt-1 text-xs text-slate-500">{editingResource ? 'Update draft details. Uploaded files cannot be replaced here.' : 'New resources are saved as drafts and require review before publication.'}</p></div><button type="button" disabled={saving} onClick={resetUpload} aria-label="Close upload dialog" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-40"><X size={18} /></button></div>
             <form onSubmit={submitResource} className="space-y-4 p-5">
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setUploadMode('file')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'file' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Upload a file</button><button type="button" onClick={() => setUploadMode('link')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'link' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Add a link</button></div>
+              {!editingResource && <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setUploadMode('file')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'file' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Upload a file</button><button type="button" onClick={() => setUploadMode('link')} className={'rounded-lg px-3 py-2 text-xs font-bold ' + (uploadMode === 'link' ? 'bg-white text-[#111A43] shadow-sm' : 'text-slate-500')}>Add a link</button></div>}
               <label className="block text-xs font-semibold text-slate-700">Subject<select required value={form.subjectId} onChange={(event) => setForm((value) => ({ ...value, subjectId: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="">Choose subject</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name} — {programmeMap.get(subject.programme_id)?.name || 'Programme'}</option>)}</select></label>
               <label className="block text-xs font-semibold text-slate-700">Resource title<input required minLength={5} maxLength={180} value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="e.g. Introduction to Mechanics" /></label>
               <label className="block text-xs font-semibold text-slate-700">Description<textarea maxLength={3000} rows={3} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="Briefly describe what students will learn…" /></label>
-              {uploadMode === 'file' ? (
+              {uploadMode === 'file' && !editingResource ? (
                 <div><label className="block text-xs font-semibold text-slate-700">Choose file <input required type="file" accept={FILE_TYPES} onChange={(event) => setFile(event.target.files?.[0] || null)} className="mt-1.5 block w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-[#111A43] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white" /></label><p className="mt-1.5 text-[11px] text-slate-500">PDF, PNG, JPG, DOCX or PPTX. Maximum size: 8 MB. {file ? 'Selected: ' + file.name + ' (' + formatBytes(file.size) + ')' : ''}</p></div>
-              ) : (
+              ) : uploadMode === 'link' ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="block text-xs font-semibold text-slate-700">Link type<select value={form.resourceType} onChange={(event) => setForm((value) => ({ ...value, resourceType: event.target.value as ResourceForm['resourceType'] }))} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="website">Website / reference</option><option value="video">Video lecture</option><option value="exercise">Online exercise</option></select></label><label className="block text-xs font-semibold text-slate-700">HTTPS resource URL<input required type="url" value={form.resourceUrl} onChange={(event) => setForm((value) => ({ ...value, resourceUrl: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" placeholder="https://…" /></label></div>
-              )}
+              ) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">The uploaded file will remain unchanged. You can update its title, description and subject.</p>}
               {uploadStep && <div role="status" className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-xs font-semibold text-blue-800"><Loader2 size={15} className="animate-spin" />{uploadStep}</div>}
               {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-xs text-rose-800">{error}</p>}
-              <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={resetUpload} className="rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 disabled:opacity-50">Cancel</button><button type="submit" disabled={saving || subjects.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C62839] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}{saving ? 'Saving resource…' : 'Save as draft'}</button></div>
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={resetUpload} className="rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 disabled:opacity-50">Cancel</button><button type="submit" disabled={saving || subjects.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#C62839] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}{saving ? 'Saving…' : editingResource ? 'Save changes' : 'Save as draft'}</button></div>
               {subjects.length === 0 && <p className="text-[11px] text-amber-700">No active subjects are available. Add or activate a subject in Academic Management first.</p>}
             </form>
           </section>

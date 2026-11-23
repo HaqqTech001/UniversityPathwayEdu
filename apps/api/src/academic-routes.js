@@ -629,7 +629,8 @@ router.get('/assessments/:id/results',grant(...questionRoles),wrap(async(req,res
  const studentIds=[...new Set((data||[]).map(r=>r.student_account_id))];
  let studentsMap={};
  if(studentIds.length>0){
-  const {data:accounts}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  const {data:accounts,error:accountsError}=await db.from('local_accounts').select('id,full_name').in('id',studentIds);
+  if(accountsError)throw accountsError;
   (accounts||[]).forEach(acc=>{if(acc.full_name)studentsMap[acc.id]=acc.full_name;});
  }
  const formatted=(data||[]).map(r=>({
@@ -696,18 +697,69 @@ router.get('/assessments/:id/eligibility',grant('super_admin','admin','cbt_manag
  res.json({restricted:exam.data.restricted,status:exam.data.status,studentIds:(eligible.data||[]).map(row=>row.student_account_id)});
 }));
 router.get('/resources',grant(...questionRoles),wrap(async(req,res)=>{
- let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,storage_path,resource_type,status,created_at').order('created_at',{ascending:false}).limit(100);
+ const limit=100,rawOffset=Number(req.query.offset||0);
+ if(!Number.isInteger(rawOffset)||rawOffset<0||rawOffset>49900)return res.status(400).json({error:'Resource offset must be between 0 and 49900.'});
+ let query=db.from('upec_learning_resources').select('id,subject_id,author_account_id,title,description,resource_url,storage_path,resource_type,status,created_at').order('created_at',{ascending:false}).range(rawOffset,rawOffset+limit);
  if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
- const {data,error}=await query;if(error)throw error;res.json({resources:data||[]});
+ const {data,error}=await query;if(error)throw error;
+ const rows=data||[],hasMore=rows.length>limit;
+ res.json({resources:rows.slice(0,limit),offset:rawOffset,nextOffset:rawOffset+Math.min(rows.length,limit),hasMore});
 }));
 router.post('/resources',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,title,description='',resourceUrl,resourceType}=req.body||{};
  let url;
  try{url=new URL(resourceUrl);}catch{return res.status(400).json({error:'A valid HTTPS resource link is required.'});}
  if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!['document','video','website','exercise'].includes(resourceType)||url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return res.status(400).json({error:'Invalid learning resource.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;if(!subject)return res.status(404).json({error:'Choose an active subject.'});
  const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_url:url.href,resource_type:resourceType,status:'draft'}).select('id,title,status').single();
  if(error?.code==='23503')return res.status(404).json({error:'Subject unavailable.'});
  if(error)throw error;res.status(201).json({resource:data});
+}));
+router.patch('/resources/:id',grant(...questionRoles),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ const {subjectId,title,description='',resourceUrl,resourceType}=req.body||{};
+ if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||!['document','video','website','exercise'].includes(resourceType))return res.status(400).json({error:'Invalid learning resource details.'});
+ let query=db.from('upec_learning_resources').select('id,author_account_id,status,storage_path').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error:lookupError}=await query.maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(resource.status!=='draft')return res.status(409).json({error:'Unpublish this resource before editing it.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;
+ if(!subject)return res.status(404).json({error:'Choose an active subject.'});
+ let url=null;
+ if(resource.storage_path){
+  if(resourceType!=='document'||resourceUrl)return res.status(400).json({error:'Uploaded files must remain document resources. Replace the file by creating a new resource.'});
+ }else{
+  try{url=new URL(resourceUrl);}catch{return res.status(400).json({error:'A valid HTTPS resource link is required.'});}
+  if(resourceType==='document'||url.protocol!=='https:'||url.username||url.password||url.href.length>2048)return res.status(400).json({error:'Provide a valid HTTPS link resource.'});
+ }
+ const {data,error}=await db.from('upec_learning_resources').update({
+  subject_id:subjectId,title:title.trim(),description:description.trim(),
+  resource_url:url?.href||null,resource_type:resourceType
+ }).eq('id',resource.id).eq('status','draft').select('id,title,description,subject_id,resource_type,status').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Resource changed while you were editing. Refresh and try again.'});
+ res.json({resource:data});
+}));
+router.delete('/resources/:id',grant('super_admin','admin','cbt_manager','teacher'),wrap(async(req,res)=>{
+ if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
+ let query=db.from('upec_learning_resources').select('id,author_account_id,status,storage_path').eq('id',req.params.id);
+ if(req.staff.role==='teacher')query=query.eq('author_account_id',req.actor.sub);
+ const {data:resource,error:lookupError}=await query.maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!resource)return res.status(404).json({error:'Resource not found.'});
+ if(resource.status!=='draft')return res.status(409).json({error:'Unpublish this resource before deleting it.'});
+ const {data,error}=await db.from('upec_learning_resources').delete().eq('id',resource.id).eq('status','draft').select('id,storage_path').maybeSingle();
+ if(error)throw error;
+ if(!data)return res.status(409).json({error:'Resource changed while deletion was in progress. Refresh and try again.'});
+ if(data.storage_path){
+  const {error:storageError}=await db.storage.from('upec-learning').remove([data.storage_path]);
+  if(storageError)return res.status(200).json({deleted:true,id:data.id,storageCleanupPending:true,message:'Resource record deleted, but its stored file needs cleanup.'});
+ }
+ res.json({deleted:true,id:data.id,storageCleanupPending:false});
 }));
 router.get('/resources/:id/open',grant(...questionRoles),wrap(async(req,res)=>{
  if(!uuid(req.params.id))return res.status(400).json({error:'Invalid resource ID.'});
@@ -776,6 +828,8 @@ const allowedUploadTypes=new Set(['application/pdf','image/png','image/jpeg','ap
 router.post('/resources/upload-init',grant(...questionRoles),wrap(async(req,res)=>{
  const {subjectId,title,description='',mimeType,fileSize}=req.body||{};
  if(!uuid(subjectId)||typeof title!=='string'||title.trim().length<5||title.length>180||typeof description!=='string'||description.length>3000||(!Number.isInteger(fileSize)||fileSize<1||fileSize>8388608)||!allowedUploadTypes.has(mimeType))return res.status(400).json({error:'Invalid resource or file type.'});
+ const {data:subject,error:subjectError}=await db.from('upec_academic_subjects').select('id').eq('id',subjectId).eq('active',true).maybeSingle();
+ if(subjectError)throw subjectError;if(!subject)return res.status(404).json({error:'Choose an active subject.'});
  const ext=({'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx'})[mimeType];
  const path=req.actor.sub+'/'+crypto.randomUUID()+'.'+ext;
  const {data,error}=await db.from('upec_learning_resources').insert({subject_id:subjectId,author_account_id:req.actor.sub,title:title.trim(),description:description.trim(),resource_type:'document',storage_path:path,status:'draft'}).select('id').single();
@@ -796,7 +850,17 @@ router.post('/resources/:id/upload-verify',grant(...questionRoles),wrap(async(re
  if(storageError)throw storageError;
  const file=(files||[]).find(f=>f.name===path.slice(slash+1));
  if(!file?.metadata||!(Number(file.metadata.size)>0))return res.status(409).json({error:'File upload is incomplete.'});
- res.json({complete:true,resourceId:resource.id,size:Number(file.metadata.size)});
+ const actualSize=Number(file.metadata.size);
+ if(actualSize>8388608){
+  await db.storage.from('upec-learning').remove([path]);
+  return res.status(413).json({error:'Uploaded file exceeds the 8 MB limit and was removed.'});
+ }
+ const expectedMime=({pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'})[path.slice(path.lastIndexOf('.')+1)];
+ if(file.metadata.mimetype&&file.metadata.mimetype!==expectedMime){
+  await db.storage.from('upec-learning').remove([path]);
+  return res.status(415).json({error:'Uploaded file type does not match the permitted file type.'});
+ }
+ res.json({complete:true,resourceId:resource.id,size:actualSize});
 }));
 router.get('/subject-combinations',grant('super_admin','admin','teacher','cbt_manager','admissions_officer'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_subject_combinations').select('id,programme_id,name,subject_codes,active').order('name').limit(500);
