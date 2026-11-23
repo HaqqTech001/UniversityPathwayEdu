@@ -1,12 +1,14 @@
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const TOKEN_KEY = 'upec_ops_session';
+// The standalone Admin Desk must never reuse the legacy Ops application's session.
+const TOKEN_KEY = 'upec_admin_session';
+const LEGACY_TOKEN_KEYS = ['upec_ops_session', 'upec_staff_token', 'upec_admin_token'];
 
 export function getStaffToken() {
   return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function clearStaffToken() {
-  for (const key of [TOKEN_KEY, 'upec_staff_token', 'upec_admin_token']) {
+  for (const key of [TOKEN_KEY, ...LEGACY_TOKEN_KEYS]) {
     sessionStorage.removeItem(key);
     localStorage.removeItem(key);
   }
