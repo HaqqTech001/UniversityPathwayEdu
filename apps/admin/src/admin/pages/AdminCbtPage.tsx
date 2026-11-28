@@ -562,7 +562,7 @@ export default function AdminCbtPage() {
     setPdfExtracting(true);
     setPdfCandidates([]);
     try {
-      const token = sessionStorage.getItem('upec_staff_token');
+      const token = sessionStorage.getItem('upec_admin_session');
       if (!token) throw new Error('Staff authentication token required. Please sign in again.');
       const params = new URLSearchParams({ subjectId, examType: pdfExamType, examYear: pdfExamYear });
       const response = await fetch(base + '/api/staff/academic/questions/extract-pdf?' + params.toString(), {
