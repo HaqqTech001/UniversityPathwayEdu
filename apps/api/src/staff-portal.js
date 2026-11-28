@@ -516,7 +516,12 @@ router.get('/support/files/:fileId',supportAccess,wrap(async(req,res)=>{
 router.get('/support/conversations',supportAccess,wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_support_messages').select('student_account_id,body,created_at,author_role').order('created_at',{ascending:false}).limit(500);
  if(error)throw error;
- const seen=new Set();res.json({conversations:(data||[]).filter(m=>{if(seen.has(m.student_account_id))return false;seen.add(m.student_account_id);return true;}).slice(0,100)});
+ const seen=new Set(),latest=(data||[]).filter(m=>{if(seen.has(m.student_account_id))return false;seen.add(m.student_account_id);return true;}).slice(0,100);
+ const ids=latest.map(m=>m.student_account_id);
+ const {data:accounts,error:accountError}=ids.length?await db.from('local_accounts').select('id,full_name,email,phone').in('id',ids):{data:[],error:null};
+ if(accountError)throw accountError;
+ const byId=new Map((accounts||[]).map(a=>[a.id,a]));
+ res.json({conversations:latest.map(m=>({student_account_id:m.student_account_id,body:m.body,created_at:m.created_at,author_role:m.author_role,student:byId.get(m.student_account_id)||null}))});
 }));
 router.get('/support/conversations/:studentId',supportAccess,wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.studentId))return res.status(400).json({error:'Invalid student ID.'});
