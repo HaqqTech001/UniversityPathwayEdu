@@ -47,7 +47,7 @@ router.use('/academic',academicRoutes);
 router.use('/assessments',guardianCbtRoutes);
 router.get('/me',(req,res)=>res.json({role:req.staff.role,permissions:req.staff.permissions}));
 const permit=permission=>(req,res,next)=>req.staff.permissions.includes(permission)?next():res.status(403).json({error:'Insufficient staff permissions.'});
-router.get('/members',permit('staff.manage'),wrap(async(req,res)=>{const {data,error}=await db.from('local_staff_members').select('account_id,role,permissions,active').limit(100);if(error)throw error;res.json({members:data||[]});}));
+router.get('/members',permit('staff.manage'),wrap(async(req,res)=>{const {data,error}=await db.from('local_staff_members').select('account_id,role,permissions,active').order('account_id').limit(100);if(error)throw error;const members=data||[];const ids=members.map(member=>member.account_id);const accounts=ids.length?await db.from('local_accounts').select('id,email,full_name').in('id',ids):{data:[],error:null};if(accounts.error)throw accounts.error;const byId=new Map((accounts.data||[]).map(account=>[account.id,account]));res.json({members:members.map(member=>({...member,email:byId.get(member.account_id)?.email||null,full_name:byId.get(member.account_id)?.full_name||null}))});}));
 // Accurate dashboard counts are calculated across the full database, not the
 // first 100 application records returned to the admissions review table.
 router.get('/applications/metrics',permit('applications.read'),wrap(async(req,res)=>{
