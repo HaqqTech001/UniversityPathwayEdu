@@ -122,7 +122,7 @@ export default function AdminAcademicPage() {
   const [timetableDraft, setTimetableDraft] = useState<Record<string, string>>({});
 
   const request = async (path: string, init: RequestInit = {}) => {
-    const token = sessionStorage.getItem('upec_staff_token');
+    const token = sessionStorage.getItem('upec_admin_session');
     if (!token) throw Error('Please sign in to the staff portal.');
     const response = await fetch(
       (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/staff/academic' + path,
