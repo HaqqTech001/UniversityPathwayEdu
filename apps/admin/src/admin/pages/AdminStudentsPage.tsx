@@ -331,6 +331,7 @@ export default function AdminStudentsPage() {
   const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleStudents = filteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const selectedStudentAccountId = (selectedStudent as Student | null)?.accountId ?? null;
   useEffect(() => setPage(1), [selectedProgramme, selectedStatus, selectedYear, searchFilter, pageSize]);
 
   const exportApplications = () => {
@@ -563,7 +564,7 @@ export default function AdminStudentsPage() {
         <div className="min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto md:hidden divide-y divide-slate-100">
             {apiLoading&&Array.from({length:6},(_,i)=><div key={i} className="flex animate-pulse items-center gap-3 px-3 py-3" aria-label="Loading student"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-200"/><div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-slate-200"/><div className="h-2 w-1/2 rounded bg-slate-100"/></div></div>)}
-            {visibleStudents.map(student=><div key={student.accountId} onClick={()=>{openStudent(student);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){openStudent(student);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudent?.accountId===student.accountId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
+            {visibleStudents.map(student=><div key={student.accountId} onClick={()=>{openStudent(student);}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'){openStudent(student);}}} className={`flex cursor-pointer items-center gap-3 border-l-4 px-3 py-3 ${selectedStudentAccountId===student.accountId?'border-[#C62839] bg-rose-50':'border-transparent bg-white'}`}>
               {student.avatar?<img src={student.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover"/>:<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[#111A43]"><Users size={18}/></span>}
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#111A43]">{student.name}</p><button type="button" onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(student.appId).then(()=>notifyAdmin('Application ID copied','success')).catch(()=>notifyAdmin('Unable to copy ID','error'));}} className="mt-1 block max-w-full truncate text-left font-mono text-[11px] text-slate-500" title="Tap to copy application ID">{student.appId} · Copy</button></div>
               <div className="shrink-0 text-right">{getStatusBadge(student.status)}<ChevronRight size={15} className="ml-auto mt-1 text-slate-400"/></div>
