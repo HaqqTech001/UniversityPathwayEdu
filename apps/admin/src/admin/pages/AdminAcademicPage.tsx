@@ -400,7 +400,7 @@ export default function AdminAcademicPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {!currentArea ? (
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -440,9 +440,9 @@ export default function AdminAcademicPage() {
       )}
 
       {!currentArea && (
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-[#111A43] text-white flex items-center justify-center shrink-0 shadow-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-3 shadow-xs flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-[#111A43] text-white flex items-center justify-center shrink-0 shadow-xs">
             <GraduationCap size={22} />
           </div>
           <div className="min-w-0">
@@ -517,7 +517,7 @@ export default function AdminAcademicPage() {
           TAB CONTENT: OVERVIEW
           ========================================================================= */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center gap-3 pt-1">
             <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Academic workspaces</span>
             <span className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
@@ -531,7 +531,7 @@ export default function AdminAcademicPage() {
                   setActiveTab(name);
                   setSelected(null);
                 }}
-                className="group p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs text-left hover:border-[#c62839] hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-[140px]"
+                className="group p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-xs text-left hover:border-[#c62839] hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-[112px]"
               >
                 <div>
                   <div className="flex items-center justify-between">
