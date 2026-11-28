@@ -97,11 +97,20 @@ export default function AdminStudentsPage() {
     const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setApiError('Please sign in to load application records.');setApiLoading(false);notifyAdmin('Please sign in to access student records.','error');return;}
     setApiLoading(true);setApiError('');
-    fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students?limit=500&offset=0',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
-      .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load applications.');return data;})
-      .then(data=>{if(!controller.signal.aborted){
-        const records=Array.isArray(data.students)?data.students:[];
-        setStudents(records.map((item:Record<string,any>,index:number)=>{
+    void (async()=>{
+      try{
+        const records:Record<string,any>[]=[];
+        let offset=0,hasMore=true;
+        while(hasMore&&!controller.signal.aborted){
+          const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students?limit=500&offset='+offset,{headers:{Authorization:'Bearer '+token},signal:controller.signal});
+          const data=await response.json();
+          if(!response.ok)throw Error(data.error||'Unable to load applications.');
+          const pageRecords=Array.isArray(data.students)?data.students:[];
+          records.push(...pageRecords);
+          hasMore=Boolean(data.hasMore)&&pageRecords.length>0;
+          offset+=pageRecords.length;
+        }
+        if(!controller.signal.aborted)setStudents(records.map((item:Record<string,any>,index:number)=>{
           const application=(item.application&&typeof item.application==='object'?item.application:null) as Record<string,any>|null;
           const details=flattenProfile(asRecord(item.biodata?.details));
           const form=flattenProfile(asRecord(application?.form_data));
@@ -120,9 +129,9 @@ export default function AdminStudentsPage() {
             expectedCompletion:'',avatar:String(profile.avatar_url||'')
           };
         }));
-      }})
-      .catch(error=>{if(!controller.signal.aborted){const message=error instanceof Error?error.message:'Unable to load applications.';setApiError(message);notifyAdmin(message,'error');}})
-      .finally(()=>{if(!controller.signal.aborted)setApiLoading(false);});
+      }catch(error){if(!controller.signal.aborted){const message=error instanceof Error?error.message:'Unable to load applications.';setApiError(message);notifyAdmin(message,'error');}}
+      finally{if(!controller.signal.aborted)setApiLoading(false);}
+    })();
     return()=>controller.abort();
   },[reload]);
 
