@@ -18,13 +18,25 @@ export default function RegistrationInvoiceManager(){
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [reload,setReload]=useState(0);
+  const [hasMore,setHasMore]=useState(false);
+  const [loadingMore,setLoadingMore]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();setLoading(true);
-    (async()=>{try{const data=await json(await fetch(base+'/registration-invoices',{headers:headers(),signal:controller.signal}));if(!controller.signal.aborted)setInvoices(data.invoices||[]);}
+    (async()=>{try{const data=await json(await fetch(base+'/registration-invoices?limit=100&offset=0',{headers:headers(),signal:controller.signal}));if(!controller.signal.aborted){setInvoices(data.invoices||[]);setHasMore(Boolean(data.hasMore));}}
       catch(e){if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load invoices.');}
       finally{if(!controller.signal.aborted)setLoading(false);}})();
     return()=>controller.abort();
   },[reload]);
+  const loadMore=async()=>{
+    if(loadingMore||!hasMore)return;
+    setLoadingMore(true);setError('');
+    try{
+      const data=await json(await fetch(base+'/registration-invoices?limit=100&offset='+invoices.length,{headers:headers()}));
+      setInvoices(current=>{const seen=new Set(current.map(row=>row.id));return [...current,...(data.invoices||[]).filter((row:Invoice)=>!seen.has(row.id))];});
+      setHasMore(Boolean(data.hasMore));
+    }catch(e){setError(e instanceof Error?e.message:'Unable to load more registration invoices.');}
+    finally{setLoadingMore(false);}
+  };
   const search=async(event:React.FormEvent)=>{
     event.preventDefault();setError('');setResults([]);setSelected('');
     if(query.trim().length<3){setError('Enter at least three characters of the application reference.');return;}
@@ -67,6 +79,7 @@ export default function RegistrationInvoiceManager(){
     {error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}
     {notice&&<p role="status" className="text-sm text-emerald-700">{notice}</p>}
     {loading?<p className="text-sm">Loading registration invoices…</p>:invoices.length===0?<p className="text-sm text-slate-500">No registration invoices found.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b"><th className="p-2">Account / Programme</th><th className="p-2">Session</th><th className="p-2">Due</th><th className="p-2">Paid</th><th className="p-2">Status</th><th className="p-2">Action</th></tr></thead><tbody>{invoices.map(i=><tr key={i.id} className="border-b"><td className="p-2"><span className="break-all font-mono">{i.student_account_id}</span><br/>{i.programme_code}</td><td className="p-2">{i.academic_session}</td><td className="p-2">{money(i.fee_amount_ngn)}</td><td className="p-2">{money(i.amount_paid_ngn)}</td><td className="p-2">{i.status}</td><td className="p-2"><button type="button" onClick={()=>setPaymentId(i.id)} className="rounded-lg border px-2 py-1">Record verified payment</button></td></tr>)}</tbody></table></div>}
+    {hasMore&&<div className="text-center"><button type="button" onClick={()=>void loadMore()} disabled={loadingMore} className="rounded-lg border px-4 py-2 text-xs font-semibold disabled:opacity-50">{loadingMore?'Loading…':'Load more registration invoices'}</button></div>}
     {paymentId&&<form onSubmit={post} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
       <h3 className="text-sm font-bold">Record verified registration payment</h3><p className="break-all font-mono text-xs">{paymentId}</p>
       <div className="flex flex-wrap gap-3"><label className="text-xs font-semibold">Amount (NGN)<input required type="number" min="0.01" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} className="mt-1 block rounded-lg border p-2"/></label>
