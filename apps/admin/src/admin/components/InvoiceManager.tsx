@@ -2,7 +2,7 @@ import React,{useEffect,useState} from 'react';
 type Application={id:string;reference_number:string;programme:string;status:string;account_id:string};
 type Invoice={id:string;student_account_id:string;programme_code:string;billing_month:string;due_on:string;amount_due_ngn:number;amount_paid_ngn:number;status:string};
 const root=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/finance';
-const auth=()=>({Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')});
+const auth=()=>({Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')});
 async function parse(response:Response){const data=await response.json();if(!response.ok)throw Error(data.error||'Request failed.');return data;}
 const money=(n:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(n);
 export default function InvoiceManager(){
