@@ -20,7 +20,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   const [notifications,setNotifications]=useState<{id:string;title:string;body:string;created_at:string}[]>([]);
   const [notificationsReady,setNotificationsReady]=useState(false);
   useEffect(()=>{
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setNotificationsReady(true);return;}
     const controller=new AbortController();
     setNotificationsReady(false);
@@ -33,7 +33,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
   },[retry]);
   useEffect(()=>{
     const controller=new AbortController();
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setLoading(false);return;}
     setLoading(true);
     fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/metrics',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
