@@ -94,7 +94,7 @@ export default function AdminStudentsPage() {
   const [reload,setReload]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setApiError('Please sign in to load application records.');setApiLoading(false);notifyAdmin('Please sign in to access student records.','error');return;}
     setApiLoading(true);setApiError('');
     fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
@@ -139,7 +139,7 @@ export default function AdminStudentsPage() {
     setProfilePhotoUrl(null);
     if(!selectedStudent?.accountId){setProfilePhotoLoading(false);return;}
     const controller=new AbortController();
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     setProfilePhotoLoading(true);
     fetch(apiBase+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId)+'/photo',{
       headers:{Authorization:'Bearer '+token},signal:controller.signal
@@ -159,7 +159,7 @@ export default function AdminStudentsPage() {
     if(!selectedStudent)return;
     const controller=new AbortController();
     setDetailLoading(true);
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId),{
       headers:{Authorization:'Bearer '+token},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load application details.');return data;})
@@ -200,7 +200,7 @@ export default function AdminStudentsPage() {
     if(!selectedStudent)return;
     const controller=new AbortController();
     fetch(apiBase+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId)+'/edit-permissions',{
-      headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')},signal:controller.signal
+      headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load edit permissions.');return data;})
       .then(data=>{if(!controller.signal.aborted)setStudentPermissions(data.permissions||{biodata_edit_allowed:false,programme_change_allowed:false});})
       .catch(error=>{if(!controller.signal.aborted)notifyAdmin(error instanceof Error?error.message:'Unable to load edit permissions.','error');});
@@ -219,7 +219,7 @@ export default function AdminStudentsPage() {
     if(!window.confirm('Confirm application status change to '+reviewStatus.replace(/_/g,' ')+'?'))return;
     setReviewSaving(true);setReviewFeedback('');
     try{
-      const token=sessionStorage.getItem('upec_staff_token');
+      const token=sessionStorage.getItem('upec_admin_session');
       const response=await fetch((import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/status',{
         method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
         body:JSON.stringify({status:reviewStatus,note})
@@ -245,7 +245,7 @@ export default function AdminStudentsPage() {
     const controller=new AbortController();
     setDocumentsLoading(true);
     fetch(apiBase+'/api/staff/applications/'+encodeURIComponent(selectedStudent.applicationId)+'/documents',{
-      headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')},signal:controller.signal
+      headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')},signal:controller.signal
     }).then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load documents.');return data;})
       .then(data=>{if(!controller.signal.aborted)setDocuments(data.documents||[]);})
       .catch(error=>{if(!controller.signal.aborted)setDocumentError(error instanceof Error?error.message:'Unable to load documents.');})
@@ -255,7 +255,7 @@ export default function AdminStudentsPage() {
   const viewDocument=async(id:string)=>{
     try{
       setDocumentError('');
-      const response=await fetch(apiBase+'/api/staff/documents/'+encodeURIComponent(id)+'/view',{headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')}});
+      const response=await fetch(apiBase+'/api/staff/documents/'+encodeURIComponent(id)+'/view',{headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')}});
       const data=await response.json();
       if(!response.ok)throw Error(data.error||'Document unavailable.');
       if(typeof data.url!=='string')throw Error('Document link unavailable.');
@@ -269,7 +269,7 @@ export default function AdminStudentsPage() {
     setDocumentSaving(id);setDocumentError('');
     try{
       const response=await fetch(apiBase+'/api/staff/documents/'+encodeURIComponent(id)+'/review',{
-        method:'PATCH',headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token'),'Content-Type':'application/json'},
+        method:'PATCH',headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session'),'Content-Type':'application/json'},
         body:JSON.stringify({status,note})
       });
       const data=await response.json();
@@ -289,7 +289,7 @@ export default function AdminStudentsPage() {
     const next={...studentPermissions,[key]:!studentPermissions[key]};
     setPermissionsSaving(true);
     try{
-      const token=sessionStorage.getItem('upec_staff_token');
+      const token=sessionStorage.getItem('upec_admin_session');
       const response=await fetch(apiBase+'/api/staff/students/'+encodeURIComponent(selectedStudent.accountId)+'/edit-permissions',{
         method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
         body:JSON.stringify({biodataEditAllowed:next.biodata_edit_allowed,programmeChangeAllowed:next.programme_change_allowed})
@@ -331,6 +331,8 @@ export default function AdminStudentsPage() {
     return true;
   });
 
+  const programmeOptions=[...new Set(students.map(s=>s.programme.trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const yearOptions=[...new Set(students.map(s=>s.year.trim()).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const applicationCount=students.filter(s=>s.applicationId).length;
   const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -486,9 +488,7 @@ export default function AdminStudentsPage() {
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Programmes">Programme: All Programmes</option>
-              <option value="IJMB">IJMB</option>
-              <option value="JAMB">JAMB</option>
-              <option value="WAEC">WAEC</option>
+              {programmeOptions.map(programme=><option key={programme} value={programme}>{programme}</option>)}
             </select>
           </div>
 
@@ -515,8 +515,7 @@ export default function AdminStudentsPage() {
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Years">Year: All Years</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
+              {yearOptions.map(year=><option key={year} value={year}>{year}</option>)}
             </select>
           </div>
 
@@ -532,9 +531,7 @@ export default function AdminStudentsPage() {
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Programmes">Programme: All Programmes</option>
-              <option value="IJMB">IJMB</option>
-              <option value="JAMB">JAMB</option>
-              <option value="WAEC">WAEC</option>
+              {programmeOptions.map(programme=><option key={programme} value={programme}>{programme}</option>)}
             </select>
           </div>
 
@@ -561,8 +558,7 @@ export default function AdminStudentsPage() {
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
             >
               <option value="All Years">Year: All Years</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
+              {yearOptions.map(year=><option key={year} value={year}>{year}</option>)}
             </select>
           </div>
 
