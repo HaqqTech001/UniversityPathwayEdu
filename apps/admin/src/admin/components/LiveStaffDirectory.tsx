@@ -8,7 +8,7 @@ export default function LiveStaffDirectory(){
  useEffect(()=>{
   const controller=new AbortController();setLoading(true);setError('');
   const root=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
-  fetch(root+'/api/staff/members',{signal:controller.signal,headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')}})
+  fetch(root+'/api/staff/members',{signal:controller.signal,headers:{Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')}})
    .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Staff directory unavailable');return data;})
    .then(data=>{if(!controller.signal.aborted)setMembers(Array.isArray(data.members)?data.members:[]);})
    .catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load staff');})
