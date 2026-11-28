@@ -287,7 +287,6 @@ export default function AdminStudentsPage() {
     }catch(error){setDocumentError(error instanceof Error?error.message:'Could not review document.');}
     finally{setDocumentSaving(null);}
   };
-  const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeProfileTab, setActiveProfileTab] = useState<'Profile' | 'Documents' | 'Applications' | 'Payments'>('Profile');
@@ -307,20 +306,6 @@ export default function AdminStudentsPage() {
       setStudentPermissions(next);notifyAdmin('Student editing permissions updated.','success');
     }catch(error){notifyAdmin(error instanceof Error?error.message:'Unable to update permissions.','error');}
     finally{setPermissionsSaving(false);}
-  };
-
-  const toggleCheck = (id: number) => {
-    setCheckedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const toggleCheckAll = () => {
-    if (checkedIds.length === students.length) {
-      setCheckedIds([]);
-    } else {
-      setCheckedIds(students.map((s) => s.id));
-    }
   };
 
   const filteredStudents = students.filter((s) => {
@@ -465,10 +450,10 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid max-h-[20dvh] shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-5" aria-label="Live student directory summary">
+      <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-5" aria-label="Live student directory summary">
         {[{label:'Registered students',value:students.length,icon:Users},{label:'Applications',value:applicationCount,icon:FileText},{label:'Admitted',value:students.filter(s=>s.status==='Admitted').length,icon:UserCheck},{label:'Pending review',value:students.filter(s=>s.status==='Pending').length,icon:ClipboardCheck},{label:'Awaiting documents',value:students.filter(s=>s.status==='Awaiting Docs').length,icon:FolderOpen}].map(item=>(
           <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-            <div className="flex items-center justify-between gap-1"><p className="text-base font-bold leading-none text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
+            <div className="flex items-center justify-between gap-1"><p className="text-lg font-bold leading-none tabular-nums text-[#111A43]">{apiLoading?<span className="block h-4 w-9 animate-pulse rounded bg-slate-200" aria-label="Loading"/>:item.value}</p><item.icon size={16} className="shrink-0 text-[#C62839]"/></div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-slate-600" title={item.label}>{item.label}</p>
           </div>
         ))}
@@ -589,14 +574,6 @@ export default function AdminStudentsPage() {
             <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="py-3 px-3 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={checkedIds.length === students.length}
-                      onChange={toggleCheckAll}
-                      className="rounded border-slate-300 text-[#C62839] focus:ring-[#C62839]"
-                    />
-                  </th>
                   <th className="py-3 px-2 w-8 text-center">#</th>
                   <th className="py-3 px-2 w-10 text-center">Photo</th>
                   <th className="py-3 px-3">Student Name</th>
@@ -611,8 +588,7 @@ export default function AdminStudentsPage() {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {apiLoading&&Array.from({length:7},(_,i)=><tr key={`skeleton-${i}`} className="animate-pulse">{Array.from({length:8},(_,j)=><td key={j} className="px-3 py-4"><div className="h-3 rounded bg-slate-200"/></td>)}</tr>)}
                 {visibleStudents.map((s, index) => {
-                  const isChecked = checkedIds.includes(s.id);
-                  const isSelected = false;
+                  const isSelected = selectedStudent?.accountId === s.accountId;
                   return (
                     <tr
                       key={s.id}
@@ -623,14 +599,6 @@ export default function AdminStudentsPage() {
                         isSelected ? 'border-[#C62839] bg-rose-50' : 'border-transparent hover:bg-slate-50'
                       }`}
                     >
-                      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleCheck(s.id)}
-                          className="rounded border-slate-300 text-[#C62839] focus:ring-[#C62839]"
-                        />
-                      </td>
                       <td className="py-3 px-2 text-center text-slate-400 font-medium">{(safePage - 1) * pageSize + index + 1}</td>
                       <td className="py-3 px-2 text-center">
                         {s.avatar?<img src={s.avatar} alt="" className="w-8 h-8 rounded-full object-cover mx-auto ring-1 ring-slate-200"/>:<span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-slate-100"><Users size={15}/></span>}
