@@ -124,7 +124,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
       case 'staff':
         return <AdminStaffPage />;
       default:
-        return <AdminDashboardPage onNavigateTab={handleTabChange} />;
+        return <AdminDashboardPage onNavigateTab={handleTabChange} permissions={permissions} />;
     }
   };
 
