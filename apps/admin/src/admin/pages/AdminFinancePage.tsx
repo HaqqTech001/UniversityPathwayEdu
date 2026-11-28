@@ -78,7 +78,7 @@ export default function AdminFinancePage() {
   const [reportMonth,setReportMonth]=useState('');
   useEffect(()=>{
     const controller=new AbortController();
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token)return;
     setSummaryError('');
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/summary'+(reportMonth?'?month='+encodeURIComponent(reportMonth):''),{headers:{Authorization:'Bearer '+token},signal:controller.signal})
@@ -95,7 +95,7 @@ export default function AdminFinancePage() {
   const [ledgerMoreLoading,setLedgerMoreLoading]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setLedgerError('Staff login required.');setLedgerLoading(false);return;}
     fetch((import.meta.env.VITE_API_URL||'').replace(/\/$/,'')+'/api/staff/finance/payment-ledger',{headers:{Authorization:'Bearer '+token},signal:controller.signal})
       .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load payments.');return data;})
@@ -151,7 +151,7 @@ export default function AdminFinancePage() {
   };
   const loadMoreLedger=async()=>{
     if(ledgerMoreLoading||!ledgerHasMore)return;
-    const token=sessionStorage.getItem('upec_staff_token');
+    const token=sessionStorage.getItem('upec_admin_session');
     if(!token){setLedgerError('Staff login required.');return;}
     setLedgerMoreLoading(true);setLedgerError('');
     try{
