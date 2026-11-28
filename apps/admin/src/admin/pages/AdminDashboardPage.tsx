@@ -54,7 +54,7 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
     {label:'Review applications',tab:'students' as AdminTabId,icon:ClipboardCheck},
     {label:'Review payments',tab:'finance' as AdminTabId,icon:CreditCard},
     {label:'Manage assessments',tab:'cbt' as AdminTabId,icon:BookOpen},
-    {label:'Send notification',tab:'notifications' as AdminTabId,icon:Bell},
+    {label:'Manage notices',tab:'notices' as AdminTabId,icon:Bell},
   ];
   const breakdown=[
     {label:'Submitted',value:metrics?.submitted||0,color:'bg-[#111A43]'},
@@ -130,8 +130,8 @@ export default function AdminDashboardPage({onNavigateTab=()=>{}}:Props) {
       
     </section>
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('notifications')} className="text-xs font-semibold text-[#C62839]">View all</button></div>
-      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('notifications')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent activity records are available from the staff API.':<span className="block space-y-2" aria-label="Loading recent activities">{[0,1,2].map(i=><span key={i} className="block h-7 animate-pulse rounded bg-slate-200"/>)}</span>}</p>}
+      <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#111A43]">Recent activities</h2><p className="text-xs text-slate-500">Five latest available activity records</p></div><button type="button" onClick={()=>onNavigateTab('students')} className="text-xs font-semibold text-[#C62839]">View applications</button></div>
+      {notifications.length?<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">{notifications.map((item,index)=><button type="button" key={item.id||index} onClick={()=>onNavigateTab('students')} className="min-w-0 rounded-xl border border-slate-200 bg-[#F7F8FC] p-3 text-left hover:border-[#C62839]"><p className="truncate text-xs font-bold text-[#111A43]">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.body}</p><p className="mt-2 text-[10px] text-slate-400">{item.created_at?new Date(item.created_at).toLocaleDateString():''}</p></button>)}</div>:<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">{notificationsReady?'No recent activity records are available from the staff API.':<span className="block space-y-2" aria-label="Loading recent activities">{[0,1,2].map(i=><span key={i} className="block h-7 animate-pulse rounded bg-slate-200"/>)}</span>}</p>}
     </section>
     {!loading&&!metrics&&<p className="text-xs text-slate-500">Live application totals are unavailable until staff authentication and the metrics API are accessible. No estimated figures are displayed.</p>}
   </div>;
