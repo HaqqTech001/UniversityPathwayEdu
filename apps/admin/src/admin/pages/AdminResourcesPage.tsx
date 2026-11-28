@@ -41,7 +41,7 @@ const FILE_TYPES = [
 ].join(',');
 
 function authHeaders(): HeadersInit {
-  const token = sessionStorage.getItem('upec_staff_token');
+  const token = sessionStorage.getItem('upec_admin_session');
   if (!token) throw new Error('Your staff session has expired. Please sign in again.');
   return { Authorization: 'Bearer ' + token };
 }
