@@ -27,6 +27,9 @@ import {
   UserCheck,
   Sliders,
   CheckCircle2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  GraduationCap,
 } from 'lucide-react';
 import { AdminTabId, ADMIN_NAV_ITEMS } from './types';
 
@@ -53,6 +56,7 @@ export default function AdminLayout({
 }: AdminLayoutProps) {
   const visibleNavItems = ADMIN_NAV_ITEMS.filter(item => allowedTabs.includes(item.id));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState('2025/2026');
   const [currentTime, setCurrentTime] = useState('10:24 AM');
@@ -287,47 +291,77 @@ export default function AdminLayout({
           ========================================================================= */}
       <div className="flex min-h-0 min-w-0 flex-1 relative">
         {/* DESKTOP SIDEBAR */}
-        <aside className="hidden lg:flex flex-col bg-[#08163B] text-white w-56 xl:w-64 border-r border-[#14234C] shrink-0 h-full min-h-0 justify-between overflow-y-auto">
-          {/* Navigation Items (Exactly 10 Primary Links) */}
-          <div className="py-4 space-y-1">
-            <p className="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#D5A75B]/80">
-              Navigation Menu
-            </p>
-            {visibleNavItems.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onTabChange(item.id)}
-                  className={`w-[calc(100%-1rem)] mx-2 flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-[#C62839] text-white shadow-md shadow-[#C62839]/30'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 truncate">
-                    <span className={isActive ? 'text-white' : 'text-slate-400'}>
-                      {getIcon(item.iconName)}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className={`shrink-0 transition-transform ${
-                      isActive ? 'text-white translate-x-0.5' : 'text-slate-500'
+        <aside
+          className={`hidden lg:flex flex-col bg-[#08163B] text-white border-r border-[#14234C] shrink-0 h-full min-h-0 justify-between overflow-y-auto transition-[width] duration-200 ease-in-out ${desktopSidebarCollapsed ? 'w-[4.5rem]' : 'w-56 xl:w-64'}`}
+          aria-label="Admin navigation"
+          data-sidebar-collapsed={desktopSidebarCollapsed}
+        >
+          <div className="py-3">
+            <div className={`mb-3 flex items-center ${desktopSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+              {!desktopSidebarCollapsed && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#D5A75B]/80">
+                  Navigation Menu
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setDesktopSidebarCollapsed(value => !value)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D5A75B]"
+                aria-label={desktopSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!desktopSidebarCollapsed}
+                title={desktopSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {desktopSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
+            </div>
+            <nav className="space-y-1" aria-label="Primary navigation">
+              {visibleNavItems.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onTabChange(item.id)}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={desktopSidebarCollapsed ? item.label : undefined}
+                    title={desktopSidebarCollapsed ? item.label : undefined}
+                    className={`mx-2 flex min-h-11 w-[calc(100%-1rem)] items-center rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D5A75B] ${desktopSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} ${
+                      isActive
+                        ? 'bg-[#C62839] text-white shadow-md shadow-[#C62839]/30'
+                        : 'text-slate-300 hover:text-white hover:bg-white/5'
                     }`}
-                  />
-                </button>
-              );
-            })}
+                  >
+                    <span className={`flex min-w-0 items-center ${desktopSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+                      <span className={`shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                        {getIcon(item.iconName)}
+                      </span>
+                      {!desktopSidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    </span>
+                    {!desktopSidebarCollapsed && (
+                      <ChevronRight
+                        size={14}
+                        className={`shrink-0 transition-transform ${
+                          isActive ? 'text-white translate-x-0.5' : 'text-slate-500'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          <div className="m-3 rounded-2xl border border-white/10 bg-[#112552] p-4 text-white">
-            <h4 className="text-xs font-bold leading-snug">Your Pathway to Higher Opportunities</h4>
-            <p className="mt-2 text-[11px] leading-relaxed text-slate-300">Quality Education · Guidance · Support · Results</p>
-            <div className="mt-3 h-0.5 w-10 rounded-full bg-[#C62839]" />
-          </div>
+          {desktopSidebarCollapsed ? (
+            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#112552] text-[#D5A75B]" title="University Pathway Educational Consult">
+              <GraduationCap size={19} />
+            </div>
+          ) : (
+            <div className="m-3 rounded-2xl border border-white/10 bg-[#112552] p-4 text-white">
+              <h4 className="text-xs font-bold leading-snug">Your Pathway to Higher Opportunities</h4>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-300">Quality Education · Guidance · Support · Results</p>
+              <div className="mt-3 h-0.5 w-10 rounded-full bg-[#C62839]" />
+            </div>
+          )}
         </aside>
 
         {/* MOBILE OVERLAY DRAWER */}
