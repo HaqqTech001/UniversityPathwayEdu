@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, type FormEvent } from 'react';
 type Account={id:string;bank_name:string;account_number:string;account_name:string;is_active:boolean};
 const API_ROOT=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'');
 const endpoint=API_ROOT+'/api/staff/finance/bank-account';
-const auth=()=>({Authorization:'Bearer '+(sessionStorage.getItem('upec_staff_token')||'')});
+const auth=()=>({Authorization:'Bearer '+(sessionStorage.getItem('upec_admin_session')||'')});
 async function parse<T>(response:Response):Promise<T>{const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Bank account request failed.');return data as T;}
 export default function BankAccountManager(){
  const [accounts,setAccounts]=useState<Account[]>([]),[form,setForm]=useState({bankName:'',accountNumber:'',accountName:''});
