@@ -204,7 +204,7 @@ export default function AdminAcademicPage() {
               .map(([key, value]) => [key, key === 'due_at' && value ? value.slice(0, 16) : value])
           )
         : currentArea === 'Classes'
-        ? { programme_id: catalogue.programmes[0]?.id || '', academic_session: '2025/2026' }
+        ? { programme_id: catalogue.programmes[0]?.id || '', academic_session: [...new Set((academicData.classes || []).map((row: any) => String(row.academic_session || '')).filter(Boolean))].sort().reverse()[0] || '' }
         : {}
     );
     setForm({
