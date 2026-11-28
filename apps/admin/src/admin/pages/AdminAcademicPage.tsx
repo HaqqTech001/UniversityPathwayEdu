@@ -95,7 +95,6 @@ export default function AdminAcademicPage() {
   });
   const [loading, setLoading] = useState(true);
   const [academicData, setAcademicData] = useState<Record<string, any[]>>({});
-  const [error, setError] = useState('');
 
   // Editing state
   const [editing, setEditing] = useState<AcademicRecord | null | undefined>(undefined);
@@ -125,7 +124,7 @@ export default function AdminAcademicPage() {
     const token = sessionStorage.getItem('upec_admin_session');
     if (!token) throw Error('Please sign in to the staff portal.');
     const response = await fetch(
-      (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/staff/academic' + path,
+      (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api/staff/academic' + path,
       {
         ...init,
         headers: {
@@ -142,7 +141,6 @@ export default function AdminAcademicPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError('');
     Promise.all([
       request('/catalogue'),
       request('/attendance/students'),
@@ -160,7 +158,7 @@ export default function AdminAcademicPage() {
         }
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (active) toast(e instanceof Error ? e.message : 'Unable to load academic records.', 'error');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -501,16 +499,6 @@ export default function AdminAcademicPage() {
           </div>
         </div>
       </div>
-      )}
-
-      {/* Error Banner */}
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setRefreshCount((n) => n + 1)} className="font-bold underline">
-            Retry
-          </button>
-        </div>
       )}
 
       {/* =========================================================================
