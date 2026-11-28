@@ -104,7 +104,7 @@ export default function AdminPortalApp({ onNavigate = () => {}, initialTab = 'da
   const renderActivePage = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <AdminDashboardPage onNavigateTab={handleTabChange} />;
+        return <AdminDashboardPage onNavigateTab={handleTabChange} permissions={permissions} />;
       case 'students':
         return <AdminStudentsPage />;
       case 'academic':
