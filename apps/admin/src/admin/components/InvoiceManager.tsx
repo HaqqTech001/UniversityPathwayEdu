@@ -12,6 +12,8 @@ export default function InvoiceManager(){
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [reload,setReload]=useState(0);
+  const [hasMore,setHasMore]=useState(false);
+  const [loadingMore,setLoadingMore]=useState(false);
   const [applicationQuery,setApplicationQuery]=useState('');
   const [applications,setApplications]=useState<Application[]>([]);
   const [selectedApplication,setSelectedApplication]=useState('');
@@ -39,8 +41,8 @@ export default function InvoiceManager(){
     setLoading(true);setError('');
     (async()=>{
       try{
-        const data=await parse(await fetch(root+'/invoices',{headers:auth(),signal:controller.signal}));
-        if(!controller.signal.aborted)setInvoices(Array.isArray(data.invoices)?data.invoices:[]);
+        const data=await parse(await fetch(root+'/invoices?limit=100&offset=0',{headers:auth(),signal:controller.signal}));
+        if(!controller.signal.aborted){setInvoices(Array.isArray(data.invoices)?data.invoices:[]);setHasMore(Boolean(data.hasMore));}
       }catch(e){
         if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load invoices.');
       }finally{
@@ -49,6 +51,16 @@ export default function InvoiceManager(){
     })();
     return()=>controller.abort();
   },[reload]);
+  const loadMore=async()=>{
+    if(loadingMore||!hasMore)return;
+    setLoadingMore(true);setError('');
+    try{
+      const data=await parse(await fetch(root+'/invoices?limit=100&offset='+invoices.length,{headers:auth()}));
+      setInvoices(current=>{const seen=new Set(current.map(row=>row.id));return [...current,...(data.invoices||[]).filter((row:Invoice)=>!seen.has(row.id))];});
+      setHasMore(Boolean(data.hasMore));
+    }catch(e){setError(e instanceof Error?e.message:'Unable to load more invoices.');}
+    finally{setLoadingMore(false);}
+  };
   const create=async(event:React.FormEvent)=>{
     event.preventDefault();
     if(!chosen||!studentId){setError('Select an approved programme application first.');return;}
@@ -93,6 +105,7 @@ export default function InvoiceManager(){
     {error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}
     {notice&&<p role="status" className="text-sm text-emerald-700">{notice}</p>}
     {loading?<p className="text-sm">Loading invoices…</p>:invoices.length===0?<p className="text-sm text-slate-500">No monthly invoices found.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b"><th className="p-2">Account / Programme</th><th className="p-2">Billing month</th><th className="p-2">Due</th><th className="p-2">Paid</th><th className="p-2">Status</th><th className="p-2">Action</th></tr></thead><tbody>{invoices.map(i=><tr key={i.id} className="border-b"><td className="p-2"><span className="font-mono break-all">{i.student_account_id}</span><br/>{i.programme_code}</td><td className="p-2">{i.billing_month}</td><td className="p-2">{money(i.amount_due_ngn)}</td><td className="p-2">{money(i.amount_paid_ngn)}</td><td className="p-2">{i.status}</td><td className="p-2"><button type="button" onClick={()=>setPaymentInvoice(i.id)} className="rounded-lg border px-2 py-1">Record verified payment</button></td></tr>)}</tbody></table></div>}
+    {hasMore&&<div className="text-center"><button type="button" onClick={()=>void loadMore()} disabled={loadingMore} className="rounded-lg border px-4 py-2 text-xs font-semibold disabled:opacity-50">{loadingMore?'Loading…':'Load more invoices'}</button></div>}
     {paymentInvoice&&<form onSubmit={record} className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
       <h3 className="text-sm font-bold">Record payment against invoice</h3><p className="break-all font-mono text-xs">{paymentInvoice}</p>
       <div className="flex flex-wrap gap-3"><label className="text-xs font-semibold">Verified amount (NGN)<input required type="number" min="0.01" step="0.01" value={paymentAmount} onChange={e=>setPaymentAmount(e.target.value)} className="mt-1 block rounded-lg border p-2"/></label>
