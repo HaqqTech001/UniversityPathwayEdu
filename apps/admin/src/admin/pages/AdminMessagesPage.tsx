@@ -90,6 +90,20 @@ export default function AdminMessagesPage() {
   const notify = (message: string, kind: 'success' | 'error' = 'success') =>
     window.dispatchEvent(new CustomEvent('upec-admin-toast', { detail: { message, kind } }));
 
+  const openAttachment = async (fileId: string) => {
+    const popup = window.open('about:blank', '_blank');
+    if (popup) popup.opener = null;
+    try {
+      const result = await api<{ url: string }>('/support/files/' + encodeURIComponent(fileId));
+      if (!popup) throw new Error('Allow pop-ups for this site to open attachments.');
+      popup.location.href = result.url;
+    } catch (e) {
+      popup?.close();
+      const message = e instanceof Error ? e.message : 'Unable to open attachment.';
+      setError(message); notify(message, 'error');
+    }
+  };
+
   const sendMessage = async (event: React.FormEvent) => {
     event.preventDefault();
     const body = draft.trim();
@@ -147,7 +161,7 @@ export default function AdminMessagesPage() {
             {messages.map(message => <div key={message.id} className={`flex ${message.author_role === 'staff' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[88%] rounded-2xl px-3 py-2.5 shadow-sm sm:max-w-[75%] ${message.author_role === 'staff' ? 'rounded-tr-sm bg-[#111A43] text-white' : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'}`}>
                 <p className="whitespace-pre-wrap break-words text-xs leading-relaxed">{message.body || (message.attachments?.length ? 'Attachment' : '')}</p>
-                {message.attachments?.map(file => <p key={file.id} className="mt-2 flex items-center gap-1 text-[10px] underline"><Paperclip size={12}/>{file.file_name}</p>)}
+                {message.attachments?.map(file => <button type="button" key={file.id} onClick={() => void openAttachment(file.id)} className={`mt-2 flex items-center gap-1 text-[10px] underline ${message.author_role === 'staff' ? 'text-slate-200' : 'text-[#C62839]'}`}><Paperclip size={12}/>{file.file_name}</button>)}
                 <p className={`mt-1 text-right text-[10px] ${message.author_role === 'staff' ? 'text-slate-300' : 'text-slate-400'}`}>{dateLabel(message.created_at)}</p>
               </div>
             </div>)}
