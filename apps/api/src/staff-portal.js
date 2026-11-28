@@ -69,14 +69,14 @@ router.get('/applications/metrics',permit('applications.read'),wrap(async(req,re
 router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  const limit=Math.min(500,Math.max(1,Number.parseInt(String(req.query.limit||'200'),10)||200));
  const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
- const [accounts,staff]=await Promise.all([
-  db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1),
-  db.from('local_staff_members').select('account_id')
- ]);
- if(accounts.error)throw accounts.error;if(staff.error)throw staff.error;
- const staffIds=new Set((staff.data||[]).map(row=>row.account_id));
- const pageAccounts=(accounts.data||[]).filter(account=>!staffIds.has(account.id));
- const ids=pageAccounts.map(account=>account.id);
+ const {data:staff,error:staffError}=await db.from('local_staff_members').select('account_id');
+ if(staffError)throw staffError;
+ const staffIds=(staff||[]).map(row=>row.account_id).filter(uuid);
+ let accountsQuery=db.from('local_accounts').select('id,email,full_name,phone,verified_at,student_id,created_at',{count:'exact'}).order('created_at',{ascending:false});
+ if(staffIds.length)accountsQuery=accountsQuery.not('id','in','('+staffIds.join(',')+')');
+ const {data:accounts,error:accountError,count}=await accountsQuery.range(offset,offset+limit-1);
+ if(accountError)throw accountError;
+ const ids=(accounts||[]).map(account=>account.id);
  const [biodata,applications]=ids.length?await Promise.all([
   db.from('local_student_biodata').select('account_id,details,completed_at,updated_at').in('account_id',ids),
   db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,student_registration_number,form_data,subjects').in('account_id',ids).order('created_at',{ascending:false})
@@ -85,14 +85,13 @@ router.get('/students',permit('applications.read'),wrap(async(req,res)=>{
  const biodataByAccount=new Map((biodata.data||[]).map(row=>[row.account_id,row]));
  const latestApplication=new Map();
  for(const row of applications.data||[])if(!latestApplication.has(row.account_id))latestApplication.set(row.account_id,row);
- const students=pageAccounts.map(account=>{
+ const students=(accounts||[]).map(account=>{
   const profile=biodataByAccount.get(account.id)||null;
   const application=latestApplication.get(account.id)||null;
   return {id:account.id,email:account.email,full_name:account.full_name,phone:account.phone,verified_at:account.verified_at,student_id:account.student_id||null,created_at:account.created_at,biodata:profile,application};
  });
- const staffCount=staffIds.size;
- const total=Math.max(0,(accounts.count??0)-staffCount);
- res.json({students,total,limit,offset,hasMore:offset+limit<total});
+ const total=count??0;
+ res.json({students,total,limit,offset,hasMore:offset+students.length<total});
 }));
 router.get('/students/:id/photo',permit('applications.read'),wrap(async(req,res)=>{
   const id=req.params.id;
