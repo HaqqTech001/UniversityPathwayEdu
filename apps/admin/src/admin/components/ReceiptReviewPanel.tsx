@@ -4,7 +4,7 @@ type Receipt = {id:string;student_account_id:string;application_id?:string;month
 type Kind = 'application'|'monthly';
 const root = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/,'');
 const endpoint = (kind:Kind) => root+'/api/staff/finance/'+(kind==='application'?'application-receipts':'monthly-receipts');
-const auth = () => ({Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')});
+const auth = () => ({Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')});
 async function read(response:Response) { const data=await response.json();if(!response.ok)throw Error(data.error||'Request failed.');return data; }
 
 export default function ReceiptReviewPanel(){
