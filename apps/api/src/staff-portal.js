@@ -560,11 +560,13 @@ router.post('/support/conversations/:studentId',supportAccess,wrap(async(req,res
 router.get('/finance/monthly-receipts',permit('finance.manage'),wrap(async(req,res)=>{
  const status=String(req.query.status||'pending');
  if(!['pending','approved','rejected','all'].includes(status))return res.status(400).json({error:'Invalid receipt status.'});
- let query=db.from('upec_monthly_payment_evidence').select('id,student_account_id,monthly_fee_id,review_status,created_at,mime_type,file_size_bytes').order('created_at',{ascending:false}).limit(100);
+ const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
+ const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
+ let query=db.from('upec_monthly_payment_evidence').select('id,student_account_id,monthly_fee_id,review_status,created_at,mime_type,file_size_bytes',{count:'exact'}).order('created_at',{ascending:false}).order('id',{ascending:false});
  if(status!=='all')query=query.eq('review_status',status);
- const {data,error}=await query;
+ const {data,error,count}=await query.range(offset,offset+limit-1);
  if(error)throw error;
- res.json({receipts:data||[]});
+ res.json({receipts:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
 }));
 router.get('/finance/monthly-receipts/:id/preview',permit('finance.manage'),wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
@@ -587,11 +589,13 @@ router.patch('/finance/monthly-receipts/:id/review',permit('finance.manage'),wra
 router.get('/finance/application-receipts',permit('finance.manage'),wrap(async(req,res)=>{
  const status=String(req.query.status||'pending');
  if(!['pending','approved','rejected','all'].includes(status))return res.status(400).json({error:'Invalid receipt status.'});
- let query=db.from('upec_application_payment_evidence').select('id,student_account_id,application_id,review_status,created_at,mime_type,file_size_bytes').order('created_at',{ascending:false}).limit(100);
+ const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
+ const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
+ let query=db.from('upec_application_payment_evidence').select('id,student_account_id,application_id,review_status,created_at,mime_type,file_size_bytes',{count:'exact'}).order('created_at',{ascending:false}).order('id',{ascending:false});
  if(status!=='all')query=query.eq('review_status',status);
- const {data,error}=await query;
+ const {data,error,count}=await query.range(offset,offset+limit-1);
  if(error)throw error;
- res.json({receipts:data||[]});
+ res.json({receipts:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
 }));
 router.get('/finance/application-receipts/:id/details',permit('finance.manage'),wrap(async(req,res)=>{
  if(!/^[0-9a-f-]{36}$/i.test(req.params.id))return res.status(400).json({error:'Invalid receipt ID.'});
