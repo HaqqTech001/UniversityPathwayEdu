@@ -724,7 +724,7 @@ export default function AdminCbtPage() {
         body: JSON.stringify({})
       });
       notify('Previous version restored as a draft. Review it before publishing.', 'success');
-      await loadQuestions();
+      await fetchQuestions();
       await handleViewQuestionHistory(questionHistoryTarget);
     } catch (error: any) {
       setQuestionHistoryError(error?.message || 'Could not restore this version.');
