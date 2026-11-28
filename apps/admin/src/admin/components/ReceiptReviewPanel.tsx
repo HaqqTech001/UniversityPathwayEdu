@@ -16,15 +16,27 @@ export default function ReceiptReviewPanel(){
   const [message,setMessage]=useState('');
   const [saving,setSaving]=useState<string|null>(null);
   const [refresh,setRefresh]=useState(0);
+  const [hasMore,setHasMore]=useState(false);
+  const [loadingMore,setLoadingMore]=useState(false);
   const load=useCallback(async(signal:AbortSignal)=>{
     setLoading(true);setError('');setReceipts([]);
     try{
-      const data=await read(await fetch(endpoint(kind)+'?status='+status,{headers:auth(),signal}));
-      if(!signal.aborted)setReceipts(data.receipts||[]);
+      const data=await read(await fetch(endpoint(kind)+'?status='+status+'&limit=100&offset=0',{headers:auth(),signal}));
+      if(!signal.aborted){setReceipts(data.receipts||[]);setHasMore(Boolean(data.hasMore));}
     }catch(e){if(!signal.aborted)setError(e instanceof Error?e.message:'Could not load receipts.');}
     finally{if(!signal.aborted)setLoading(false);}
   },[kind,status]);
   useEffect(()=>{const controller=new AbortController();void load(controller.signal);return()=>controller.abort();},[load,refresh]);
+  const loadMore=async()=>{
+    if(loadingMore||!hasMore)return;
+    setLoadingMore(true);setError('');
+    try{
+      const data=await read(await fetch(endpoint(kind)+'?status='+status+'&limit=100&offset='+receipts.length,{headers:auth()}));
+      setReceipts(current=>{const seen=new Set(current.map(row=>row.id));return [...current,...(data.receipts||[]).filter((row:Receipt)=>!seen.has(row.id))];});
+      setHasMore(Boolean(data.hasMore));
+    }catch(e){setError(e instanceof Error?e.message:'Unable to load more receipts.');}
+    finally{setLoadingMore(false);}
+  };
   const preview=async(id:string)=>{
     setError('');
     try{
@@ -62,5 +74,6 @@ export default function ReceiptReviewPanel(){
         {receipt.review_status==='pending'&&<><button type="button" disabled={saving!==null} onClick={()=>review(receipt.id,'approved')} className="rounded-lg bg-emerald-700 px-2 py-1 text-white disabled:opacity-50">Approve evidence</button><button type="button" disabled={saving!==null} onClick={()=>review(receipt.id,'rejected')} className="rounded-lg bg-[#C62839] px-2 py-1 text-white disabled:opacity-50">Reject</button></>}
       </div></td></tr>)}</tbody></table></div>
     )}
+    {hasMore&&<div className="text-center"><button type="button" onClick={()=>void loadMore()} disabled={loadingMore} className="rounded-lg border px-4 py-2 text-xs font-semibold disabled:opacity-50">{loadingMore?'Loading…':'Load more receipts'}</button></div>}
   </section>;
 }
