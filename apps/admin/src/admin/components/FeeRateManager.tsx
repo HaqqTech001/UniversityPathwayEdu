@@ -4,7 +4,7 @@ type FeeType='monthly'|'registration';
 type Rate={id:string;programme_code:string;effective_month:string;monthly_amount_ngn?:number;amount_ngn?:number};
 const root=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'');
 const path=(type:FeeType)=>root+'/api/staff/finance/'+(type==='monthly'?'programme-rates':'registration-rates');
-const auth=()=>({Authorization:'Bearer '+sessionStorage.getItem('upec_staff_token')});
+const auth=()=>({Authorization:'Bearer '+sessionStorage.getItem('upec_admin_session')});
 async function parse(response:Response){const data=await response.json();if(!response.ok)throw Error(data.error||'Request failed.');return data;}
 const currency=(n:number)=>new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(n);
 
