@@ -324,7 +324,13 @@ router.get('/finance/registration-invoices',permit('finance.manage'),wrap(async(
  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
  const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
  const {data,error,count}=await db.from('upec_registration_invoices').select('id,student_account_id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
- if(error)throw error;res.json({invoices:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
+ if(error)throw error;
+ const ids=[...new Set((data||[]).map(row=>row.student_account_id).filter(Boolean))];
+ const {data:accounts,error:accountError}=ids.length?await db.from('local_accounts').select('id,full_name,email').in('id',ids):{data:[],error:null};
+ if(accountError)throw accountError;
+ const byId=new Map((accounts||[]).map(row=>[row.id,row]));
+ const invoices=(data||[]).map(row=>({...row,student_name:byId.get(row.student_account_id)?.full_name||null,student_email:byId.get(row.student_account_id)?.email||null}));
+ res.json({invoices,total:count??0,limit,offset,hasMore:offset+invoices.length<(count??0)});
 }));
 router.post('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {applicationId}=req.body||{};
@@ -397,7 +403,13 @@ router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
  const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
  const {data,error,count}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status',{count:'exact'}).order('billing_month',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
- if(error)throw error;res.json({invoices:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
+ if(error)throw error;
+ const ids=[...new Set((data||[]).map(row=>row.student_account_id).filter(Boolean))];
+ const {data:accounts,error:accountError}=ids.length?await db.from('local_accounts').select('id,full_name,email').in('id',ids):{data:[],error:null};
+ if(accountError)throw accountError;
+ const byId=new Map((accounts||[]).map(row=>[row.id,row]));
+ const invoices=(data||[]).map(row=>({...row,student_name:byId.get(row.student_account_id)?.full_name||null,student_email:byId.get(row.student_account_id)?.email||null}));
+ res.json({invoices,total:count??0,limit,offset,hasMore:offset+invoices.length<(count??0)});
 }));
 router.get('/services/catalogue',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,active,allow_online,allow_physical').order('name');
