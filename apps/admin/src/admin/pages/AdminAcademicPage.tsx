@@ -448,7 +448,7 @@ export default function AdminAcademicPage() {
           <div className="min-w-0">
             <div className="text-xl font-black text-[#111A43]">{loading ? '—' : catalogue.programmes.length}</div>
             <div className="text-xs font-bold text-slate-700 truncate">Programmes</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Active Pathways</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Programme records</div>
           </div>
         </div>
 
@@ -475,7 +475,7 @@ export default function AdminAcademicPage() {
           <div className="min-w-0">
             <div className="text-xl font-black text-[#111A43]">{loading ? '—' : timetablePlans.length}</div>
             <div className="text-xs font-bold text-slate-700 truncate">Timetables</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Active Cohort Plans</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Timetable plans</div>
           </div>
         </div>
 
@@ -497,7 +497,7 @@ export default function AdminAcademicPage() {
           <div className="min-w-0">
             <div className="text-xl font-black text-[#111A43]">{loading ? '—' : (academicData.assignments || []).length}</div>
             <div className="text-xs font-bold text-slate-700 truncate">Assignments</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Active Coursework</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Assignment records</div>
           </div>
         </div>
       </div>
@@ -576,7 +576,7 @@ export default function AdminAcademicPage() {
           TAB CONTENT: TIMETABLE MATRIX
           ========================================================================= */}
       {activeTab === 'Timetable' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-extrabold text-[#111A43]">
@@ -752,7 +752,7 @@ export default function AdminAcademicPage() {
           TAB CONTENT: ATTENDANCE
           ========================================================================= */}
       {activeTab === 'Attendance' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-extrabold text-[#111A43]">
