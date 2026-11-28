@@ -61,6 +61,8 @@ export default function AdminLayout({
   const handleSignOut = () => {
     setProfileDropdownOpen(false);
     setMobileDrawerOpen(false);
+    sessionStorage.removeItem('upec_admin_session');
+    localStorage.removeItem('upec_admin_session');
     sessionStorage.removeItem('upec_staff_token');
     localStorage.removeItem('upec_staff_token');
     sessionStorage.removeItem('upec_admin_token');
