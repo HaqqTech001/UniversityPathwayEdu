@@ -124,13 +124,15 @@ router.get('/students/:id',permit('applications.read'),wrap(async(req,res)=>{
  res.json({student:account.data,biodata:biodata.data,applications:applications.data||[],reviews:reviews.data||[]});
 }));
 router.get('/activity',permit('applications.read'),wrap(async(req,res)=>{
- const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,status,submitted_at').order('created_at',{ascending:false}).limit(5);
+ const limit=Math.min(100,Math.max(1,Number.parseInt(String(req.query.limit||'50'),10)||50));
+ const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
+ const {data,error,count}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,status,submitted_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
  if(error)throw error;
  const ids=[...new Set((data||[]).map(row=>row.account_id))];
  const accounts=ids.length?await db.from('local_accounts').select('id,full_name').in('id',ids):{data:[],error:null};
  if(accounts.error)throw accounts.error;
  const names=new Map((accounts.data||[]).map(row=>[row.id,row.full_name]));
- res.json({activities:(data||[]).map(row=>({id:row.id,title:'Application '+String(row.status||'updated').replaceAll('_',' '),body:(names.get(row.account_id)||'Student')+' · '+row.reference_number+' · '+row.programme,created_at:row.submitted_at}))});
+ res.json({activities:(data||[]).map(row=>({id:row.id,title:'Application '+String(row.status||'updated').replaceAll('_',' '),body:(names.get(row.account_id)||'Student')+' · '+row.reference_number+' · '+row.programme,created_at:row.submitted_at,status:row.status,reference_number:row.reference_number})),total:count??0,limit,offset,hasMore:offset+limit<(count??0)});
 }));
 router.get('/applications',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('local_student_applications').select('id,account_id,reference_number,programme,academic_session,status,submitted_at,student_registration_number').order('submitted_at',{ascending:false}).limit(100);
