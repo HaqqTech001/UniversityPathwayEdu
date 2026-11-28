@@ -321,8 +321,10 @@ router.get('/finance/application-search',permit('finance.manage'),wrap(async(req
  res.json({applications:(data||[]).map(({id,reference_number,programme,academic_session,status,account_id})=>({id,reference_number,programme,academic_session,status,account_id}))});
 }));
 router.get('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_registration_invoices').select('id,student_account_id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at').order('created_at',{ascending:false}).limit(100);
- if(error)throw error;res.json({invoices:data||[]});
+ const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
+ const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
+ const {data,error,count}=await db.from('upec_registration_invoices').select('id,student_account_id,programme_code,academic_session,fee_amount_ngn,amount_paid_ngn,status,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(offset,offset+limit-1);
+ if(error)throw error;res.json({invoices:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
 }));
 router.post('/finance/registration-invoices',permit('finance.manage'),wrap(async(req,res)=>{
  const {applicationId}=req.body||{};
@@ -392,8 +394,10 @@ router.get('/finance/summary',permit('finance.manage'),wrap(async(req,res)=>{
  res.json({month:month||null,report,registration});
 }));
 router.get('/finance/invoices',permit('finance.manage'),wrap(async(req,res)=>{
- const {data,error}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status').order('billing_month',{ascending:false}).limit(100);
- if(error)throw error;res.json({invoices:data||[]});
+ const limit=Math.min(200,Math.max(1,Number.parseInt(String(req.query.limit||'100'),10)||100));
+ const offset=Math.max(0,Number.parseInt(String(req.query.offset||'0'),10)||0);
+ const {data,error,count}=await db.from('upec_student_monthly_fees').select('id,student_account_id,programme_code,billing_month,due_on,amount_due_ngn,amount_paid_ngn,status',{count:'exact'}).order('billing_month',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
+ if(error)throw error;res.json({invoices:data||[],total:count??0,limit,offset,hasMore:offset+(data||[]).length<(count??0)});
 }));
 router.get('/services/catalogue',permit('applications.read'),wrap(async(req,res)=>{
  const {data,error}=await db.from('upec_service_catalogue').select('code,name,description,active,allow_online,allow_physical').order('name');
